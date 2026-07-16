@@ -164,13 +164,43 @@
   text-align: center;
 }
 
-.login-form select#loginAdvisorSelect {
+.login-form select#loginAdvisorSelect,
+.login-form select#loginRoleSelect {
   width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 14px;
   padding: 12px 14px;
   font-size: 15px;
   background: white;
+}
+
+.superadmin-only-hidden {
+  display: none !important;
+}
+
+.sidebar-footer {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #1e293b;
+}
+
+.sidebar-footer small {
+  display: block;
+  color: #94a3b8;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.logout-link {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: #fca5a5;
+  cursor: pointer;
+}
+
+.logout-link:hover {
+  background: #1e293b;
 }
 
 .login-form .field-help {

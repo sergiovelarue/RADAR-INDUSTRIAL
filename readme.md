@@ -1,5 +1,18 @@
 # Radar Comercial ConAccion Industria
 
+## V1.1 - Tres perfiles: Asesor / Administrador / Super Administrador
+
+Se agrega un tercer nivel de acceso para separar "ver todo" de "poder configurar la aplicación":
+
+- **Asesor** (sin cambios): al ingresar solo ve sus propios clientes y todos los cálculos (venta, meta, cumplimiento, faltante, Salud del Portafolio, etc.) quedan calculados únicamente sobre su cartera.
+- **Administrador** (nuevo, autogestionado): cualquier correo que no sea `@comodisimos.com` puede elegir este rol en su primer ingreso. Ve la información de todos los asesores y puede filtrar por un asesor puntual, igual que antes. Mantiene acceso a Actualización diaria, exportaciones (asignación actualizada, historial de cambios, respaldo de sincronización) y edición de datos básicos de cualquier cliente (ciudad, departamento, canal, línea base). **No puede**: configurar el crecimiento esperado por clasificación, reasignar el asesor de un cliente, bloquear/desbloquear clientes, marcar VIP Gerencia, ni ver estadísticas de uso o descargar el log de accesos.
+- **Super Administrador** (fijo: `sergiovelasquez@me.com`): todo lo anterior, más las funciones exclusivas de configuración: panel de crecimiento esperado por clasificación (A/B/C/E/N), reasignación de asesor, bloqueo/desbloqueo de clientes, marcado de VIP Gerencia, estadísticas de uso y descarga del log de accesos.
+
+Detalles de implementación:
+- El login ahora pide, solo en el primer ingreso de cada correo, elegir "Asesor" (y a qué asesor corresponde) o "Administrador". Esa elección se guarda localmente para los siguientes ingresos.
+- Se agregó una etiqueta de sesión y el botón "Cerrar sesión" se movió al menú lateral (antes vivía dentro del panel de estadísticas de uso, por lo que solo el administrador único podía cerrar sesión desde la interfaz).
+- No requiere cambios en ninguna base de datos compartida: toda la lógica de roles vive en el front-end (localStorage), igual que el resto de Radar Comercial hoy.
+
 ## V1.0 - Fork solo línea Espumas (industrial B2B)
 
 Esta versión es un fork de Radar Comercial B2B V9.2 (ConAccion), hecho para negocios industriales B2B que solo manejan línea Espumas.

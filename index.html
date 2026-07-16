@@ -28,9 +28,17 @@
         <label>Teléfono celular</label>
         <input type="tel" id="loginPhone" placeholder="3001234567" autocomplete="tel"/>
 
-        <label>Asesor</label>
-        <select id="loginAdvisorSelect"></select>
-        <small class="field-help">Solo la primera vez que ingresas con este correo. Si ya ingresaste antes, puedes dejarlo en blanco.</small>
+        <label>Tipo de acceso</label>
+        <select id="loginRoleSelect">
+          <option value="asesor">Asesor</option>
+          <option value="administrador">Administrador</option>
+        </select>
+        <small class="field-help">Solo la primera vez que ingresas con este correo. Si ya ingresaste antes, se recuerda automáticamente.</small>
+
+        <div id="loginAdvisorWrapper">
+          <label>Asesor</label>
+          <select id="loginAdvisorSelect"></select>
+        </div>
 
         <label class="remember-row">
           <input type="checkbox" id="rememberSession" checked/>
@@ -49,9 +57,13 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-icon">R</div>
-        <div><h1>Radar Comercial Industria</h1><small>ConAccion · V1.0 · Línea Espumas</small></div>
+        <div><h1>Radar Comercial Industria</h1><small>ConAccion · V1.1 · Línea Espumas</small></div>
       </div>
       <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navDashboard">Dashboard director</a><a id="navGlossary">Glosario comercial</a></nav>
+      <div class="sidebar-footer">
+        <small id="sessionRoleLabel"></small>
+        <a id="logoutBtn" class="logout-link">Cerrar sesión</a>
+      </div>
     </aside>
     <main class="main">
       <header class="topbar">
@@ -73,7 +85,7 @@
         <div class="panel-header">
           <div>
             <h3>Configuración comercial por clasificación</h3>
-            <p>Solo administrador. Define el crecimiento esperado para recalcular metas sugeridas.</p>
+            <p>Solo Super Administrador. Define el crecimiento esperado para recalcular metas sugeridas.</p>
           </div>
         </div>
         <div class="growth-grid">
@@ -93,7 +105,7 @@
         <div class="panel-header">
           <div>
             <h3>Estadísticas de uso Radar</h3>
-            <p>Visible solo para administrador. Mide accesos y adopción de la herramienta.</p>
+            <p>Visible solo para Super Administrador. Mide accesos y adopción de la herramienta.</p>
           </div>
         </div>
 
@@ -106,7 +118,6 @@
 
         <div class="usage-actions">
           <button class="btn" id="downloadAccessLogBtn">Descargar log de accesos</button>
-          <button class="btn ghost" id="logoutBtn">Cerrar sesión</button>
         </div>
 
         <div class="usage-table-wrap">
@@ -487,7 +498,7 @@
             </select>
           </label>
         </div>
-        <small id="masterEditHelp">Los asesores pueden completar información de sus clientes. Solo administrador puede reasignar asesor.</small>
+        <small id="masterEditHelp">Los asesores pueden completar información de sus clientes. Solo Super Administrador puede reasignar asesor, bloquear clientes o marcar VIP Gerencia.</small>
       </div>
 
       <div class="modal-form">

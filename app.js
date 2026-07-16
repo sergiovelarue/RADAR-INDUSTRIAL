@@ -534,8 +534,9 @@ validateDailyFiles = async function(){
 // ===============================
 // V8.4 - Login, perfiles y log de acceso
 // V9.2 - Acceso abierto por asesor (rebrand ConAccion)
+// V1.1 - Tres perfiles: Asesor / Administrador / Super Administrador
 // ===============================
-const ADMIN_EMAIL_V92 = "sergiovelasquez@me.com";
+const ADMIN_EMAIL_V92 = "sergiovelasquez@me.com"; // Super Administrador fijo
 const BLOCKED_DOMAIN_V92 = "@comodisimos.com";
 
 function advisorEmailMapV92Get(){
@@ -548,26 +549,51 @@ function advisorEmailMapV92Save(map){
 function isBlockedDomainV92(email){
   return String(email || "").trim().toLowerCase().endsWith(BLOCKED_DOMAIN_V92);
 }
-// Resuelve el usuario a partir del correo.
+
+// Resuelve el usuario a partir del correo y, si es primer ingreso, del rol elegido.
 // - Bloquea el dominio @comodisimos.com.
-// - sergiovelasquez@me.com es el único administrador.
-// - Cualquier otro correo se asocia a un asesor elegido en su primer ingreso
-//   (queda guardado localmente para los siguientes ingresos desde ese correo).
-function resolveUserV92(email, chosenAdvisor){
+// - sergiovelasquez@me.com es el único Super Administrador (fijo, no se puede elegir).
+// - Cualquier otro correo, en su primer ingreso, elige "Asesor" (y a qué asesor
+//   corresponde) o "Administrador". Esa elección queda guardada localmente para
+//   los siguientes ingresos desde ese correo.
+// tier: "superadmin" | "admin" | "advisor" — usado para permisos finos.
+// profile: "admin" | "advisor" — se mantiene así por compatibilidad con la lógica
+//   existente de visibilidad (Administrador y Super Administrador ven todo).
+function resolveUserV93(email, chosenAdvisor, chosenRole){
   email = String(email || "").trim().toLowerCase();
   if(isBlockedDomainV92(email)) return { blocked: true };
+
   if(email === ADMIN_EMAIL_V92){
-    return { user: { profile: "admin", advisor: "ADMINISTRADOR", name: "SERGIO VELÁSQUEZ" } };
+    return { user: { profile: "admin", tier: "superadmin", advisor: "SUPER ADMINISTRADOR", name: "SERGIO VELÁSQUEZ" } };
   }
+
   const map = advisorEmailMapV92Get();
-  let advisor = map[email];
-  if(!advisor && chosenAdvisor){
-    advisor = chosenAdvisor;
-    map[email] = advisor;
-    advisorEmailMapV92Save(map);
+  let entry = map[email];
+
+  if(!entry){
+    if(chosenRole === "administrador"){
+      entry = { role: "administrador" };
+      map[email] = entry;
+      advisorEmailMapV92Save(map);
+    } else if(chosenAdvisor){
+      entry = { role: "advisor", advisor: chosenAdvisor };
+      map[email] = entry;
+      advisorEmailMapV92Save(map);
+    }
   }
-  if(!advisor) return { needsAdvisor: true };
-  return { user: { profile: "advisor", advisor, name: advisor } };
+
+  if(!entry) return { needsSelection: true };
+
+  if(entry.role === "administrador"){
+    const label = email.split("@")[0].replace(/[._]+/g, " ").trim().toUpperCase();
+    return { user: { profile: "admin", tier: "admin", advisor: "ADMINISTRADOR", name: label || "ADMINISTRADOR" } };
+  }
+
+  return { user: { profile: "advisor", tier: "advisor", advisor: entry.advisor, name: entry.advisor } };
+}
+
+function isSuperAdminV93(){
+  return typeof currentUserV84 !== "undefined" && !!currentUserV84 && currentUserV84.tier === "superadmin";
 }
 
 let currentUserV84 = null;
@@ -599,7 +625,7 @@ function logAccessV84(user, phone){
     hora: now.toLocaleTimeString("es-CO"),
     email: user.email,
     nombre: user.name,
-    perfil: user.profile === "admin" ? "Administrador" : "Asesor",
+    perfil: user.tier === "superadmin" ? "Super Administrador" : (user.profile === "admin" ? "Administrador" : "Asesor"),
     asesor: user.advisor,
     telefono: String(phone || "").replace(/\D/g, "")
   });
@@ -671,16 +697,18 @@ function attemptLoginV84(){
     return;
   }
 
+  const roleSelect = $("loginRoleSelect");
+  const chosenRole = roleSelect ? roleSelect.value : "asesor";
   const advisorSelect = $("loginAdvisorSelect");
   const chosenAdvisor = advisorSelect ? advisorSelect.value : "";
-  const resolved = resolveUserV92(email, chosenAdvisor);
+  const resolved = resolveUserV93(email, chosenAdvisor, chosenRole);
 
   if(resolved.blocked){
     error.textContent = "Este dominio de correo ya no está autorizado para ingresar a Radar.";
     return;
   }
-  if(resolved.needsAdvisor){
-    error.textContent = "Primer ingreso: selecciona a qué asesor corresponde este correo.";
+  if(resolved.needsSelection){
+    error.textContent = "Primer ingreso: selecciona a qué asesor corresponde este correo, o elige \"Administrador\" si aplica.";
     return;
   }
 
@@ -689,11 +717,22 @@ function attemptLoginV84(){
   logAccessV84(fullUser, phone);
   applyUserProfileV84();
   renderUsageDashboardV84();
+  updateSessionRoleLabelV93();
   render();
+}
+
+function updateSessionRoleLabelV93(){
+  const roleLabel = $("sessionRoleLabel");
+  if(!roleLabel) return;
+  if(!currentUserV84){ roleLabel.textContent = ""; return; }
+  const label = currentUserV84.tier === "superadmin" ? "Super Administrador" :
+    (currentUserV84.profile === "admin" ? "Administrador" : `Asesor · ${currentUserV84.advisor}`);
+  roleLabel.textContent = `${currentUserV84.name} · ${label}`;
 }
 
 function logoutV84(){
   clearSessionV84();
+  updateSessionRoleLabelV93();
   const login = $("loginOverlay");
   if(login) login.classList.remove("hidden");
   $("loginEmail").value = "";
@@ -738,7 +777,7 @@ function renderUsageDashboardV84(){
   const panel = $("usageAdminPanel");
   if(!panel) return;
 
-  const isAdmin = currentUserV84 && currentUserV84.profile === "admin";
+  const isAdmin = isSuperAdminV93();
   panel.classList.toggle("hidden-by-profile", !isAdmin);
 
   if(!isAdmin) return;
@@ -788,7 +827,7 @@ if(previousApplyProfileUiV84){
       const panel = $("dailyUpdatePanel");
       const growth = $("growthConfigPanel");
       if(panel) panel.classList.toggle("hidden-by-profile", currentUserV84.profile !== "admin");
-      if(growth) growth.classList.toggle("hidden-by-profile", currentUserV84.profile !== "admin");
+      if(growth) growth.classList.toggle("hidden-by-profile", !isSuperAdminV93());
       renderUsageDashboardV84();
     }
   };
@@ -809,8 +848,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const advisorSelect = $("loginAdvisorSelect");
   if(advisorSelect){
-    advisorSelect.innerHTML = '<option value="">Selecciona tu asesor (solo primer ingreso)</option>' +
+    advisorSelect.innerHTML = '<option value="">Selecciona tu asesor</option>' +
       (DATA.meta.asesores || []).map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
+  }
+
+  const roleSelect = $("loginRoleSelect");
+  const advisorWrapper = $("loginAdvisorWrapper");
+  if(roleSelect && advisorWrapper){
+    const syncAdvisorWrapper = () => {
+      advisorWrapper.style.display = roleSelect.value === "administrador" ? "none" : "";
+    };
+    syncAdvisorWrapper();
+    roleSelect.addEventListener("change", syncAdvisorWrapper);
   }
 
   ["loginEmail","loginPhone"].forEach(id => {
@@ -824,7 +873,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const saved = getSessionV84();
   const savedOk = saved && saved.email && !isBlockedDomainV92(saved.email) &&
-    (saved.email === ADMIN_EMAIL_V92 || (saved.advisor && (DATA.meta.asesores || []).includes(saved.advisor)));
+    (saved.email === ADMIN_EMAIL_V92 ||
+     saved.tier === "admin" ||
+     (saved.advisor && (DATA.meta.asesores || []).includes(saved.advisor)));
   if(savedOk){
     currentUserV84 = saved;
     applyUserProfileV84();
@@ -833,6 +884,8 @@ document.addEventListener("DOMContentLoaded", () => {
   } else if(saved){
     clearSessionV84();
   }
+
+  updateSessionRoleLabelV93();
 
   const logoutBtn = $("logoutBtn");
   if(logoutBtn) logoutBtn.addEventListener("click", logoutV84);
@@ -955,9 +1008,9 @@ function clientIncompleteV86(c){return !c.cliente||String(c.cliente).startsWith(
 function fillAdvisorEditSelectV86(){const sel=$("modalAsesorEdit");if(!sel)return;sel.innerHTML="";["SIN ASIGNACION",...(DATA.meta.asesores||[])].forEach(a=>{const op=document.createElement("option");op.value=a;op.textContent=a;sel.appendChild(op)})}
 function logMasterChangeV86(nit,cliente,field,oldValue,newValue){if(String(oldValue??"")===String(newValue??""))return;const now=new Date();const logs=getMasterLogsV86();logs.push({timestamp:now.toISOString(),fecha:now.toLocaleDateString("es-CO"),hora:now.toLocaleTimeString("es-CO"),usuario:currentUserLabelV86(),nit,cliente,campo:field,valorAnterior:oldValue??"",valorNuevo:newValue??""});saveMasterLogsV86(logs)}
 const _openV86=openClientDetailV81;
-openClientDetailV81=function(nit){_openV86(nit);const c=DATA.clientes.find(x=>cleanNit(x.nit)===cleanNit(nit));if(!c)return;fillAdvisorEditSelectV86();if($("modalClienteEdit"))$("modalClienteEdit").value=c.cliente||"";if($("modalNitEdit"))$("modalNitEdit").value=c.nit||"";if($("modalAsesorEdit"))$("modalAsesorEdit").value=c.asesorAsignado||"SIN ASIGNACION";if($("modalCiudadEdit"))$("modalCiudadEdit").value=c.ciudad||"";if($("modalDepartamentoEdit"))$("modalDepartamentoEdit").value=c.departamento||"";if($("modalCanalEdit"))$("modalCanalEdit").value=c.canal||"";if($("modalLineaBaseEdit"))$("modalLineaBaseEdit").value=c.lineaBase||"";const canEdit=isAdvisorAllowedToEditV86(c),admin=isAdminV86();["modalClienteEdit","modalCiudadEdit","modalDepartamentoEdit","modalCanalEdit","modalLineaBaseEdit"].forEach(id=>{const el=$(id);if(el)el.disabled=!canEdit});if($("modalAsesorEdit"))$("modalAsesorEdit").disabled=!admin;if($("masterEditHelp"))$("masterEditHelp").textContent=admin?"Administrador: puedes editar datos y reasignar asesor.":"Asesor: puedes completar datos de tus clientes; no puedes cambiar el asesor."}
+openClientDetailV81=function(nit){_openV86(nit);const c=DATA.clientes.find(x=>cleanNit(x.nit)===cleanNit(nit));if(!c)return;fillAdvisorEditSelectV86();if($("modalClienteEdit"))$("modalClienteEdit").value=c.cliente||"";if($("modalNitEdit"))$("modalNitEdit").value=c.nit||"";if($("modalAsesorEdit"))$("modalAsesorEdit").value=c.asesorAsignado||"SIN ASIGNACION";if($("modalCiudadEdit"))$("modalCiudadEdit").value=c.ciudad||"";if($("modalDepartamentoEdit"))$("modalDepartamentoEdit").value=c.departamento||"";if($("modalCanalEdit"))$("modalCanalEdit").value=c.canal||"";if($("modalLineaBaseEdit"))$("modalLineaBaseEdit").value=c.lineaBase||"";const canEdit=isAdvisorAllowedToEditV86(c),canReassign=isSuperAdminV93();["modalClienteEdit","modalCiudadEdit","modalDepartamentoEdit","modalCanalEdit","modalLineaBaseEdit"].forEach(id=>{const el=$(id);if(el)el.disabled=!canEdit});if($("modalAsesorEdit"))$("modalAsesorEdit").disabled=!canReassign;if($("masterEditHelp"))$("masterEditHelp").textContent=canReassign?"Super Administrador: puedes editar datos, reasignar asesor, bloquear y marcar VIP.":(isAdminV86()?"Administrador: puedes editar datos, sin reasignar asesor ni bloquear.":"Asesor: puedes completar datos de tus clientes; no puedes cambiar el asesor.")}
 const _saveV86=saveClientDetailV81;
-saveClientDetailV81=function(){if(!activeClientNit)return;const c=DATA.clientes.find(x=>cleanNit(x.nit)===activeClientNit);if(!c)return;if(isAdvisorAllowedToEditV86(c)){const updates={cliente:$("modalClienteEdit")?.value?.trim(),ciudad:$("modalCiudadEdit")?.value?.trim(),departamento:$("modalDepartamentoEdit")?.value?.trim(),canal:$("modalCanalEdit")?.value?.trim(),lineaBase:$("modalLineaBaseEdit")?.value?.trim()};Object.entries(updates).forEach(([field,value])=>{if(value!==undefined&&String(c[field]??"")!==String(value??"")){logMasterChangeV86(c.nit,c.cliente,field,c[field],value);c[field]=value}});if(isAdminV86()&&$("modalAsesorEdit")){const newAdvisor=$("modalAsesorEdit").value;if(String(c.asesorAsignado||"")!==String(newAdvisor||"")){logMasterChangeV86(c.nit,c.cliente,"asesorAsignado",c.asesorAsignado,newAdvisor);c.asesorAsignado=newAdvisor;if(newAdvisor&&newAdvisor!=="SIN ASIGNACION"&&!(DATA.meta.asesores||[]).includes(newAdvisor)){DATA.meta.asesores.push(newAdvisor);DATA.meta.asesores.sort()}}}}_saveV86()}
+saveClientDetailV81=function(){if(!activeClientNit)return;const c=DATA.clientes.find(x=>cleanNit(x.nit)===activeClientNit);if(!c)return;if(isAdvisorAllowedToEditV86(c)){const updates={cliente:$("modalClienteEdit")?.value?.trim(),ciudad:$("modalCiudadEdit")?.value?.trim(),departamento:$("modalDepartamentoEdit")?.value?.trim(),canal:$("modalCanalEdit")?.value?.trim(),lineaBase:$("modalLineaBaseEdit")?.value?.trim()};Object.entries(updates).forEach(([field,value])=>{if(value!==undefined&&String(c[field]??"")!==String(value??"")){logMasterChangeV86(c.nit,c.cliente,field,c[field],value);c[field]=value}});if(isSuperAdminV93()&&$("modalAsesorEdit")){const newAdvisor=$("modalAsesorEdit").value;if(String(c.asesorAsignado||"")!==String(newAdvisor||"")){logMasterChangeV86(c.nit,c.cliente,"asesorAsignado",c.asesorAsignado,newAdvisor);c.asesorAsignado=newAdvisor;if(newAdvisor&&newAdvisor!=="SIN ASIGNACION"&&!(DATA.meta.asesores||[]).includes(newAdvisor)){DATA.meta.asesores.push(newAdvisor);DATA.meta.asesores.sort()}}}}_saveV86()}
 const _renderTableV86=renderTable;
 renderTable=function(arr){_renderTableV86(arr);document.querySelectorAll("#routeBody tr").forEach(row=>{const nitCell=row.querySelector('[data-label="NIT"]'),clientCell=row.querySelector('[data-label="Cliente"]');if(!nitCell||!clientCell)return;const c=DATA.clientes.find(x=>cleanNit(x.nit)===cleanNit(nitCell.textContent));if(c&&clientIncompleteV86(c)&&!clientCell.querySelector(".client-incomplete")){const badge=document.createElement("span");badge.className="client-incomplete";badge.textContent="Cliente incompleto";clientCell.appendChild(badge)}})}
 function downloadMasterDataV86(){const rows=[["NIT","Cliente","Asesor Asignado","Ciudad","Departamento","Canal","Linea Base","Tipo Cliente","Estado","Clasificacion","Venta 2025","Venta 2026"]];DATA.clientes.forEach(c=>rows.push([c.nit,c.cliente,c.asesorAsignado,c.ciudad,c.departamento,c.canal,c.lineaBase,c.tipoCliente,c.estado,c.clasificacion,c.total2025||0,c.total2026||0]));downloadCsvV86(rows,"radar_asignacion_actualizada.csv")}
@@ -1055,9 +1108,9 @@ openClientDetailV81 = function(nit){
   if($("modalDepartamentoEdit")) $("modalDepartamentoEdit").onchange = e => fillCitySelectV87(e.target.value, "");
   if($("modalBloqueadoEdit")) $("modalBloqueadoEdit").value = isBlockedV87(c) ? "true" : "false";
   if($("modalMotivoBloqueoEdit")) $("modalMotivoBloqueoEdit").value = c.motivoBloqueo || "";
-  const admin = typeof isAdminV86 === "function" && isAdminV86();
-  if($("modalBloqueadoEdit")) $("modalBloqueadoEdit").disabled = !admin;
-  if($("modalMotivoBloqueoEdit")) $("modalMotivoBloqueoEdit").disabled = !admin;
+  const canEditBlock = isSuperAdminV93();
+  if($("modalBloqueadoEdit")) $("modalBloqueadoEdit").disabled = !canEditBlock;
+  if($("modalMotivoBloqueoEdit")) $("modalMotivoBloqueoEdit").disabled = !canEditBlock;
   const old = document.querySelector(".blocked-warning"); if(old) old.remove();
   if(isBlockedV87(c)){
     const box = document.querySelector(".master-edit-box");
@@ -1074,7 +1127,7 @@ saveClientDetailV81 = function(){
   if($("modalDepartamentoEdit")) c.departamento = $("modalDepartamentoEdit").value;
   if($("modalCiudadEdit")) c.ciudad = $("modalCiudadEdit").value;
 
-  if(typeof isAdminV86 === "function" && isAdminV86()){
+  if(isSuperAdminV93()){
     const oldBlocked = isBlockedV87(c);
     const newBlocked = $("modalBloqueadoEdit")?.value === "true";
     const oldReason = c.motivoBloqueo || "";
@@ -1211,9 +1264,9 @@ openClientDetailV81 = function(nit){
   if($("modalVipGerenciaEdit")) $("modalVipGerenciaEdit").value = isVipGerenciaV88(c) ? "true" : "false";
   if($("modalMotivoVipEdit")) $("modalMotivoVipEdit").value = c.motivoVipGerencia || "";
 
-  const admin = isAdminForVipV88();
-  if($("modalVipGerenciaEdit")) $("modalVipGerenciaEdit").disabled = !admin;
-  if($("modalMotivoVipEdit")) $("modalMotivoVipEdit").disabled = !admin;
+  const canEditVip = isSuperAdminV93();
+  if($("modalVipGerenciaEdit")) $("modalVipGerenciaEdit").disabled = !canEditVip;
+  if($("modalMotivoVipEdit")) $("modalMotivoVipEdit").disabled = !canEditVip;
 
   const old = document.querySelector(".vip-warning");
   if(old) old.remove();
@@ -1237,7 +1290,7 @@ saveClientDetailV81 = function(){
 
   if($("modalCanalEdit")) c.canal = $("modalCanalEdit").value;
 
-  if(isAdminForVipV88()){
+  if(isSuperAdminV93()){
     const oldVip = isVipGerenciaV88(c);
     const newVip = $("modalVipGerenciaEdit")?.value === "true";
     const oldReason = c.motivoVipGerencia || "";
@@ -1396,16 +1449,22 @@ function isAdminProfileV811(){
 
 function applyAdminVisibilityV811(){
   const admin = isAdminProfileV811();
+  const superAdmin = typeof isSuperAdminV93 === "function" && isSuperAdminV93();
 
+  // Visible para Administrador y Super Administrador (exportaciones y carga operativa).
   [
     "dailyUpdatePanel",
-    "growthConfigPanel",
-    "usageAdminPanel",
     "masterDataAdminPanel",
     "syncAdminPanel"
   ].forEach(id => {
     const el = $(id);
     if(el) el.classList.toggle("admin-only-panel-hidden", !admin);
+  });
+
+  // Exclusivo Super Administrador: configuración de crecimiento y estadísticas de uso.
+  ["growthConfigPanel", "usageAdminPanel"].forEach(id => {
+    const el = $(id);
+    if(el) el.classList.toggle("superadmin-only-hidden", !superAdmin);
   });
 
   const advisorWrapper = $("advisorFilter")?.closest("div");
