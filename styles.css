@@ -1,0 +1,365 @@
+:root{--bg:#f4f6f9;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--dark:#0f172a;--blue:#2563eb}*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--ink)}.app{display:flex;min-height:100vh}.sidebar{width:260px;background:var(--dark);color:white;padding:24px;position:sticky;top:0;height:100vh}.brand{display:flex;gap:12px;align-items:center;margin-bottom:28px}.brand-icon{width:42px;height:42px;border-radius:14px;background:#2563eb;display:flex;align-items:center;justify-content:center;font-weight:900}.brand h1{font-size:17px;margin:0}.brand small{color:#cbd5e1}nav a{display:block;padding:12px 14px;border-radius:12px;color:#cbd5e1;margin-bottom:6px}nav a.active{background:#1e293b;color:white}.main{flex:1;padding:24px;max-width:1600px;margin:0 auto}.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:16px}.topbar h2{margin:0;font-size:30px}.topbar p{margin:4px 0 0;color:var(--muted)}.btn{border:none;background:var(--dark);color:white;padding:11px 16px;border-radius:12px;font-weight:800;cursor:pointer}.btn.secondary{background:#2563eb}.btn.ghost{background:white;color:var(--dark);border:1px solid var(--line)}.admin-panel,.table-card{background:white;border:1px solid var(--line);border-radius:22px;padding:20px;margin-bottom:18px}.panel-header h3{margin:0;font-size:22px}.panel-header p{margin:5px 0 0;color:var(--muted)}.upload-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:16px}.upload-grid article{background:#f9fafb;border:1px solid var(--line);border-radius:16px;padding:16px}.upload-grid h4{margin:0 0 10px}.upload-grid input{width:100%}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.update-result{margin-top:14px;border:1px dashed #cbd5e1;background:#f8fafc;border-radius:14px;padding:14px;color:#334155}.update-result.ok{background:#ecfdf5;border-color:#a7f3d0}.update-result.error{background:#fff1f2;border-color:#fecdd3}.filters{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:12px;background:white;border:1px solid var(--line);border-radius:22px;padding:16px;margin-bottom:18px}.filters label{display:block;font-size:12px;color:var(--muted);font-weight:900;margin-bottom:6px}.filters select,.filters input{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:10px;background:white}.kpi-grid{display:grid;grid-template-columns:repeat(6,minmax(140px,1fr));gap:12px;margin-bottom:14px}.kpi-grid article,.type-grid article,.breakdown article{background:white;border:1px solid var(--line);border-radius:18px;padding:16px}.kpi-grid span,.type-grid span,.breakdown span{display:block;color:var(--muted);font-size:12px;font-weight:900}.kpi-grid strong,.type-grid strong,.breakdown strong{display:block;font-size:24px;margin-top:5px}.kpi-grid small,.breakdown small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}.type-grid article{cursor:pointer}.type-grid article.active{border:2px solid var(--dark)}.breakdown{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}body.view-espumas .breakdown,body.view-colchones .breakdown{display:none}.table-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.table-header h3{margin:0;font-size:22px}.table-header span{color:var(--muted);font-weight:800}.table-scroll{overflow:auto}table{width:100%;border-collapse:collapse;table-layout:auto}th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:13px}th{background:#f9fafb;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.04em}td:nth-child(1),th:nth-child(1){max-width:50ch;min-width:22ch}td:nth-child(2),th:nth-child(2){width:12ch;max-width:12ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}td:nth-child(n+6){white-space:nowrap}.client-main{display:block;font-weight:900;color:#111827;max-width:50ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.client-location{display:block;margin-top:3px;color:#6b7280;font-size:12px}.badge{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;white-space:nowrap}.badge.espumas{background:#dbeafe;color:#1d4ed8}.badge.colchones{background:#ede9fe;color:#6d28d9}.badge.mixto{background:#dcfce7;color:#15803d}.badge.nuevo{background:#f3f4f6;color:#6b7280}.status{font-weight:800}.green{background:#ecfdf5}.yellow{background:#fffbeb}.red{background:#fff1f2}.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}.summary-grid article{background:white;border:1px solid var(--line);border-radius:12px;padding:10px}@media(max-width:1100px){.sidebar{display:none}.main{padding:14px}.filters,.kpi-grid{grid-template-columns:repeat(2,1fr)}.type-grid,.breakdown{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.topbar{flex-direction:column;align-items:flex-start}.filters,.kpi-grid,.type-grid,.breakdown{grid-template-columns:1fr}table,thead,tbody,tr,td,th{display:block;width:100%}thead{display:none}tr{background:white;border:1px solid var(--line);border-radius:16px;margin-bottom:12px;padding:10px}td{border:none!important;display:flex;justify-content:space-between;gap:12px;padding:8px 0}td::before{content:attr(data-label);font-weight:900;color:var(--muted)}td:first-child{display:block}td:first-child::before{display:none}}
+
+/* V8.1 - Operación asesor, mes, orden y detalle */
+.filters { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; }
+.hidden-by-profile { display: none !important; }
+.detail-btn { border: 1px solid #d1d5db; background: white; color: #111827; padding: 7px 10px; border-radius: 10px; font-weight: 800; cursor: pointer; }
+.detail-btn:hover { background: #f3f4f6; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none; align-items: center; justify-content: center; padding: 18px; z-index: 1000; }
+.modal-overlay.open { display: flex; }
+.modal-card { width: min(780px, 100%); max-height: 92vh; overflow: auto; background: white; border-radius: 24px; padding: 22px; box-shadow: 0 24px 80px rgba(15,23,42,.28); }
+.modal-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+.modal-header h3 { margin: 0; font-size: 24px; }
+.modal-header p { margin: 4px 0 0; color: #6b7280; }
+.modal-close { border: none; background: #f3f4f6; width: 36px; height: 36px; border-radius: 999px; font-size: 24px; cursor: pointer; }
+.modal-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 10px; margin-bottom: 18px; }
+.modal-grid article { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px; }
+.modal-grid span { display: block; color: #6b7280; font-size: 11px; font-weight: 900; }
+.modal-grid strong { display: block; margin-top: 4px; }
+.modal-form label { display: block; margin: 12px 0 6px; color: #374151; font-size: 12px; font-weight: 900; }
+.modal-form input, .modal-form select, .modal-form textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 12px; padding: 10px 12px; font-family: inherit; }
+@media(max-width:760px){ .modal-card { padding: 16px; } }
+
+
+/* V8.2 - Configuración de crecimiento y detalle ampliado */
+.growth-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(110px,1fr));
+  gap:12px;
+  margin-top:16px;
+}
+.growth-grid label {
+  background:#f9fafb;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  padding:12px;
+  font-size:12px;
+  font-weight:900;
+  color:#374151;
+}
+.growth-grid input {
+  width:100%;
+  margin-top:6px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  padding:8px 10px;
+}
+
+
+/* V8.3 - Mes operativo */
+.field-help {
+  display:block;
+  margin-top:5px;
+  font-size:10px;
+  color:#6b7280;
+  font-weight:700;
+}
+.month-future-note {
+  display:inline-block;
+  margin-left:8px;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#fff7ed;
+  color:#c2410c;
+  font-size:11px;
+  font-weight:900;
+}
+
+
+/* V8.4 - Acceso seguro y uso */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: linear-gradient(135deg, #0f172a, #1e3a8a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-overlay.hidden {
+  display: none;
+}
+
+.login-card {
+  width: min(460px, 100%);
+  background: white;
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow: 0 32px 90px rgba(0,0,0,.35);
+}
+
+.login-brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.login-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: #2563eb;
+  color: white;
+  font-weight: 900;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-brand h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.login-brand p {
+  margin: 4px 0 0;
+  color: #6b7280;
+}
+
+.login-form label {
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  color: #374151;
+  margin: 12px 0 6px;
+}
+
+.login-form input[type="email"],
+.login-form input[type="tel"] {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 15px;
+}
+
+.remember-row {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700 !important;
+  color: #6b7280 !important;
+}
+
+.login-btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.login-error {
+  color: #dc2626;
+  font-weight: 800;
+  min-height: 20px;
+  margin: 12px 0 0;
+}
+
+.login-note {
+  display: block;
+  color: #6b7280;
+  margin-top: 14px;
+  text-align: center;
+}
+
+.login-form select#loginAdvisorSelect {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 15px;
+  background: white;
+}
+
+.login-form .field-help {
+  display: block;
+  color: #9ca3af;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.app-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 24px 26px;
+  color: #9ca3af;
+  font-size: 12px;
+  text-align: center;
+}
+
+.subliminal-mark {
+  position: fixed;
+  bottom: 10px;
+  right: 14px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  opacity: 0.12;
+  user-select: none;
+  pointer-events: none;
+  z-index: 3000;
+}
+
+.usage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.usage-grid article {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.usage-grid span {
+  display: block;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.usage-grid strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 24px;
+}
+
+.usage-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.usage-table-wrap {
+  overflow-x: auto;
+}
+
+.usage-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.usage-table th,
+.usage-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+}
+
+.profile-hidden {
+  display: none !important;
+}
+
+
+/* V8.5 - Corrección de filtros */
+.deprecated-type-filter {
+  display: none !important;
+}
+
+.type-grid article {
+  cursor: pointer;
+}
+
+.type-grid article.active {
+  border: 2px solid #111827;
+  box-shadow: 0 0 0 3px rgba(17,24,39,.08);
+}
+
+/* V8.6 - Base viva clientes */
+.master-edit-box{background:#f8fafc;border:1px solid #e5e7eb;border-radius:18px;padding:16px;margin-bottom:18px}
+.master-edit-box h4{margin:0 0 12px;font-size:16px}.master-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.master-grid label{display:block;font-size:12px;font-weight:900;color:#374151}.master-grid input,.master-grid select{width:100%;margin-top:6px;border:1px solid #d1d5db;border-radius:12px;padding:10px 12px;font-family:inherit}
+#masterEditHelp{display:block;color:#6b7280;margin-top:10px}.client-incomplete{display:inline-flex;margin-top:4px;padding:3px 8px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:900}
+
+/* V8.7 */
+.client-blocked{display:inline-flex;margin-top:4px;padding:3px 8px;border-radius:999px;background:#fee2e2;color:#991b1b;font-size:11px;font-weight:900}
+.blocked-row{background:#fef2f2!important;opacity:.85}
+.blocked-warning{background:#fff1f2;border:1px solid #fecdd3;color:#991b1b;border-radius:12px;padding:10px 12px;font-weight:800;margin-top:10px}
+
+/* V8.8 - VIP Gerencia y canal controlado */
+.vip-badge {
+  display: inline-flex;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.vip-row {
+  background: #fffbeb !important;
+}
+
+.vip-warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 800;
+  margin-top: 10px;
+}
+
+.admin-vip-filter.hidden-by-profile {
+  display: none !important;
+}
+
+/* V8.9 - Fecha actual y mes automático */
+.today-badge{display:inline-flex;align-items:center;margin:6px 0 4px;padding:5px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:900}
+
+/* V8.10 - Filtros definitivos */
+.admin-vip-filter,.deprecated-type-filter{display:none!important}
+
+/* V8.11 - Seguridad visual por perfil */
+.admin-only-panel-hidden,
+.admin-only-control-hidden {
+  display: none !important;
+}
+
+/* V8.12 - Dashboard Director */
+.hidden-view{display:none!important}
+.dashboard-title{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}
+.dashboard-title h2{margin:0;font-size:30px}.dashboard-title p{margin:5px 0 0;color:#6b7280}
+.director-kpi-grid{display:grid;grid-template-columns:repeat(6,minmax(140px,1fr));gap:12px;margin-bottom:18px}
+.director-kpi-grid article,.chart-card,.director-table-card,.insight-card{background:white;border:1px solid #e5e7eb;border-radius:22px;padding:18px}
+.director-kpi-grid span{display:block;color:#6b7280;font-size:12px;font-weight:900}.director-kpi-grid strong{display:block;font-size:24px;margin-top:5px}.director-kpi-grid small{display:block;color:#6b7280;margin-top:3px;font-size:11px}
+.chart-grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:16px;margin-bottom:18px}.chart-card.wide{grid-column:1/-1}
+.chart-header h3{margin:0;font-size:18px}.chart-header p{margin:4px 0 12px;color:#6b7280;font-size:13px}.chart-card canvas{width:100%!important;max-height:360px}
+.director-tables{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}.insight-card h3{margin:0 0 10px}.insight-card ul{margin:0;padding-left:18px;color:#374151;line-height:1.5}
+@media(max-width:1100px){.director-kpi-grid{grid-template-columns:repeat(2,1fr)}.chart-grid,.director-tables{grid-template-columns:1fr}}@media(max-width:760px){.director-kpi-grid{grid-template-columns:1fr}.dashboard-title{flex-direction:column}}
+
+.dashboard-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.director-select{border:1px solid #d1d5db;border-radius:12px;padding:10px 12px;background:white;font-weight:800}
+
+/* V8.14 - Salud del portafolio + glosario */
+.portfolio-health-section{margin-bottom:18px}
+.director-kpi-grid.compact{grid-template-columns:repeat(6,minmax(130px,1fr))}
+.median-box{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.median-box article{background:white;border:1px solid #e5e7eb;border-radius:18px;padding:16px}
+.median-box span{display:block;color:#6b7280;font-size:12px;font-weight:900}
+.median-box strong{display:block;font-size:24px;margin-top:5px}
+.median-box small{display:block;color:#6b7280;margin-top:3px;font-size:11px}
+.glossary-grid{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:16px}
+.glossary-grid article{background:white;border:1px solid #e5e7eb;border-radius:22px;padding:18px}
+.glossary-grid h3{margin:0 0 10px}.glossary-grid p{color:#374151;line-height:1.5}
+@media(max-width:1100px){.director-kpi-grid.compact,.median-box,.glossary-grid{grid-template-columns:1fr}}
+
+/* V9.0 - Dirección Comercial y S&OP */
+.sop-panel{background:white;border:1px solid #e5e7eb;border-radius:22px;padding:18px;margin-bottom:18px}
+.sop-grid{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:12px;align-items:end;margin:12px 0 16px}
+.sop-grid label{font-size:12px;font-weight:900;color:#374151}.sop-grid input,.sop-grid select{display:block;width:100%;margin-top:6px;border:1px solid #d1d5db;border-radius:12px;padding:10px 12px}.sop-kpis{margin-top:10px}@media(max-width:900px){.sop-grid{grid-template-columns:1fr}}
+
+/* V9.1 - Segmentos comerciales */
+.commercial-segment-section {
+  margin-bottom: 18px;
+}

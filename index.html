@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Radar Comercial ConAccion Industria</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+  <div class="subliminal-mark" aria-hidden="true">23:1</div>
+
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-icon">R</div>
+        <div>
+          <h1>Radar Comercial Industria</h1>
+          <p>Acceso seguro · ConAccion · línea Espumas</p>
+        </div>
+      </div>
+
+      <div class="login-form">
+        <label>Correo autorizado</label>
+        <input type="email" id="loginEmail" placeholder="tucorreo@ejemplo.com" autocomplete="email"/>
+
+        <label>Teléfono celular</label>
+        <input type="tel" id="loginPhone" placeholder="3001234567" autocomplete="tel"/>
+
+        <label>Asesor</label>
+        <select id="loginAdvisorSelect"></select>
+        <small class="field-help">Solo la primera vez que ingresas con este correo. Si ya ingresaste antes, puedes dejarlo en blanco.</small>
+
+        <label class="remember-row">
+          <input type="checkbox" id="rememberSession" checked/>
+          Recordar sesión en este equipo
+        </label>
+
+        <button class="btn login-btn" id="loginBtn">Ingresar a Radar</button>
+        <p class="login-error" id="loginError"></p>
+      </div>
+
+      <small class="login-note">El acceso queda registrado para seguimiento de uso interno.</small>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">R</div>
+        <div><h1>Radar Comercial Industria</h1><small>ConAccion · V1.0 · Línea Espumas</small></div>
+      </div>
+      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navDashboard">Dashboard director</a><a id="navGlossary">Glosario comercial</a></nav>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div><h2>Hoja de Ruta del Mes</h2><div class="today-badge" id="todayBadgeV89">Fecha actual</div>
+          <p id="contextLabel">Base maestra y operación diaria separadas</p></div>
+        <button class="btn ghost" id="exportCsvBtn">Exportar CSV</button>
+      </header>
+      <section class="admin-panel" id="dailyUpdatePanel">
+        <div class="panel-header"><div><h3>Actualización diaria de ventas 2026</h3><p>Solo reemplaza ventas operativas. No modifica histórico 2025 ni asignación.</p></div></div>
+        <div class="upload-grid">
+          <article><h4>Ventas Espumas 2026</h4><input type="file" id="fileEspumas" accept=".xlsx,.xls,.csv"/></article>
+          <article style="display:none"><h4>Ventas Colchones 2026</h4><input type="file" id="fileColchones" accept=".xlsx,.xls,.csv"/></article>
+        </div>
+        <div class="actions"><button class="btn" id="validateBtn">Validar archivos</button><button class="btn secondary" id="applyBtn">Procesar actualización</button><button class="btn ghost" id="clearLocalBtn">Limpiar actualización local</button></div>
+        <div class="update-result" id="updateResult"><strong>Estado:</strong> pendiente de carga.</div>
+      </section>
+
+      <section class="admin-panel" id="growthConfigPanel">
+        <div class="panel-header">
+          <div>
+            <h3>Configuración comercial por clasificación</h3>
+            <p>Solo administrador. Define el crecimiento esperado para recalcular metas sugeridas.</p>
+          </div>
+        </div>
+        <div class="growth-grid">
+          <label>A <input type="number" id="growthA" value="12"/>%</label>
+          <label>B <input type="number" id="growthB" value="10"/>%</label>
+          <label>C <input type="number" id="growthC" value="5"/>%</label>
+          <label>E <input type="number" id="growthE" value="15"/>%</label>
+          <label>N <input type="number" id="growthN" value="0"/>%</label>
+        </div>
+        <div class="actions">
+          <button class="btn" id="applyGrowthBtn">Aplicar crecimientos</button>
+        </div>
+      </section>
+
+      
+      <section class="admin-panel" id="usageAdminPanel">
+        <div class="panel-header">
+          <div>
+            <h3>Estadísticas de uso Radar</h3>
+            <p>Visible solo para administrador. Mide accesos y adopción de la herramienta.</p>
+          </div>
+        </div>
+
+        <div class="usage-grid">
+          <article><span>Total accesos</span><strong id="usageTotalAccess">0</strong></article>
+          <article><span>Usuarios únicos</span><strong id="usageUniqueUsers">0</strong></article>
+          <article><span>Accesos hoy</span><strong id="usageTodayAccess">0</strong></article>
+          <article><span>Seguimientos guardados</span><strong id="usageFollowups">0</strong></article>
+        </div>
+
+        <div class="usage-actions">
+          <button class="btn" id="downloadAccessLogBtn">Descargar log de accesos</button>
+          <button class="btn ghost" id="logoutBtn">Cerrar sesión</button>
+        </div>
+
+        <div class="usage-table-wrap">
+          <table class="usage-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Perfil</th>
+                <th>Asesor</th>
+                <th>Accesos</th>
+                <th>Último acceso</th>
+              </tr>
+            </thead>
+            <tbody id="usageTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-panel" id="masterDataAdminPanel">
+        <div class="panel-header"><div><h3>Gestión de base maestra de clientes</h3><p>Solo administrador. Descarga asignación actualizada y bitácora de cambios.</p></div></div>
+        <div class="usage-actions">
+          <button class="btn" id="downloadMasterDataBtn">Descargar asignación actualizada</button>
+          <button class="btn ghost" id="downloadMasterLogBtn">Descargar historial de cambios</button>
+        </div>
+      </section>
+
+      
+      <section class="admin-panel" id="syncAdminPanel">
+        <div class="panel-header">
+          <div>
+            <h3>Sincronización de datos</h3>
+            <p>Solo administrador. Exporta un respaldo con ventas actualizadas, asignaciones y cambios maestros para compartir o conservar.</p>
+          </div>
+        </div>
+        <div class="usage-actions">
+          <button class="btn" id="exportSyncBtn">Exportar respaldo Radar</button>
+        </div>
+      </section>
+
+<section class="filters">
+        <div>
+          <label>Perfil</label>
+          <select id="profileSelect">
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <div>
+          <label>Mes hoja de ruta</label>
+          <select id="monthSelect">
+            <option value="Enero">Enero</option>
+            <option value="Febrero">Febrero</option>
+            <option value="Marzo">Marzo</option>
+            <option value="Abril">Abril</option>
+            <option value="Mayo" selected>Mayo</option>
+            <option value="Junio">Junio</option>
+            <option value="Julio">Julio</option>
+            <option value="Agosto">Agosto</option>
+            <option value="Septiembre">Septiembre</option>
+            <option value="Octubre">Octubre</option>
+            <option value="Noviembre">Noviembre</option>
+            <option value="Diciembre">Diciembre</option>
+          </select>
+          <small id="monthHelpV83" class="field-help">Mes base para venta actual y comparativo 2025</small>
+        </div>
+        <div>
+          <label>Ordenar hoja de ruta</label>
+          <select id="sortSelect">
+            <option value="venta2025">Mayor venta 2025</option>
+            <option value="faltante">Mayor faltante</option>
+            <option value="ventaActual">Mayor venta actual</option>
+            <option value="cumplimientoAsc">Menor cumplimiento</option>
+            <option value="cliente">Cliente A-Z</option>
+          </select>
+        </div>
+        <div><label>Vista negocio</label><select id="businessView"><option value="total">Total Radar</option><option value="espumas">Solo Espumas</option></select></div>
+        <div><label>Asesor</label><select id="advisorFilter"></select></div>
+        <div><label>Tipo cliente</label><select id="typeFilter"><option value="todos">Todos</option><option value="Espumas">Espumas</option><option value="Nuevo">Nuevo</option><option value="Bloqueado">Bloqueado</option></select></div>
+        <div><label>Estado</label><select id="statusFilter"><option value="todos">Todos</option><option value="Activo">Activo</option><option value="Baja">Baja</option><option value="Nuevo">Nuevo</option><option value="Bloqueado">Bloqueado</option></select></div>
+        <div><label>Buscar</label><input type="search" id="searchInput" placeholder="Cliente o NIT"/></div>
+      </section>
+      <section class="kpi-grid">
+        <article><span>Clientes</span><strong id="kClients">0</strong><small id="kClientsSub">Filtrados</small></article>
+        <article><span>Venta actual</span><strong id="kCurrentSale">$0</strong><small id="kCurrentSaleSub">Mes actual</small></article>
+        <article><span>Venta mismo mes 2025</span><strong id="kPrevSale">$0</strong><small>Comparativo histórico</small></article>
+        <article><span>Meta</span><strong id="kGoal">$0</strong><small>Meta sugerida/asesor</small></article>
+        <article><span>Cumplimiento</span><strong id="kCompliance">0%</strong><small>Venta / meta</small></article>
+        <article><span>Faltante</span><strong id="kMissing">$0</strong><small>Meta - venta</small></article>
+      </section>
+      <section class="type-grid" style="grid-template-columns:repeat(2,1fr)">
+        <article data-type-card="Espumas"><span>Espumas</span><strong id="tEspumas">0</strong></article>
+        <article data-type-card="Nuevo"><span>Nuevo</span><strong id="tNuevo">0</strong></article>
+        <span id="tColchones" hidden>0</span>
+        <span id="tMixto" hidden>0</span>
+      </section>
+      <section class="breakdown" id="breakdownTotal" style="display:none">
+        <article><span>Espumas actual</span><strong id="bEspActual">$0</strong><small id="bEsp2025">2025: $0</small></article>
+        <article><span>Colchones actual</span><strong id="bColActual">$0</strong><small id="bCol2025">2025: $0</small></article>
+      </section>
+      <section class="table-card">
+        <div class="table-header"><h3>Hoja de ruta</h3><span id="rowCount">0 clientes</span></div>
+        <div class="table-scroll">
+          <table id="routeTable">
+            <thead><tr><th>Cliente</th><th>NIT</th><th>Tipo</th><th>Asesor</th><th>Estado</th><th>Venta 2025</th><th>Venta actual</th><th>Meta</th><th>Cump.</th><th>Faltante</th><th>Detalle</th></tr></thead>
+            <tbody id="routeBody"></tbody>
+          </table>
+        </div>
+      </section>
+    
+      <section class="director-dashboard hidden-view" id="directorDashboardView">
+        <div class="dashboard-title">
+          <div>
+            <h2>Dashboard Director</h2>
+            <p>Vista ejecutiva para analizar evolución, composición, asesores y clientes Pareto.</p>
+          </div>
+          <div class="dashboard-actions"><button class="btn ghost" id="exportDashboardBtn">Exportar resumen CSV</button></div>
+        </div>
+
+        <section class="director-kpi-grid">
+          <article><span>Venta 2026</span><strong id="dVenta2026">$0</strong><small>Acumulado año actual</small></article>
+          <article><span>Venta 2025 comparable</span><strong id="dVenta2025">$0</strong><small>Mismos meses disponibles</small></article>
+          <article><span>Crecimiento</span><strong id="dCrecimiento">0%</strong><small>2026 vs 2025</small></article>
+          <article><span>Clientes con venta</span><strong id="dClientesVenta">0</strong><small>Año actual</small></article>
+          <article><span>Pareto 80%</span><strong id="dParetoClientes">0</strong><small>Clientes que explican 80%</small></article>
+          <article><span>Ticket promedio</span><strong id="dTicketPromedio">$0</strong><small>Venta / clientes con venta</small></article>
+        </section>
+
+        <section class="chart-grid">
+          <article class="chart-card wide"><div class="chart-header"><h3>Venta mensual 2025 vs 2026</h3><p>Comparativo mes a mes por valor vendido.</p></div><canvas id="monthlySalesChart"></canvas></article>
+          <article class="chart-card"><div class="chart-header"><h3>Venta por asesor 2025 vs 2026</h3><p>Comparativo acumulado al mes disponible.</p></div><canvas id="advisorSalesChart"></canvas></article>
+          <article class="chart-card"><div class="chart-header"><h3>Clasificación: clientes y facturación</h3><p>Número de clientes y participación en facturación del mes seleccionado.</p></div><canvas id="classSalesChart"></canvas></article>
+          <article class="chart-card"><div class="chart-header"><h3>Estado comercial: clientes por estado</h3><p>Número de clientes según estado en el mes seleccionado.</p></div><canvas id="statusChart"></canvas></article>
+        </section>
+
+        <section class="chart-grid"><article class="chart-card wide"><div class="chart-header"><h3>Clientes facturando y orden promedio mensual</h3><p>Permite ver si el crecimiento viene por más clientes comprando o por mayor valor promedio por cliente.</p></div><canvas id="monthlyCustomersChart"></canvas></article></section>
+        
+        <section class="sop-panel" id="sopPanel">
+          <div class="chart-header"><h3>Meta S&amp;OP del mes</h3><p>Objetivo oficial mensual por línea para medir cumplimiento y Gap S&amp;OP.</p></div>
+          <div class="sop-grid">
+            <label>Mes<select id="sopMonthSelect"></select></label>
+            <label>Meta S&amp;OP Espumas<input type="number" id="sopMetaEspumas" placeholder="0"/></label>
+            <button class="btn" id="saveSopGoalsBtn">Guardar Meta S&amp;OP</button>
+          </div>
+          <section class="director-kpi-grid compact sop-kpis">
+            <article><span>Cumplimiento S&amp;OP</span><strong id="sopCompliance">0%</strong><small>Venta real / Meta S&amp;OP</small></article>
+            <article><span>Gap S&amp;OP</span><strong id="sopGap">$0</strong><small>Meta S&amp;OP - Venta real</small></article>
+            <article><span>Meta S&amp;OP</span><strong id="sopGoalShown">$0</strong><small>Línea seleccionada</small></article>
+            <article><span>Venta real mes</span><strong id="sopRealSale">$0</strong><small>Mes seleccionado</small></article>
+          </section>
+        </section>
+        
+        <section class="commercial-segment-section" id="commercialSegmentSection">
+          <div class="chart-header">
+            <h3>Segmentos Comerciales</h3>
+            <p>Industria, B2B y B2P/B2C según asesor asignado. Permite entender de dónde viene el crecimiento.</p>
+          </div>
+
+          <section class="chart-grid">
+            <article class="chart-card wide">
+              <div class="chart-header">
+                <h3>Evolución mensual por segmento</h3>
+                <p>Venta mensual 2026 por segmento comercial.</p>
+              </div>
+              <canvas id="segmentEvolutionChart"></canvas>
+            </article>
+
+            <article class="chart-card">
+              <div class="chart-header">
+                <h3>Venta por segmento</h3>
+                <p>Participación acumulada en el año actual.</p>
+              </div>
+              <canvas id="segmentSalesChart"></canvas>
+            </article>
+
+            <article class="chart-card">
+              <div class="chart-header">
+                <h3>Activación por segmento</h3>
+                <p>Clientes que facturaron en el mes vs portafolio del segmento.</p>
+              </div>
+              <canvas id="segmentActivationChart"></canvas>
+            </article>
+          </section>
+
+          <section class="director-tables">
+            <article class="director-table-card">
+              <div class="chart-header">
+                <h3>Resumen por segmento</h3>
+                <p>Venta, clientes facturando, ticket y participación.</p>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Segmento</th>
+                      <th>Venta 2026</th>
+                      <th>Venta 2025</th>
+                      <th>Crec.</th>
+                      <th>Clientes mes</th>
+                      <th>Ticket mes</th>
+                      <th>Part.</th>
+                    </tr>
+                  </thead>
+                  <tbody id="segmentSummaryBody"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="director-table-card">
+              <div class="chart-header">
+                <h3>Salud del portafolio por segmento</h3>
+                <p>Activos, PB, baja, nuevos y reingresados.</p>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Segmento</th>
+                      <th>Activos</th>
+                      <th>Nuevos</th>
+                      <th>PB</th>
+                      <th>Baja</th>
+                      <th>Reing.</th>
+                    </tr>
+                  </thead>
+                  <tbody id="segmentHealthBody"></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        </section>
+
+        <section class="portfolio-health-section" id="portfolioHealthSection">
+          <div class="chart-header">
+            <h3>Salud del Portafolio de Clientes</h3>
+            <p>Lectura mensual de actividad, recuperación, riesgo y sostenibilidad del portafolio comercial.</p>
+          </div>
+          <section class="director-kpi-grid compact">
+            <article><span>Cumplimiento mes</span><strong id="hCumplimientoMes">0%</strong><small>Venta mes / meta estimada</small></article>
+            <article><span>Clientes activos</span><strong id="hActivos">0</strong><small>Activos + reingresados</small></article>
+            <article><span>Orden promedio mes</span><strong id="hOrdenPromedio">$0</strong><small>Venta mes / clientes facturando</small></article>
+            <article><span>Índice actividad</span><strong id="hIndiceActividad">0%</strong><small>Activos / (Activos + Nuevos + PB)</small></article>
+            <article><span>Recuperación</span><strong id="hRecuperacion">0%</strong><small>Recuperados / PB mes anterior</small></article>
+            <article><span>Pérdida</span><strong id="hPerdida">0%</strong><small>Nuevas bajas / PB mes anterior</small></article>
+          </section>
+          <section class="chart-grid">
+            <article class="chart-card wide">
+              <div class="chart-header"><h3>Evolución del Portafolio de Clientes</h3><p>Activos, nuevos, PB, baja y reingresados mes a mes.</p></div>
+              <canvas id="portfolioEvolutionChart"></canvas>
+            </article>
+          </section>
+          <section class="director-tables">
+            <article class="director-table-card">
+              <div class="chart-header"><h3>Evolución de clasificación A-B-C-E-N</h3><p>Comparativo de clientes y venta acumulada 2025 vs 2026.</p></div>
+              <div class="table-scroll"><table><thead><tr><th>Clasificación</th><th>Clientes 2025</th><th>Clientes 2026</th><th>Var.</th><th>Venta 2025</th><th>Venta 2026</th><th>Crec.</th></tr></thead><tbody id="classificationEvolutionBody"></tbody></table></div>
+            </article>
+            <article class="director-table-card">
+              <div class="chart-header"><h3>Estado comercial del mes</h3><p>Comparativo contra mes anterior y mismo mes año anterior.</p></div>
+              <div class="table-scroll"><table><thead><tr><th>Estado</th><th>Año ant.</th><th>Mes ant.</th><th>Actual</th><th>Lectura</th></tr></thead><tbody id="stateEvolutionBody"></tbody></table></div>
+            </article>
+          </section>
+          <div class="median-box">
+            <article><span>Mediana 2025</span><strong id="median2025">$0</strong><small>Referencia alto/bajo valor año anterior</small></article>
+            <article><span>Mediana 2026</span><strong id="median2026">$0</strong><small>Referencia alto/bajo valor actual</small></article>
+            <article><span>Crecimiento mediana</span><strong id="medianGrowth">0%</strong><small>Variación de referencia cartera</small></article>
+          </div>
+        </section>
+
+        <section class="director-tables">
+          <article class="director-table-card">
+            <div class="chart-header"><h3>Top 15 clientes Pareto general</h3><p>Clientes con mayor venta acumulada del año actual.</p></div>
+            <div class="table-scroll"><table><thead><tr><th>#</th><th>Cliente</th><th>Asesor</th><th>Tipo</th><th>Venta 2026</th><th>% Acum.</th></tr></thead><tbody id="paretoTableBody"></tbody></table></div>
+          </article>
+          <article class="director-table-card">
+            <div class="chart-header"><h3>Top 10 por asesor</h3><select id="advisorTopSelector" class="director-select"><option value="todos">Todos</option></select><p>Principales clientes de cada asesor.</p></div>
+            <div class="table-scroll"><table><thead><tr><th>Asesor</th><th>#</th><th>Cliente</th><th>Venta 2026</th><th>Venta 2025</th><th>Crec.</th></tr></thead><tbody id="advisorTopTableBody"></tbody></table></div>
+          </article>
+        </section>
+
+        <section class="insight-card"><h3>Lectura estratégica sugerida</h3><ul id="directorInsights"></ul></section>
+      </section>
+
+    
+      <section class="glossary-view hidden-view" id="glossaryView">
+        <div class="dashboard-title"><div><h2>Glosario Comercial Radar</h2><p>Definiciones prácticas para leer correctamente la Hoja de Ruta y el Dashboard Director.</p></div></div>
+        <section class="glossary-grid">
+          <article><h3>Estados comerciales</h3><p><strong>Activo:</strong> facturó en el mes actual o mes anterior.</p><p><strong>Inactivo:</strong> lleva 2 meses sin facturar.</p><p><strong>PB / Posible Baja:</strong> lleva 3 meses sin facturar; requiere gestión especial.</p><p><strong>Baja:</strong> lleva 4 o más meses sin facturar; requiere recuperación.</p><p><strong>Nuevo:</strong> compra por primera vez o tiene menos de 3 meses de historia.</p><p><strong>Reingresado:</strong> estaba en PB o Baja y volvió a facturar.</p></article>
+          <article><h3>Clasificación A-B-C-E-N</h3><p><strong>A:</strong> alto valor + alta consecutividad.</p><p><strong>B:</strong> bajo valor + alta consecutividad.</p><p><strong>C:</strong> bajo valor + baja consecutividad.</p><p><strong>E:</strong> alto valor + baja consecutividad.</p><p><strong>N:</strong> cliente nuevo.</p></article>
+          <article><h3>Mediana y valor relativo</h3><p><strong>Mediana:</strong> valor central de la cartera ordenada por venta acumulada.</p><p><strong>Alto valor:</strong> venta acumulada superior a la mediana.</p><p><strong>Bajo valor:</strong> venta acumulada igual o inferior a la mediana.</p></article>
+          <article><h3>KPI principales</h3><p><strong>Cumplimiento:</strong> venta actual / meta.</p><p><strong>Ticket u orden promedio:</strong> venta / clientes con venta.</p><p><strong>Pareto:</strong> clientes que explican cerca del 80% de la venta.</p><p><strong>Meta S&amp;OP:</strong> objetivo oficial mensual definido en el proceso S&amp;OP para medir cumplimiento comercial por línea.</p><p><strong>Gap S&amp;OP:</strong> diferencia entre Meta S&amp;OP y venta real del mes.</p><p><strong>Consecutividad:</strong> meses que compra / meses posibles.</p></article>
+          <article><h3>Salud del Portafolio de Clientes</h3><p>Indicador comercial de actividad, recuperación, riesgo y sostenibilidad. No tiene relación con recaudo ni cartera financiera.</p><p><strong>Ventana móvil 12 meses:</strong> los estados y la Salud del Portafolio se calculan solo con clientes con actividad en los últimos 12 meses.</p><p><strong>Portafolio gestionable:</strong> clientes con actividad dentro de esa ventana móvil.</p><p><strong>Índice de actividad:</strong> Activos / (Activos + Nuevos + PB).</p><p><strong>Tasa de recuperación:</strong> recuperados / PB mes anterior.</p><p><strong>Tasa de pérdida:</strong> nuevas bajas / PB mes anterior.</p></article>
+          <article><h3>Leyenda práctica</h3><p><strong>Activos:</strong> más susceptibles de comprar en el corto plazo.</p><p><strong>PB:</strong> alerta temprana de pérdida comercial.</p><p><strong>Baja:</strong> recuperación más difícil.</p><p><strong>Nuevos:</strong> señal de crecimiento futuro.</p><p><strong>Reingresados:</strong> recuperación comercial lograda.</p></article>
+        </section>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="app-footer">
+    <span>© <span id="footerYear"></span> Todos los derechos reservados. Sergio Velásquez.</span>
+  </footer>
+
+  <div class="modal-overlay" id="clientModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modalClientName">Cliente</h3>
+          <p id="modalClientMeta">Detalle comercial</p>
+        </div>
+        <button class="modal-close" id="modalCloseBtn">×</button>
+      </div>
+
+      <div class="modal-grid">
+        <article><span>Tipo cliente</span><strong id="modalTipo"></strong></article>
+        <article><span>Asesor</span><strong id="modalAsesor"></strong></article>
+        <article><span>Venta 2025</span><strong id="modalVenta2025"></strong></article>
+        <article><span>Venta actual</span><strong id="modalVentaActual"></strong></article>
+        <article><span>Meta</span><strong id="modalMeta"></strong></article>
+        <article><span>Cumplimiento</span><strong id="modalCumplimiento"></strong></article>
+        <article><span>Promedio 2025</span><strong id="modalProm2025"></strong></article>
+        <article><span>Promedio 2026</span><strong id="modalProm2026"></strong></article>
+        <article><span>Meses compra 2025</span><strong id="modalMeses2025"></strong></article>
+        <article><span>Meses compra 2026</span><strong id="modalMeses2026"></strong></article>
+        <article><span>Faltante mes</span><strong id="modalFaltante"></strong></article>
+        <article><span>Clasificación</span><strong id="modalClasificacion"></strong></article>
+        <article><span>Estado</span><strong id="modalEstado"></strong></article>
+      </div>
+
+            <div class="master-edit-box">
+        <h4>Datos maestros del cliente</h4>
+        <div class="master-grid">
+          <label>Razón social / cliente<input type="text" id="modalClienteEdit"/></label>
+          <label>NIT<input type="text" id="modalNitEdit" disabled/></label>
+          <label>Asesor asignado<select id="modalAsesorEdit"></select></label>
+          <label>Departamento<select id="modalDepartamentoEdit"></select></label>
+          <label>Ciudad / municipio<select id="modalCiudadEdit"></select></label>
+          <label>Canal
+            <select id="modalCanalEdit">
+              <option value="">Seleccionar canal</option>
+              <option>B2B</option>
+              <option>B2P</option>
+              <option>TIENDA</option>
+              <option>INDUSTRIA</option>
+            </select>
+          </label>
+          <label>Línea base<input type="text" id="modalLineaBaseEdit"/></label>
+          <label>Gestión especial
+            <select id="modalVipGerenciaEdit">
+              <option value="false">Normal</option>
+              <option value="true">VIP Gerencia</option>
+            </select>
+          </label>
+          <label>Motivo VIP Gerencia
+            <select id="modalMotivoVipEdit">
+              <option value="">No aplica</option>
+              <option>Cliente estratégico</option>
+              <option>Cuenta corporativa</option>
+              <option>Cliente nacional</option>
+              <option>Negociación especial</option>
+              <option>Cliente institucional</option>
+              <option>Otro</option>
+            </select>
+          </label>
+          <label>Estado maestro
+            <select id="modalBloqueadoEdit">
+              <option value="false">Activo para gestión</option>
+              <option value="true">Bloqueado / no gestionable</option>
+            </select>
+          </label>
+          <label>Motivo de bloqueo
+            <select id="modalMotivoBloqueoEdit">
+              <option value="">No aplica</option>
+              <option>No pertenece al canal</option>
+              <option>Cliente cerrado</option>
+              <option>Cambio de razón social / NIT</option>
+              <option>Información insuficiente</option>
+              <option>Duplicado</option>
+              <option>Cartera / condición especial</option>
+              <option>Otro</option>
+            </select>
+          </label>
+        </div>
+        <small id="masterEditHelp">Los asesores pueden completar información de sus clientes. Solo administrador puede reasignar asesor.</small>
+      </div>
+
+      <div class="modal-form">
+        <label>Meta personal del mes</label>
+        <input type="number" id="modalMetaInput" placeholder="Meta del asesor para este cliente"/>
+
+        <label>Próxima acción</label>
+        <select id="modalAccion">
+          <option value="">Seleccionar</option>
+          <option>Llamada</option>
+          <option>Visita</option>
+          <option>Cotización</option>
+          <option>Reactivación</option>
+          <option>Cartera</option>
+          <option>Capacitación</option>
+          <option>Exhibición</option>
+          <option>Cierre</option>
+        </select>
+
+        <label>Fecha de seguimiento</label>
+        <input type="date" id="modalFecha"/>
+
+        <label>Comentario de visita / seguimiento</label>
+        <textarea id="modalComentario" rows="4" placeholder="Escribe aquí el avance, compromiso o comentario del cliente"></textarea>
+
+        <button class="btn" id="modalSaveBtn">Guardar seguimiento</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    var fy = document.getElementById("footerYear");
+    if (fy) fy.textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
