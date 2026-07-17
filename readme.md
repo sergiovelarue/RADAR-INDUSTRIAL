@@ -1,5 +1,19 @@
 # Radar Comercial ConAccion Industria
 
+## V1.3 - Municipio de asesor, bloqueo de geografía del cliente y catálogo de Canales/Zonas
+
+**Datos de asesor:** cada asesor ahora tiene, además de correo/teléfono/estado/fecha de nacimiento, un campo **Municipio** (dónde opera, informativo y editable libremente) y una asignación de **Canal** y **Zona** tomada del catálogo (ver más abajo). Se edita desde el mismo formulario de Gestión de Asesores.
+
+**Datos maestros del cliente — Departamento y Ciudad/Municipio quedan bloqueados a edición individual:** en el detalle de cualquier cliente estos dos campos se pueden ver pero no cambiar, ni siquiera por Super Administrador; solo se actualizan por la carga masiva de Excel en Gestión de Clientes (columnas opcionales "Departamento" y "Municipio"). El Canal del cliente sigue editable individualmente igual que el Nombre (por cualquiera con permiso para editar datos básicos del cliente).
+
+**Catálogo de Canales y Zonas (nuevo panel "Canales y zonas" en Gestión de Asesores):**
+- Un Canal agrupa asesores por tipo de cliente (ej. B2B, Industria); cada Canal tiene su propio conjunto de Zonas geográficas (ej. Zona Norte, KAM 1) — las Zonas son un subconjunto del Canal, no existen por sí solas.
+- El catálogo arranca con los 4 canales que ya se usaban en la app (B2B, B2P, TIENDA, INDUSTRIA), sin zonas predefinidas.
+- **Solo Super Administrador** puede crear canales o zonas nuevos, y renombrarlos. Al renombrar un canal o una zona, el cambio se propaga automáticamente a los asesores y clientes que ya lo tenían asignado (no quedan huérfanos). No se puede eliminar un canal o zona mientras tenga algún asesor asignado.
+- **Cualquier Administrador o Super Administrador** puede asignar a un asesor un canal y una zona ya existentes del catálogo (no puede escribir nombres libres ni crear opciones nuevas desde ahí); esto se hace desde el formulario de edición del asesor, con un selector de Canal que filtra las Zonas disponibles.
+- La Zona de un cliente **no se guarda en el cliente**: en Gestión de Clientes se muestra como columna de solo lectura, heredada en vivo del asesor que tiene asignado en ese momento (si el cliente cambia de asesor, su Zona mostrada cambia con él). El Canal del cliente sí es un campo propio y editable, visible en la misma tabla.
+- Los "Segmentos Comerciales" del Dashboard Director no se modificaron en esta versión; siguen calculándose como antes (siguen siendo, en esencia, los mismos canales, solo que ese cálculo específico no se conectó todavía al catálogo nuevo).
+
 ## V1.2 - Gestión de Clientes y Gestión de Asesores
 
 Se agregan dos pestañas nuevas en el menú lateral, visibles solo para **Administrador** y **Super Administrador**: "Gestión de clientes" y "Gestión de asesores". Reemplazan y amplían el antiguo panel de "Gestión de base maestra de clientes" (sus descargas se movieron a la pestaña nueva).

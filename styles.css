@@ -478,6 +478,20 @@ input,select,textarea{font-size:16px}
   .mgmt-toolbar .btn{margin-left:0}
 }
 
+/* V9.4 / V1.3 - Catálogo de Canales y Zonas */
+#addCanalRow{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px}
+#addCanalRow input{border:1px solid #d1d5db;border-radius:12px;padding:10px 12px;font-family:inherit;flex:1 1 220px;min-width:180px}
+.canal-catalog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.canal-card{background:#f9fafb;border:1px solid var(--line);border-radius:18px;padding:14px}
+.canal-card-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.canal-card-header strong{font-size:16px}
+.zona-chip-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.zona-chip{display:inline-flex;align-items:center;gap:4px;background:white;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800}
+.chip-btn{border:none;background:transparent;cursor:pointer;font-size:11px;color:var(--muted);padding:0 2px}
+.chip-btn:hover{color:var(--ink)}
+.add-zona-row{display:flex;gap:8px}
+.add-zona-row input{flex:1;border:1px solid #d1d5db;border-radius:10px;padding:7px 10px;font-family:inherit;font-size:13px}
+
 /* V9.1 - Segmentos comerciales */
 .commercial-segment-section {
   margin-bottom: 18px;

@@ -57,7 +57,7 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-icon">R</div>
-        <div><h1>Radar Comercial Industria</h1><small>ConAccion · V1.2 · Línea Espumas</small></div>
+        <div><h1>Radar Comercial Industria</h1><small>ConAccion · V1.3 · Línea Espumas</small></div>
       </div>
       <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navDashboard">Dashboard director</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
@@ -439,7 +439,7 @@
         </section>
 
         <section class="upload-panel hidden-view" id="clientsUploadPanel">
-          <div class="panel-header"><div><h3>Carga masiva de asignación de clientes</h3><p>Columnas: NIT, Asesor (opcional: Cliente, Fecha de creación). Primero valida, luego aplica.</p></div></div>
+          <div class="panel-header"><div><h3>Carga masiva de asignación de clientes</h3><p>Columnas: NIT, Asesor (opcional: Cliente, Departamento, Municipio, Fecha de creación). Departamento y Municipio solo se pueden cambiar por esta vía. Primero valida, luego aplica.</p></div></div>
           <div class="upload-grid">
             <article><h4>Archivo Excel de asignación</h4><input type="file" id="clientsUploadFile" accept=".xlsx,.xls,.csv"/></article>
           </div>
@@ -451,7 +451,7 @@
           <div class="update-result" id="clientsUploadResult"><strong>Estado:</strong> pendiente de carga.</div>
           <div class="table-scroll" id="clientsUploadPreviewWrap" style="display:none">
             <table class="usage-table">
-              <thead><tr><th>NIT</th><th>Cliente actual</th><th>Asesor actual</th><th>Asesor nuevo</th><th>Estado</th></tr></thead>
+              <thead><tr><th>NIT</th><th>Cliente actual</th><th>Asesor actual</th><th>Asesor nuevo</th><th>Depto. nuevo</th><th>Municipio nuevo</th><th>Estado</th></tr></thead>
               <tbody id="clientsUploadPreviewBody"></tbody>
             </table>
           </div>
@@ -461,7 +461,7 @@
           <div class="table-header"><h3>Clientes</h3><span id="clientsMgmtCount">0 clientes</span></div>
           <div class="table-scroll">
             <table class="mgmt-table">
-              <thead><tr><th>NIT</th><th>Cliente / Razón social</th><th>Asesor asignado</th><th>Mes pasado</th><th>Mismo mes año pasado</th><th>Fecha creación</th><th>Alertas</th><th>Acción</th></tr></thead>
+              <thead><tr><th>NIT</th><th>Cliente / Razón social</th><th>Asesor asignado</th><th>Canal</th><th>Zona (del asesor)</th><th>Mes pasado</th><th>Mismo mes año pasado</th><th>Fecha creación</th><th>Alertas</th><th>Acción</th></tr></thead>
               <tbody id="clientsMgmtBody"></tbody>
             </table>
           </div>
@@ -507,10 +507,20 @@
           <div class="table-header"><h3>Asesores</h3><span id="advisorsMgmtCount">0 asesores</span></div>
           <div class="table-scroll">
             <table class="mgmt-table">
-              <thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Estado</th><th>Fecha nacimiento</th><th>Clientes</th><th>Acción</th></tr></thead>
+              <thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Estado</th><th>Municipio</th><th>Canal</th><th>Zona</th><th>Fecha nacimiento</th><th>Clientes</th><th>Acción</th></tr></thead>
               <tbody id="advisorsMgmtBody"></tbody>
             </table>
           </div>
+        </section>
+
+        <section class="mgmt-table-card" id="canalCatalogPanel">
+          <div class="table-header"><h3>Canales y zonas</h3><span id="canalCatalogNote">Crear/renombrar/eliminar: solo Super Administrador</span></div>
+          <p class="field-help">Un canal agrupa asesores por tipo de cliente (ej. B2B, Industria); cada canal tiene sus propias zonas geográficas (ej. Zona Norte, KAM 1). Cualquier Administrador puede asignar a un asesor un canal y una zona existentes desde su ficha; solo Super Administrador puede crear canales/zonas nuevos o cambiarles el nombre.</p>
+          <div class="actions" id="addCanalRow">
+            <input type="text" id="newCanalNameInput" placeholder="Nombre del nuevo canal"/>
+            <button class="btn" id="addCanalBtn">Agregar canal</button>
+          </div>
+          <div id="canalCatalogBody" class="canal-catalog-grid"></div>
         </section>
       </section>
 
@@ -553,15 +563,12 @@
           <label>Razón social / cliente<input type="text" id="modalClienteEdit"/></label>
           <label>NIT<input type="text" id="modalNitEdit" disabled/></label>
           <label>Asesor asignado<select id="modalAsesorEdit"></select></label>
-          <label>Departamento<select id="modalDepartamentoEdit"></select></label>
-          <label>Ciudad / municipio<select id="modalCiudadEdit"></select></label>
+          <small id="modalAsesorZonaInfo" class="field-help"></small>
+          <label>Departamento (solo carga masiva)<select id="modalDepartamentoEdit" disabled></select></label>
+          <label>Ciudad / municipio (solo carga masiva)<select id="modalCiudadEdit" disabled></select></label>
           <label>Canal
             <select id="modalCanalEdit">
               <option value="">Seleccionar canal</option>
-              <option>B2B</option>
-              <option>B2P</option>
-              <option>TIENDA</option>
-              <option>INDUSTRIA</option>
             </select>
           </label>
           <label>Línea base<input type="text" id="modalLineaBaseEdit"/></label>
@@ -601,7 +608,7 @@
             </select>
           </label>
         </div>
-        <small id="masterEditHelp">Los asesores pueden completar información de sus clientes. Solo Super Administrador puede reasignar asesor, bloquear clientes o marcar VIP Gerencia.</small>
+        <small id="masterEditHelp">Los asesores pueden completar información de sus clientes. Solo Super Administrador puede reasignar asesor, bloquear clientes o marcar VIP Gerencia. Departamento y Ciudad/Municipio solo se actualizan por carga masiva de Excel, no desde este formulario.</small>
       </div>
 
       <div class="modal-form">
@@ -667,6 +674,11 @@
           <select id="advisorStatusInput"><option>Activo</option><option>Inactivo</option><option>Pendiente</option></select>
         </label>
         <label>Fecha de nacimiento<input type="date" id="advisorBirthdateInput"/></label>
+        <label>Municipio base<input type="text" id="advisorMunicipioInput" list="municipiosDatalist" placeholder="Municipio donde opera el asesor"/></label>
+        <datalist id="municipiosDatalist"></datalist>
+        <label>Canal<select id="advisorCanalInput"><option value="">Sin canal</option></select></label>
+        <label>Zona<select id="advisorZonaInput"><option value="">Sin zona</option></select></label>
+        <small class="field-help">La asignación de canal y zona la define cualquier Administrador. Solo Super Administrador puede crear o renombrar canales y zonas (panel "Canales y zonas" más abajo).</small>
         <div class="actions">
           <button class="btn" id="advisorSaveBtn">Guardar asesor</button>
           <button class="btn ghost" id="advisorModalCancelBtn">Cancelar</button>

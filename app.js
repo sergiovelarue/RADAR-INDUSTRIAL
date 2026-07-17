@@ -1008,7 +1008,7 @@ function clientIncompleteV86(c){return !c.cliente||String(c.cliente).startsWith(
 function fillAdvisorEditSelectV86(){const sel=$("modalAsesorEdit");if(!sel)return;sel.innerHTML="";["SIN ASIGNACION",...(DATA.meta.asesores||[])].forEach(a=>{const op=document.createElement("option");op.value=a;op.textContent=a;sel.appendChild(op)})}
 function logMasterChangeV86(nit,cliente,field,oldValue,newValue){if(String(oldValue??"")===String(newValue??""))return;const now=new Date();const logs=getMasterLogsV86();logs.push({timestamp:now.toISOString(),fecha:now.toLocaleDateString("es-CO"),hora:now.toLocaleTimeString("es-CO"),usuario:currentUserLabelV86(),nit,cliente,campo:field,valorAnterior:oldValue??"",valorNuevo:newValue??""});saveMasterLogsV86(logs)}
 const _openV86=openClientDetailV81;
-openClientDetailV81=function(nit){_openV86(nit);const c=DATA.clientes.find(x=>cleanNit(x.nit)===cleanNit(nit));if(!c)return;fillAdvisorEditSelectV86();if($("modalClienteEdit"))$("modalClienteEdit").value=c.cliente||"";if($("modalNitEdit"))$("modalNitEdit").value=c.nit||"";if($("modalAsesorEdit"))$("modalAsesorEdit").value=c.asesorAsignado||"SIN ASIGNACION";if($("modalCiudadEdit"))$("modalCiudadEdit").value=c.ciudad||"";if($("modalDepartamentoEdit"))$("modalDepartamentoEdit").value=c.departamento||"";if($("modalCanalEdit"))$("modalCanalEdit").value=c.canal||"";if($("modalLineaBaseEdit"))$("modalLineaBaseEdit").value=c.lineaBase||"";const canEdit=isAdvisorAllowedToEditV86(c),canReassign=isSuperAdminV93();["modalClienteEdit","modalCiudadEdit","modalDepartamentoEdit","modalCanalEdit","modalLineaBaseEdit"].forEach(id=>{const el=$(id);if(el)el.disabled=!canEdit});if($("modalAsesorEdit"))$("modalAsesorEdit").disabled=!canReassign;if($("masterEditHelp"))$("masterEditHelp").textContent=canReassign?"Super Administrador: puedes editar datos, reasignar asesor, bloquear y marcar VIP.":(isAdminV86()?"Administrador: puedes editar datos, sin reasignar asesor ni bloquear.":"Asesor: puedes completar datos de tus clientes; no puedes cambiar el asesor.")}
+openClientDetailV81=function(nit){_openV86(nit);const c=DATA.clientes.find(x=>cleanNit(x.nit)===cleanNit(nit));if(!c)return;fillAdvisorEditSelectV86();if($("modalClienteEdit"))$("modalClienteEdit").value=c.cliente||"";if($("modalNitEdit"))$("modalNitEdit").value=c.nit||"";if($("modalAsesorEdit"))$("modalAsesorEdit").value=c.asesorAsignado||"SIN ASIGNACION";if($("modalCiudadEdit"))$("modalCiudadEdit").value=c.ciudad||"";if($("modalDepartamentoEdit"))$("modalDepartamentoEdit").value=c.departamento||"";if($("modalCanalEdit"))$("modalCanalEdit").value=c.canal||"";if($("modalLineaBaseEdit"))$("modalLineaBaseEdit").value=c.lineaBase||"";const canEdit=isAdvisorAllowedToEditV86(c),canReassign=isSuperAdminV93();["modalClienteEdit","modalCanalEdit","modalLineaBaseEdit"].forEach(id=>{const el=$(id);if(el)el.disabled=!canEdit});if($("modalCiudadEdit"))$("modalCiudadEdit").disabled=true;if($("modalDepartamentoEdit"))$("modalDepartamentoEdit").disabled=true;if($("modalAsesorEdit"))$("modalAsesorEdit").disabled=!canReassign;if($("masterEditHelp"))$("masterEditHelp").textContent=(canReassign?"Super Administrador: puedes editar datos, reasignar asesor, bloquear y marcar VIP.":(isAdminV86()?"Administrador: puedes editar datos, sin reasignar asesor ni bloquear.":"Asesor: puedes completar datos de tus clientes; no puedes cambiar el asesor."))+" Departamento y Ciudad/Municipio solo se actualizan por carga masiva de Excel."}
 const _saveV86=saveClientDetailV81;
 saveClientDetailV81=function(){if(!activeClientNit)return;const c=DATA.clientes.find(x=>cleanNit(x.nit)===activeClientNit);if(!c)return;if(isAdvisorAllowedToEditV86(c)){const updates={cliente:$("modalClienteEdit")?.value?.trim(),ciudad:$("modalCiudadEdit")?.value?.trim(),departamento:$("modalDepartamentoEdit")?.value?.trim(),canal:$("modalCanalEdit")?.value?.trim(),lineaBase:$("modalLineaBaseEdit")?.value?.trim()};Object.entries(updates).forEach(([field,value])=>{if(value!==undefined&&String(c[field]??"")!==String(value??"")){logMasterChangeV86(c.nit,c.cliente,field,c[field],value);c[field]=value}});if(isSuperAdminV93()&&$("modalAsesorEdit")){const newAdvisor=$("modalAsesorEdit").value;if(String(c.asesorAsignado||"")!==String(newAdvisor||"")){if(typeof reassignClienteV93==="function"){reassignClienteV93(c,newAdvisor,{isNewAdvisor:!(DATA.meta.asesores||[]).includes(String(newAdvisor||"").trim().toUpperCase())})}else{logMasterChangeV86(c.nit,c.cliente,"asesorAsignado",c.asesorAsignado,newAdvisor);c.asesorAsignado=newAdvisor;if(newAdvisor&&newAdvisor!=="SIN ASIGNACION"&&!(DATA.meta.asesores||[]).includes(newAdvisor)){DATA.meta.asesores.push(newAdvisor);DATA.meta.asesores.sort()}}}}}_saveV86()}
 const _renderTableV86=renderTable;
@@ -1798,8 +1798,15 @@ function ensureAsesorPerfilesV93(){
   DATA.meta.asesorPerfiles = DATA.meta.asesorPerfiles || {};
   (DATA.meta.asesores || []).forEach(a => {
     if(!DATA.meta.asesorPerfiles[a]){
-      DATA.meta.asesorPerfiles[a] = { correo:"", telefono:"", estado:"Activo", fechaNacimiento:"", pendienteAprobacion:false };
+      DATA.meta.asesorPerfiles[a] = { correo:"", telefono:"", estado:"Activo", fechaNacimiento:"", municipio:"", canal:"", zona:"", pendienteAprobacion:false };
     }
+  });
+  // Compatibilidad hacia atrás: perfiles creados antes de agregar municipio/canal/zona.
+  Object.keys(DATA.meta.asesorPerfiles).forEach(a => {
+    const p = DATA.meta.asesorPerfiles[a];
+    if(p.municipio === undefined) p.municipio = "";
+    if(p.canal === undefined) p.canal = "";
+    if(p.zona === undefined) p.zona = "";
   });
 }
 
@@ -1814,7 +1821,7 @@ function registerAsesorIfNewV93(name, opts){
     DATA.meta.asesores.sort();
   }
   if(!DATA.meta.asesorPerfiles[clean]){
-    DATA.meta.asesorPerfiles[clean] = { correo:"", telefono:"", estado: pending ? "Pendiente" : "Activo", fechaNacimiento:"", pendienteAprobacion: !!pending };
+    DATA.meta.asesorPerfiles[clean] = { correo:"", telefono:"", estado: pending ? "Pendiente" : "Activo", fechaNacimiento:"", municipio:"", canal:"", zona:"", pendienteAprobacion: !!pending };
   }
   return clean;
 }
@@ -1952,6 +1959,7 @@ function clientesSinNombreV93(){
 
 function initV93(){
   ensureAsesorPerfilesV93();
+  if(typeof ensureCanalCatalogV94 === "function") ensureCanalCatalogV94();
   (DATA.clientes || []).forEach(c => {
     ensureHistorialAsesorV93(c);
     snapshotAsesorMesActualV93(c);
@@ -2107,8 +2115,9 @@ function renderClientsManagementV93(){
     if(dupSet.has(cleanNit(c.nit))) alerts.push('<span class="alert-chip danger">NIT duplicado</span>');
     if(!c.cliente || !String(c.cliente).trim() || String(c.cliente).startsWith("Cliente ")) alerts.push('<span class="alert-chip warn">Sin nombre</span>');
     if(isTransferidoRecienteV93(c)) alerts.push('<span class="alert-chip info">Transferido</span>');
+    const zonaAsesor = (typeof zonaOfAdvisorV94 === "function") ? zonaOfAdvisorV94(c.asesorAsignado) : "—";
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${esc(c.nit)}</td><td>${esc(c.cliente || "(sin nombre)")}</td><td>${esc(c.asesorAsignado || "SIN ASIGNACION")}</td><td>${esc(asesorMesPasadoV93(c))}</td><td>${esc(asesorMismoMesAnioPasadoV93(c))}</td><td>${fmtDateV93(c.fechaCreacion)}</td><td>${alerts.join(" ") || "—"}</td><td><button class="btn ghost small-btn" data-reassign-nit="${esc(c.nit)}">Reasignar</button></td>`;
+    tr.innerHTML = `<td>${esc(c.nit)}</td><td>${esc(c.cliente || "(sin nombre)")}</td><td>${esc(c.asesorAsignado || "SIN ASIGNACION")}</td><td>${esc(c.canal || "—")}</td><td>${esc(zonaAsesor)}</td><td>${esc(asesorMesPasadoV93(c))}</td><td>${esc(asesorMismoMesAnioPasadoV93(c))}</td><td>${fmtDateV93(c.fechaCreacion)}</td><td>${alerts.join(" ") || "—"}</td><td><button class="btn ghost small-btn" data-reassign-nit="${esc(c.nit)}">Reasignar</button></td>`;
     body.appendChild(tr);
   });
   renderClientsPaginationV93(totalPages);
@@ -2187,22 +2196,35 @@ async function validateClientsUploadV93(){
     const nit = cleanNit(row["nit"]);
     const asesorNuevo = String(row["asesor"] || "").trim().toUpperCase();
     const clienteNuevo = row["cliente"] !== undefined ? String(row["cliente"]).trim() : "";
+    const deptoNuevo = row["departamento"] !== undefined ? String(row["departamento"]).trim() : "";
+    const municipioNuevo = (row["municipio"] !== undefined ? row["municipio"] : row["ciudad"]) !== undefined ? String(row["municipio"] !== undefined ? row["municipio"] : row["ciudad"]).trim() : "";
     const c = DATA.clientes.find(x => cleanNit(x.nit) === nit);
     let status = "OK";
+    let applicable = false;
     if(!nit) status = "Error: NIT vacío";
     else if(!c) status = "Error: NIT no encontrado";
-    else if(!asesorNuevo) status = "Error: Asesor vacío";
-    else if(asesorNuevo === String(c.asesorAsignado || "").toUpperCase()) status = "Sin cambio";
-    else if(!(DATA.meta.asesores || []).includes(asesorNuevo)) status = "OK (asesor nuevo, quedará pendiente)";
-    const applicable = status === "OK" || status.indexOf("OK") === 0;
-    return { nit, asesorNuevo, clienteNuevo, clienteActual: c ? c.cliente : "", asesorActual: c ? c.asesorAsignado : "", status, applicable };
+    else {
+      const willReassign = !!asesorNuevo && asesorNuevo !== String(c.asesorAsignado || "").toUpperCase();
+      const isNewAdvisorName = willReassign && !(DATA.meta.asesores || []).includes(asesorNuevo);
+      const clienteChanged = !!clienteNuevo && clienteNuevo !== c.cliente;
+      const deptoChanged = !!deptoNuevo && deptoNuevo !== (c.departamento || "");
+      const municipioChanged = !!municipioNuevo && municipioNuevo !== (c.ciudad || "");
+      const actions = [];
+      if(willReassign) actions.push(isNewAdvisorName ? "asesor (nuevo, pendiente)" : "asesor");
+      if(clienteChanged) actions.push("cliente");
+      if(deptoChanged) actions.push("departamento");
+      if(municipioChanged) actions.push("municipio");
+      status = actions.length ? ("OK: " + actions.join(", ")) : "Sin cambio";
+      applicable = actions.length > 0;
+    }
+    return { nit, asesorNuevo, clienteNuevo, deptoNuevo, municipioNuevo, clienteActual: c ? c.cliente : "", asesorActual: c ? c.asesorAsignado : "", status, applicable };
   });
   const body = $("clientsUploadPreviewBody");
   if(body){
     body.innerHTML = "";
     clientsUploadValidatedV93.forEach(r => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${esc(r.nit)}</td><td>${esc(r.clienteActual || "")}</td><td>${esc(r.asesorActual || "")}</td><td>${esc(r.asesorNuevo)}</td><td>${esc(r.status)}</td>`;
+      tr.innerHTML = `<td>${esc(r.nit)}</td><td>${esc(r.clienteActual || "")}</td><td>${esc(r.asesorActual || "")}</td><td>${esc(r.asesorNuevo)}</td><td>${esc(r.deptoNuevo)}</td><td>${esc(r.municipioNuevo)}</td><td>${esc(r.status)}</td>`;
       body.appendChild(tr);
     });
   }
@@ -2219,13 +2241,29 @@ function applyClientsUploadV93(){
     if(!r.applicable) return;
     const c = DATA.clientes.find(x => cleanNit(x.nit) === r.nit);
     if(!c) return;
-    const isNew = !(DATA.meta.asesores || []).includes(r.asesorNuevo);
-    if(reassignClienteV93(c, r.asesorNuevo, { isNewAdvisor: isNew })) applied++;
+    let changed = false;
+    if(r.asesorNuevo && r.asesorNuevo !== String(c.asesorAsignado || "").toUpperCase()){
+      const isNew = !(DATA.meta.asesores || []).includes(r.asesorNuevo);
+      if(reassignClienteV93(c, r.asesorNuevo, { isNewAdvisor: isNew })) changed = true;
+    }
     if(r.clienteNuevo && r.clienteNuevo !== c.cliente){
       logMasterChangeV86(c.nit, c.cliente, "cliente", c.cliente, r.clienteNuevo);
       c.cliente = r.clienteNuevo;
+      changed = true;
     }
+    if(r.deptoNuevo && r.deptoNuevo !== (c.departamento || "")){
+      logMasterChangeV86(c.nit, c.cliente, "departamento", c.departamento, r.deptoNuevo);
+      c.departamento = r.deptoNuevo;
+      changed = true;
+    }
+    if(r.municipioNuevo && r.municipioNuevo !== (c.ciudad || "")){
+      logMasterChangeV86(c.nit, c.cliente, "ciudad", c.ciudad, r.municipioNuevo);
+      c.ciudad = r.municipioNuevo;
+      changed = true;
+    }
+    if(changed) applied++;
   });
+  if(typeof buildGeoCatalogV87 === "function") GEO_CATALOG_V87 = buildGeoCatalogV87();
   saveDataV93();
   if($("clientsUploadResult")) $("clientsUploadResult").innerHTML = `<strong>Estado:</strong> ${applied} clientes actualizados correctamente.`;
   if($("clientsApplyBtn")) $("clientsApplyBtn").disabled = true;
@@ -2238,7 +2276,7 @@ function applyClientsUploadV93(){
 }
 
 function downloadClientsTemplateV93(){
-  downloadCsvV86([["NIT","Asesor","Cliente (opcional)"]], "radar_plantilla_asignacion_clientes.csv");
+  downloadCsvV86([["NIT","Asesor (opcional)","Cliente (opcional)","Departamento (opcional)","Municipio (opcional)"]], "radar_plantilla_asignacion_clientes.csv");
 }
 
 // -------- Gestión de Asesores: tabla, aprobación y modal --------
@@ -2275,7 +2313,7 @@ function renderAdvisorsManagementV93(){
       const count = (DATA.clientes || []).filter(c => c.asesorAsignado === a).length;
       const pendingBadge = perfil.pendienteAprobacion ? ' <span class="alert-chip warn">Pendiente</span>' : "";
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${esc(a)}${pendingBadge}</td><td>${esc(perfil.correo || "")}</td><td>${esc(perfil.telefono || "")}</td><td>${esc(perfil.estado || "Activo")}</td><td>${fmtDateV93(perfil.fechaNacimiento)}</td><td>${count}</td><td><button class="btn ghost small-btn" data-edit-advisor="${esc(a)}">Editar</button></td>`;
+      tr.innerHTML = `<td>${esc(a)}${pendingBadge}</td><td>${esc(perfil.correo || "")}</td><td>${esc(perfil.telefono || "")}</td><td>${esc(perfil.estado || "Activo")}</td><td>${esc(perfil.municipio || "—")}</td><td>${esc(perfil.canal || "—")}</td><td>${esc(perfil.zona || "—")}</td><td>${fmtDateV93(perfil.fechaNacimiento)}</td><td>${count}</td><td><button class="btn ghost small-btn" data-edit-advisor="${esc(a)}">Editar</button></td>`;
       body.appendChild(tr);
     });
   }
@@ -2291,6 +2329,10 @@ function openAdvisorModalV93(name){
   if($("advisorPhoneInput")) $("advisorPhoneInput").value = perfil.telefono || "";
   if($("advisorStatusInput")) $("advisorStatusInput").value = perfil.estado || "Activo";
   if($("advisorBirthdateInput")) $("advisorBirthdateInput").value = perfil.fechaNacimiento || "";
+  if($("advisorMunicipioInput")) $("advisorMunicipioInput").value = perfil.municipio || "";
+  if(typeof fillMunicipiosDatalistV94 === "function") fillMunicipiosDatalistV94();
+  if(typeof fillAdvisorCanalSelectV94 === "function") fillAdvisorCanalSelectV94(perfil.canal || "");
+  if(typeof fillAdvisorZonaSelectV94 === "function") fillAdvisorZonaSelectV94(perfil.canal || "", perfil.zona || "");
   if($("advisorModalTitle")) $("advisorModalTitle").textContent = name ? `Editar asesor: ${name}` : "Agregar asesor";
   if($("advisorEditModal")) $("advisorEditModal").classList.add("open");
 }
@@ -2313,6 +2355,9 @@ function saveAdvisorV93(){
   perfil.telefono = ($("advisorPhoneInput")?.value || "").trim();
   perfil.estado = $("advisorStatusInput")?.value || "Activo";
   perfil.fechaNacimiento = $("advisorBirthdateInput")?.value || "";
+  perfil.municipio = ($("advisorMunicipioInput")?.value || "").trim();
+  perfil.canal = $("advisorCanalInput")?.value || "";
+  perfil.zona = $("advisorZonaInput")?.value || "";
   if(perfil.pendienteAprobacion === undefined) perfil.pendienteAprobacion = false;
   DATA.meta.asesorPerfiles[name] = perfil;
   saveDataV93();
@@ -2436,4 +2481,259 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   applyAdminVisibilityV811();
+});
+
+// ===============================
+// V9.4 / V1.3 - Catálogo de Canales y Zonas, Municipio de asesor,
+// bloqueo de edición individual de Departamento/Municipio del cliente
+// ===============================
+
+function ensureCanalCatalogV94(){
+  if(!DATA.meta.canales){
+    DATA.meta.canales = { "B2B": [], "B2P": [], "TIENDA": [], "INDUSTRIA": [] };
+  }
+}
+
+function canalNamesV94(){
+  ensureCanalCatalogV94();
+  return Object.keys(DATA.meta.canales || {}).sort();
+}
+
+function zonasOfCanalV94(canal){
+  ensureCanalCatalogV94();
+  return ((DATA.meta.canales || {})[canal] || []).slice().sort();
+}
+
+function zonaOfAdvisorV94(advisorName){
+  ensureAsesorPerfilesV93();
+  const perfil = (DATA.meta.asesorPerfiles || {})[advisorName];
+  return (perfil && perfil.zona) ? perfil.zona : "—";
+}
+
+function fillMunicipiosDatalistV94(){
+  const list = $("municipiosDatalist");
+  if(!list) return;
+  const geo = (typeof buildGeoCatalogV87 === "function") ? buildGeoCatalogV87() : (typeof GEO_CATALOG_V87 !== "undefined" ? GEO_CATALOG_V87 : {});
+  const all = new Set();
+  Object.keys(geo).forEach(dep => (geo[dep] || []).forEach(city => all.add(city)));
+  list.innerHTML = "";
+  Array.from(all).sort().forEach(city => {
+    const op = document.createElement("option");
+    op.value = city;
+    list.appendChild(op);
+  });
+}
+
+function fillCanalSelectV94(selectedCanal){
+  const sel = $("modalCanalEdit");
+  if(!sel) return;
+  sel.innerHTML = '<option value="">Seleccionar canal</option>';
+  canalNamesV94().forEach(canal => {
+    const op = document.createElement("option");
+    op.value = canal; op.textContent = canal;
+    if(canal === selectedCanal) op.selected = true;
+    sel.appendChild(op);
+  });
+}
+
+function fillAdvisorCanalSelectV94(selectedCanal){
+  const sel = $("advisorCanalInput");
+  if(!sel) return;
+  sel.innerHTML = '<option value="">Sin canal</option>';
+  canalNamesV94().forEach(canal => {
+    const op = document.createElement("option");
+    op.value = canal; op.textContent = canal;
+    if(canal === selectedCanal) op.selected = true;
+    sel.appendChild(op);
+  });
+}
+
+function fillAdvisorZonaSelectV94(canal, selectedZona){
+  const sel = $("advisorZonaInput");
+  if(!sel) return;
+  sel.innerHTML = '<option value="">Sin zona</option>';
+  zonasOfCanalV94(canal).forEach(zona => {
+    const op = document.createElement("option");
+    op.value = zona; op.textContent = zona;
+    if(zona === selectedZona) op.selected = true;
+    sel.appendChild(op);
+  });
+}
+
+function createCanalV94(name){
+  if(!isSuperAdminV93()){ alert("Solo Super Administrador puede crear canales."); return; }
+  ensureCanalCatalogV94();
+  const clean = String(name || "").trim().toUpperCase();
+  if(!clean){ alert("Escribe el nombre del canal."); return; }
+  if(DATA.meta.canales[clean]){ alert("Ya existe un canal con ese nombre."); return; }
+  DATA.meta.canales[clean] = [];
+  saveDataV93();
+  renderCanalCatalogV94();
+}
+
+function renameCanalV94(oldName, newNameArg){
+  if(!isSuperAdminV93()){ alert("Solo Super Administrador puede renombrar canales."); return; }
+  const raw = newNameArg !== undefined ? newNameArg : prompt(`Nuevo nombre para el canal "${oldName}":`, oldName);
+  const newName = String(raw || "").trim().toUpperCase();
+  if(!newName || newName === oldName) return;
+  ensureCanalCatalogV94();
+  if(DATA.meta.canales[newName]){ alert("Ya existe un canal con ese nombre."); return; }
+  DATA.meta.canales[newName] = DATA.meta.canales[oldName] || [];
+  delete DATA.meta.canales[oldName];
+  ensureAsesorPerfilesV93();
+  Object.keys(DATA.meta.asesorPerfiles).forEach(a => {
+    if(DATA.meta.asesorPerfiles[a].canal === oldName) DATA.meta.asesorPerfiles[a].canal = newName;
+  });
+  (DATA.clientes || []).forEach(c => { if(c.canal === oldName) c.canal = newName; });
+  saveDataV93();
+  renderCanalCatalogV94();
+  if(typeof renderAdvisorsManagementV93 === "function") renderAdvisorsManagementV93();
+  if(typeof renderClientsManagementV93 === "function") renderClientsManagementV93();
+}
+
+function deleteCanalV94(name){
+  if(!isSuperAdminV93()){ alert("Solo Super Administrador puede eliminar canales."); return; }
+  ensureAsesorPerfilesV93();
+  const inUse = Object.keys(DATA.meta.asesorPerfiles).some(a => DATA.meta.asesorPerfiles[a].canal === name);
+  if(inUse){ alert("No se puede eliminar: hay asesores asignados a este canal."); return; }
+  if(!confirm(`¿Eliminar el canal "${name}" y todas sus zonas?`)) return;
+  ensureCanalCatalogV94();
+  delete DATA.meta.canales[name];
+  saveDataV93();
+  renderCanalCatalogV94();
+}
+
+function createZonaV94(canal, nameArg){
+  if(!isSuperAdminV93()){ alert("Solo Super Administrador puede crear zonas."); return; }
+  ensureCanalCatalogV94();
+  const raw = nameArg !== undefined ? nameArg : prompt(`Nueva zona dentro de "${canal}":`, "");
+  const name = String(raw || "").trim().toUpperCase();
+  if(!name){ if(nameArg !== undefined) alert("Escribe el nombre de la zona."); return; }
+  DATA.meta.canales[canal] = DATA.meta.canales[canal] || [];
+  if(DATA.meta.canales[canal].includes(name)){ alert("Ya existe una zona con ese nombre en este canal."); return; }
+  DATA.meta.canales[canal].push(name);
+  saveDataV93();
+  renderCanalCatalogV94();
+}
+
+function renameZonaV94(canal, oldZona, newZonaArg){
+  if(!isSuperAdminV93()){ alert("Solo Super Administrador puede renombrar zonas."); return; }
+  const raw = newZonaArg !== undefined ? newZonaArg : prompt(`Nuevo nombre para la zona "${oldZona}" (canal ${canal}):`, oldZona);
+  const newZona = String(raw || "").trim().toUpperCase();
+  if(!newZona || newZona === oldZona) return;
+  ensureCanalCatalogV94();
+  const zonas = DATA.meta.canales[canal] || [];
+  if(zonas.includes(newZona)){ alert("Ya existe una zona con ese nombre en este canal."); return; }
+  const idx = zonas.indexOf(oldZona);
+  if(idx >= 0) zonas[idx] = newZona;
+  ensureAsesorPerfilesV93();
+  Object.keys(DATA.meta.asesorPerfiles).forEach(a => {
+    const p = DATA.meta.asesorPerfiles[a];
+    if(p.canal === canal && p.zona === oldZona) p.zona = newZona;
+  });
+  saveDataV93();
+  renderCanalCatalogV94();
+  if(typeof renderAdvisorsManagementV93 === "function") renderAdvisorsManagementV93();
+  if(typeof renderClientsManagementV93 === "function") renderClientsManagementV93();
+}
+
+function deleteZonaV94(canal, zona){
+  if(!isSuperAdminV93()){ alert("Solo Super Administrador puede eliminar zonas."); return; }
+  ensureAsesorPerfilesV93();
+  const inUse = Object.keys(DATA.meta.asesorPerfiles).some(a => {
+    const p = DATA.meta.asesorPerfiles[a];
+    return p.canal === canal && p.zona === zona;
+  });
+  if(inUse){ alert("No se puede eliminar: hay asesores asignados a esta zona."); return; }
+  if(!confirm(`¿Eliminar la zona "${zona}" del canal "${canal}"?`)) return;
+  ensureCanalCatalogV94();
+  DATA.meta.canales[canal] = (DATA.meta.canales[canal] || []).filter(z => z !== zona);
+  saveDataV93();
+  renderCanalCatalogV94();
+}
+
+function renderCanalCatalogV94(){
+  const body = $("canalCatalogBody");
+  if(!body) return;
+  ensureCanalCatalogV94();
+  const superAdmin = isSuperAdminV93();
+  const addRow = $("addCanalRow");
+  if(addRow) addRow.style.display = superAdmin ? "" : "none";
+  const canales = canalNamesV94();
+  if(!canales.length){
+    body.innerHTML = '<p class="field-help">Aún no hay canales definidos.</p>';
+    return;
+  }
+  body.innerHTML = canales.map(canal => {
+    const zonas = zonasOfCanalV94(canal);
+    const zonaChips = zonas.length ? zonas.map(z => `
+      <span class="zona-chip">${esc(z)}${superAdmin ? ` <button class="chip-btn" data-rename-zona="${esc(canal)}" data-zona="${esc(z)}" title="Renombrar zona">✎</button><button class="chip-btn" data-delete-zona="${esc(canal)}" data-zona="${esc(z)}" title="Eliminar zona">✕</button>` : ""}</span>
+    `).join("") : '<span class="field-help">Sin zonas definidas.</span>';
+    const canalActions = superAdmin ? `
+      <button class="btn ghost small-btn" data-rename-canal="${esc(canal)}">Renombrar</button>
+      <button class="btn ghost small-btn" data-delete-canal="${esc(canal)}">Eliminar</button>
+    ` : "";
+    const addZonaRow = superAdmin ? `
+      <div class="add-zona-row">
+        <input type="text" class="new-zona-input" data-canal-for-zona="${esc(canal)}" placeholder="Nueva zona"/>
+        <button class="btn ghost small-btn" data-add-zona="${esc(canal)}">Agregar zona</button>
+      </div>
+    ` : "";
+    return `
+      <article class="canal-card">
+        <div class="canal-card-header">
+          <strong>${esc(canal)}</strong>
+          <span>${canalActions}</span>
+        </div>
+        <div class="zona-chip-list">${zonaChips}</div>
+        ${addZonaRow}
+      </article>
+    `;
+  }).join("");
+}
+
+const previousShowAdvisorsV94 = showAdvisorsManagementV93;
+showAdvisorsManagementV93 = function(){
+  previousShowAdvisorsV94();
+  renderCanalCatalogV94();
+};
+
+const previousOpenClientV94 = openClientDetailV81;
+openClientDetailV81 = function(nit){
+  previousOpenClientV94(nit);
+  const c = DATA.clientes.find(x => cleanNit(x.nit) === cleanNit(nit));
+  if(!c) return;
+  fillCanalSelectV94(c.canal || "");
+  if($("modalAsesorZonaInfo")){
+    const zona = zonaOfAdvisorV94(c.asesorAsignado);
+    $("modalAsesorZonaInfo").textContent = `Zona del asesor asignado: ${zona}`;
+  }
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  ensureCanalCatalogV94();
+  saveDataV93();
+
+  if($("addCanalBtn")) $("addCanalBtn").addEventListener("click", () => {
+    createCanalV94($("newCanalNameInput")?.value || "");
+    if($("newCanalNameInput")) $("newCanalNameInput").value = "";
+  });
+
+  if($("advisorCanalInput")) $("advisorCanalInput").addEventListener("change", e => {
+    fillAdvisorZonaSelectV94(e.target.value, "");
+  });
+
+  document.addEventListener("click", e => {
+    const t = e.target;
+    if(!t || !t.dataset) return;
+    if(t.dataset.renameCanal) renameCanalV94(t.dataset.renameCanal);
+    if(t.dataset.deleteCanal) deleteCanalV94(t.dataset.deleteCanal);
+    if(t.dataset.renameZona) renameZonaV94(t.dataset.renameZona, t.dataset.zona);
+    if(t.dataset.deleteZona) deleteZonaV94(t.dataset.deleteZona, t.dataset.zona);
+    if(t.dataset.addZona){
+      const input = document.querySelector(`.new-zona-input[data-canal-for-zona="${t.dataset.addZona}"]`);
+      createZonaV94(t.dataset.addZona, input ? input.value : "");
+      if(input) input.value = "";
+    }
+  });
 });
