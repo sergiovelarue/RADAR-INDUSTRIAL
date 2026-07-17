@@ -1010,7 +1010,7 @@ function logMasterChangeV86(nit,cliente,field,oldValue,newValue){if(String(oldVa
 const _openV86=openClientDetailV81;
 openClientDetailV81=function(nit){_openV86(nit);const c=DATA.clientes.find(x=>cleanNit(x.nit)===cleanNit(nit));if(!c)return;fillAdvisorEditSelectV86();if($("modalClienteEdit"))$("modalClienteEdit").value=c.cliente||"";if($("modalNitEdit"))$("modalNitEdit").value=c.nit||"";if($("modalAsesorEdit"))$("modalAsesorEdit").value=c.asesorAsignado||"SIN ASIGNACION";if($("modalCiudadEdit"))$("modalCiudadEdit").value=c.ciudad||"";if($("modalDepartamentoEdit"))$("modalDepartamentoEdit").value=c.departamento||"";if($("modalCanalEdit"))$("modalCanalEdit").value=c.canal||"";if($("modalLineaBaseEdit"))$("modalLineaBaseEdit").value=c.lineaBase||"";const canEdit=isAdvisorAllowedToEditV86(c),canReassign=isSuperAdminV93();["modalClienteEdit","modalCiudadEdit","modalDepartamentoEdit","modalCanalEdit","modalLineaBaseEdit"].forEach(id=>{const el=$(id);if(el)el.disabled=!canEdit});if($("modalAsesorEdit"))$("modalAsesorEdit").disabled=!canReassign;if($("masterEditHelp"))$("masterEditHelp").textContent=canReassign?"Super Administrador: puedes editar datos, reasignar asesor, bloquear y marcar VIP.":(isAdminV86()?"Administrador: puedes editar datos, sin reasignar asesor ni bloquear.":"Asesor: puedes completar datos de tus clientes; no puedes cambiar el asesor.")}
 const _saveV86=saveClientDetailV81;
-saveClientDetailV81=function(){if(!activeClientNit)return;const c=DATA.clientes.find(x=>cleanNit(x.nit)===activeClientNit);if(!c)return;if(isAdvisorAllowedToEditV86(c)){const updates={cliente:$("modalClienteEdit")?.value?.trim(),ciudad:$("modalCiudadEdit")?.value?.trim(),departamento:$("modalDepartamentoEdit")?.value?.trim(),canal:$("modalCanalEdit")?.value?.trim(),lineaBase:$("modalLineaBaseEdit")?.value?.trim()};Object.entries(updates).forEach(([field,value])=>{if(value!==undefined&&String(c[field]??"")!==String(value??"")){logMasterChangeV86(c.nit,c.cliente,field,c[field],value);c[field]=value}});if(isSuperAdminV93()&&$("modalAsesorEdit")){const newAdvisor=$("modalAsesorEdit").value;if(String(c.asesorAsignado||"")!==String(newAdvisor||"")){logMasterChangeV86(c.nit,c.cliente,"asesorAsignado",c.asesorAsignado,newAdvisor);c.asesorAsignado=newAdvisor;if(newAdvisor&&newAdvisor!=="SIN ASIGNACION"&&!(DATA.meta.asesores||[]).includes(newAdvisor)){DATA.meta.asesores.push(newAdvisor);DATA.meta.asesores.sort()}}}}_saveV86()}
+saveClientDetailV81=function(){if(!activeClientNit)return;const c=DATA.clientes.find(x=>cleanNit(x.nit)===activeClientNit);if(!c)return;if(isAdvisorAllowedToEditV86(c)){const updates={cliente:$("modalClienteEdit")?.value?.trim(),ciudad:$("modalCiudadEdit")?.value?.trim(),departamento:$("modalDepartamentoEdit")?.value?.trim(),canal:$("modalCanalEdit")?.value?.trim(),lineaBase:$("modalLineaBaseEdit")?.value?.trim()};Object.entries(updates).forEach(([field,value])=>{if(value!==undefined&&String(c[field]??"")!==String(value??"")){logMasterChangeV86(c.nit,c.cliente,field,c[field],value);c[field]=value}});if(isSuperAdminV93()&&$("modalAsesorEdit")){const newAdvisor=$("modalAsesorEdit").value;if(String(c.asesorAsignado||"")!==String(newAdvisor||"")){if(typeof reassignClienteV93==="function"){reassignClienteV93(c,newAdvisor,{isNewAdvisor:!(DATA.meta.asesores||[]).includes(String(newAdvisor||"").trim().toUpperCase())})}else{logMasterChangeV86(c.nit,c.cliente,"asesorAsignado",c.asesorAsignado,newAdvisor);c.asesorAsignado=newAdvisor;if(newAdvisor&&newAdvisor!=="SIN ASIGNACION"&&!(DATA.meta.asesores||[]).includes(newAdvisor)){DATA.meta.asesores.push(newAdvisor);DATA.meta.asesores.sort()}}}}}_saveV86()}
 const _renderTableV86=renderTable;
 renderTable=function(arr){_renderTableV86(arr);document.querySelectorAll("#routeBody tr").forEach(row=>{const nitCell=row.querySelector('[data-label="NIT"]'),clientCell=row.querySelector('[data-label="Cliente"]');if(!nitCell||!clientCell)return;const c=DATA.clientes.find(x=>cleanNit(x.nit)===cleanNit(nitCell.textContent));if(c&&clientIncompleteV86(c)&&!clientCell.querySelector(".client-incomplete")){const badge=document.createElement("span");badge.className="client-incomplete";badge.textContent="Cliente incompleto";clientCell.appendChild(badge)}})}
 function downloadMasterDataV86(){const rows=[["NIT","Cliente","Asesor Asignado","Ciudad","Departamento","Canal","Linea Base","Tipo Cliente","Estado","Clasificacion","Venta 2025","Venta 2026"]];DATA.clientes.forEach(c=>rows.push([c.nit,c.cliente,c.asesorAsignado,c.ciudad,c.departamento,c.canal,c.lineaBase,c.tipoCliente,c.estado,c.clasificacion,c.total2025||0,c.total2026||0]));downloadCsvV86(rows,"radar_asignacion_actualizada.csv")}
@@ -1527,7 +1527,17 @@ function directorClientsV812(){return (DATA.clientes||[]).filter(c=>!(typeof isB
 function pctV812(v){return Number.isFinite(v)?Math.round(v)+"%":"0%";}
 function setV812(id,v){const el=$(id);if(el)el.textContent=v;}
 function destroyChartV812(id){if(dashboardChartsV812[id]){dashboardChartsV812[id].destroy();delete dashboardChartsV812[id];}}
-function chartV812(id,config){const canvas=$(id);if(!canvas||typeof Chart==="undefined")return;destroyChartV812(id);dashboardChartsV812[id]=new Chart(canvas.getContext("2d"),config);}
+function chartV812(id,config){
+  const canvas=$(id);
+  if(!canvas||typeof Chart==="undefined")return;
+  destroyChartV812(id);
+  config.options=config.options||{};
+  if(config.options.aspectRatio===undefined){
+    const w=window.innerWidth||1200;
+    config.options.aspectRatio=w<480?1.05:(w<760?1.3:(w<1100?1.6:2));
+  }
+  dashboardChartsV812[id]=new Chart(canvas.getContext("2d"),config);
+}
 function renderDirectorDashboardV812(){
  const clients=directorClientsV812(), months=monthsV812();
  const total26=clients.reduce((s,c)=>s+totalYtdV812(c,2026),0), total25=clients.reduce((s,c)=>s+totalYtdV812(c,2025),0);
@@ -1774,3 +1784,656 @@ if(previousRenderDirectorV91){
     renderCommercialSegmentsV91();
   }
 }
+
+// ===============================
+// V9.3 / V1.2 - Gestión de Clientes y Gestión de Asesores
+// Modelo de datos: perfiles de asesor, historial mensual, fecha de creación, transferido
+// ===============================
+
+function saveDataV93(){
+  localStorage.setItem("radarV8Data", JSON.stringify(DATA));
+}
+
+function ensureAsesorPerfilesV93(){
+  DATA.meta.asesorPerfiles = DATA.meta.asesorPerfiles || {};
+  (DATA.meta.asesores || []).forEach(a => {
+    if(!DATA.meta.asesorPerfiles[a]){
+      DATA.meta.asesorPerfiles[a] = { correo:"", telefono:"", estado:"Activo", fechaNacimiento:"", pendienteAprobacion:false };
+    }
+  });
+}
+
+function registerAsesorIfNewV93(name, opts){
+  opts = opts || {};
+  const pending = opts.pending !== undefined ? opts.pending : true;
+  ensureAsesorPerfilesV93();
+  const clean = String(name || "").trim().toUpperCase();
+  if(!clean) return clean;
+  if(!(DATA.meta.asesores || []).includes(clean)){
+    DATA.meta.asesores.push(clean);
+    DATA.meta.asesores.sort();
+  }
+  if(!DATA.meta.asesorPerfiles[clean]){
+    DATA.meta.asesorPerfiles[clean] = { correo:"", telefono:"", estado: pending ? "Pendiente" : "Activo", fechaNacimiento:"", pendienteAprobacion: !!pending };
+  }
+  return clean;
+}
+
+function approveAdvisorV93(name){
+  ensureAsesorPerfilesV93();
+  const perfil = DATA.meta.asesorPerfiles[name];
+  if(!perfil) return;
+  perfil.pendienteAprobacion = false;
+  if(perfil.estado === "Pendiente") perfil.estado = "Activo";
+  saveDataV93();
+  if(typeof renderAdvisorsManagementV93 === "function") renderAdvisorsManagementV93();
+  if(typeof renderClientsManagementV93 === "function") renderClientsManagementV93();
+  fillAdvisorFilter();
+  render();
+}
+
+function monthKeyV93(year, monthName){
+  const idx = monthsV812().indexOf(monthName);
+  return `${year}-${String(idx + 1).padStart(2, "0")}`;
+}
+
+function currentMonthKeyV93(){
+  const months = monthsV812();
+  const idx = latestIdxV812();
+  return monthKeyV93(2026, months[idx]);
+}
+
+function previousMonthKeyV93(){
+  const idx = latestIdxV812();
+  if(idx === 0) return monthKeyV93(2025, monthsV812()[11]);
+  return monthKeyV93(2026, monthsV812()[idx - 1]);
+}
+
+function sameMonthLastYearKeyV93(){
+  const idx = latestIdxV812();
+  return monthKeyV93(2025, monthsV812()[idx]);
+}
+
+function ensureHistorialAsesorV93(c){
+  c.historialAsesorPorMes = c.historialAsesorPorMes || {};
+}
+
+function snapshotAsesorMesActualV93(c){
+  ensureHistorialAsesorV93(c);
+  const k = currentMonthKeyV93();
+  if(!(k in c.historialAsesorPorMes)){
+    c.historialAsesorPorMes[k] = c.asesorAsignado || "SIN ASIGNACION";
+  }
+}
+
+function snapshotAllClientsCurrentMonthV93(){
+  (DATA.clientes || []).forEach(snapshotAsesorMesActualV93);
+}
+
+function asesorMesPasadoV93(c){
+  ensureHistorialAsesorV93(c);
+  const k = previousMonthKeyV93();
+  return c.historialAsesorPorMes[k] || "--------";
+}
+
+function asesorMismoMesAnioPasadoV93(c){
+  ensureHistorialAsesorV93(c);
+  const k = sameMonthLastYearKeyV93();
+  return c.historialAsesorPorMes[k] || "--------";
+}
+
+function computeFechaCreacionV93(c){
+  const months = monthsV812();
+  for(const year of [2025, 2026]){
+    for(let i = 0; i < months.length; i++){
+      if(saleMonthV812(c, year, months[i]) > 0){
+        return `${year}-${String(i + 1).padStart(2, "0")}-01`;
+      }
+    }
+  }
+  return "";
+}
+
+function ensureFechaCreacionV93(c){
+  if(!c.fechaCreacion){
+    const d = computeFechaCreacionV93(c);
+    if(d) c.fechaCreacion = d;
+  }
+}
+
+function ensureFechaCreacionAllV93(){
+  (DATA.clientes || []).forEach(ensureFechaCreacionV93);
+}
+
+function isTransferidoRecienteV93(c){
+  if(!c.fechaTransferencia) return false;
+  const t = new Date(c.fechaTransferencia).getTime();
+  if(Number.isNaN(t)) return false;
+  const days = (Date.now() - t) / 86400000;
+  return days >= 0 && days <= 92;
+}
+
+function reassignClienteV93(c, newAdvisorRaw, opts){
+  opts = opts || {};
+  const newAdvisor = String(newAdvisorRaw || "").trim().toUpperCase();
+  if(!c || !newAdvisor) return false;
+  const oldAdvisor = c.asesorAsignado || "SIN ASIGNACION";
+  if(oldAdvisor === newAdvisor) return false;
+  if(newAdvisor !== "SIN ASIGNACION"){
+    registerAsesorIfNewV93(newAdvisor, { pending: !!opts.isNewAdvisor });
+  }
+  logMasterChangeV86(c.nit, c.cliente, "asesorAsignado", oldAdvisor, newAdvisor);
+  c.asesorAsignado = newAdvisor;
+  c.asesorAnterior = oldAdvisor;
+  c.fechaTransferencia = new Date().toISOString();
+  ensureHistorialAsesorV93(c);
+  c.historialAsesorPorMes[currentMonthKeyV93()] = newAdvisor;
+  saveDataV93();
+  return true;
+}
+
+function nitsDuplicadosV93(){
+  const counts = {};
+  (DATA.clientes || []).forEach(c => {
+    const n = cleanNit(c.nit);
+    if(!n) return;
+    counts[n] = (counts[n] || 0) + 1;
+  });
+  return new Set(Object.keys(counts).filter(n => counts[n] > 1));
+}
+
+function clientesSinAsignacionV93(){
+  return (DATA.clientes || []).filter(c => !c.asesorAsignado || c.asesorAsignado === "SIN ASIGNACION");
+}
+
+function clientesSinNombreV93(){
+  return (DATA.clientes || []).filter(c => !c.cliente || !String(c.cliente).trim() || String(c.cliente).startsWith("Cliente "));
+}
+
+function initV93(){
+  ensureAsesorPerfilesV93();
+  (DATA.clientes || []).forEach(c => {
+    ensureHistorialAsesorV93(c);
+    snapshotAsesorMesActualV93(c);
+    ensureFechaCreacionV93(c);
+  });
+  saveDataV93();
+}
+
+function fmtDateV93(iso){
+  if(!iso) return "—";
+  const parts = String(iso).split("-");
+  if(parts.length < 3) return String(iso);
+  return `${parts[2].slice(0,2)}/${parts[1]}/${parts[0]}`;
+}
+
+// -------- Navegación de las nuevas pestañas --------
+
+function hideAllPrimaryViewsV93(){
+  document.querySelectorAll(".filters,.kpi-grid,.type-grid,.breakdown,.table-card").forEach(el => el.classList.add("hidden-view"));
+  ["dailyUpdatePanel","growthConfigPanel","usageAdminPanel","masterDataAdminPanel","syncAdminPanel"].forEach(id => {
+    const el = $(id); if(el) el.classList.add("hidden-view");
+  });
+  const dash = $("directorDashboardView"); if(dash) dash.classList.add("hidden-view");
+  const glossary = $("glossaryView"); if(glossary) glossary.classList.add("hidden-view");
+  const cv = $("clientsManagementView"); if(cv) cv.classList.add("hidden-view");
+  const av = $("advisorsManagementView"); if(av) av.classList.add("hidden-view");
+  document.querySelectorAll(".sidebar nav a").forEach(a => a.classList.remove("active"));
+}
+
+function showClientsManagementV93(){
+  if(!isAdminV86()) return;
+  hideAllPrimaryViewsV93();
+  const cv = $("clientsManagementView"); if(cv) cv.classList.remove("hidden-view");
+  if($("navClients")) $("navClients").classList.add("active");
+  renderClientsAlertsV93();
+  renderClientsManagementV93();
+}
+
+function showAdvisorsManagementV93(){
+  if(!isAdminV86()) return;
+  hideAllPrimaryViewsV93();
+  const av = $("advisorsManagementView"); if(av) av.classList.remove("hidden-view");
+  if($("navAdvisors")) $("navAdvisors").classList.add("active");
+  renderAdvisorsManagementV93();
+}
+
+const previousShowViewV93 = showViewV812;
+showViewV812 = function(view){
+  const cv = $("clientsManagementView"); if(cv) cv.classList.add("hidden-view");
+  const av = $("advisorsManagementView"); if(av) av.classList.add("hidden-view");
+  previousShowViewV93(view);
+};
+
+const previousShowGlossaryV93 = showGlossaryV814;
+showGlossaryV814 = function(){
+  const cv = $("clientsManagementView"); if(cv) cv.classList.add("hidden-view");
+  const av = $("advisorsManagementView"); if(av) av.classList.add("hidden-view");
+  previousShowGlossaryV93();
+};
+
+const previousApplyAdminVisibilityV93 = applyAdminVisibilityV811;
+applyAdminVisibilityV811 = function(){
+  previousApplyAdminVisibilityV93();
+  const admin = isAdminProfileV811();
+  ["navClients","navAdvisors"].forEach(id => {
+    const el = $(id);
+    if(el) el.style.display = admin ? "" : "none";
+  });
+};
+
+// -------- Gestión de Clientes: estado, filtros, tabla y paginación --------
+
+let clientsMgmtStateV93 = { search:"", filter:"todos", sort:"cliente", page:1 };
+
+function setClientsFilterV93(f){
+  clientsMgmtStateV93.filter = f;
+  clientsMgmtStateV93.page = 1;
+  const sel = $("clientsMgmtFilter");
+  if(sel) sel.value = f;
+  renderClientsManagementV93();
+}
+
+function filteredClientsMgmtV93(){
+  const q = (clientsMgmtStateV93.search || "").toLowerCase().trim();
+  const dupSet = nitsDuplicadosV93();
+  let rows = (DATA.clientes || []).filter(c => {
+    if(q && ![c.nit, c.cliente, c.asesorAsignado].join(" ").toLowerCase().includes(q)) return false;
+    if(clientsMgmtStateV93.filter === "sinAsignacion" && c.asesorAsignado && c.asesorAsignado !== "SIN ASIGNACION") return false;
+    if(clientsMgmtStateV93.filter === "duplicados" && !dupSet.has(cleanNit(c.nit))) return false;
+    if(clientsMgmtStateV93.filter === "sinNombre" && !(!c.cliente || !String(c.cliente).trim() || String(c.cliente).startsWith("Cliente "))) return false;
+    if(clientsMgmtStateV93.filter === "transferidos" && !isTransferidoRecienteV93(c)) return false;
+    return true;
+  });
+  const sort = clientsMgmtStateV93.sort;
+  rows = rows.slice().sort((a, b) => {
+    if(sort === "nit") return String(a.nit || "").localeCompare(String(b.nit || ""));
+    if(sort === "asesor") return String(a.asesorAsignado || "").localeCompare(String(b.asesorAsignado || ""));
+    return String(a.cliente || "").localeCompare(String(b.cliente || ""));
+  });
+  return rows;
+}
+
+function renderClientsAlertsV93(){
+  const bar = $("clientsAlertsBar");
+  if(!bar) return;
+  const sinAsig = clientesSinAsignacionV93().length;
+  const dup = nitsDuplicadosV93().size;
+  const sinNombre = clientesSinNombreV93().length;
+  bar.innerHTML = `
+    <button class="alert-chip-btn warn" data-set-filter="sinAsignacion">Sin asignación: ${sinAsig}</button>
+    <button class="alert-chip-btn danger" data-set-filter="duplicados">NIT duplicado: ${dup}</button>
+    <button class="alert-chip-btn warn" data-set-filter="sinNombre">Sin nombre: ${sinNombre}</button>
+    <button class="alert-chip-btn ghost" data-set-filter="todos">Ver todos</button>
+  `;
+}
+
+function renderClientsPaginationV93(totalPages){
+  const wrap = $("clientsMgmtPagination");
+  if(!wrap) return;
+  wrap.innerHTML = "";
+  const prev = document.createElement("button");
+  prev.className = "btn ghost small-btn";
+  prev.textContent = "Anterior";
+  prev.disabled = clientsMgmtStateV93.page <= 1;
+  prev.addEventListener("click", () => { clientsMgmtStateV93.page--; renderClientsManagementV93(); });
+  const info = document.createElement("span");
+  info.className = "pagination-info";
+  info.textContent = `Página ${clientsMgmtStateV93.page} de ${totalPages}`;
+  const next = document.createElement("button");
+  next.className = "btn ghost small-btn";
+  next.textContent = "Siguiente";
+  next.disabled = clientsMgmtStateV93.page >= totalPages;
+  next.addEventListener("click", () => { clientsMgmtStateV93.page++; renderClientsManagementV93(); });
+  wrap.appendChild(prev); wrap.appendChild(info); wrap.appendChild(next);
+}
+
+function renderClientsManagementV93(){
+  if(!isAdminV86()) return;
+  const rows = filteredClientsMgmtV93();
+  const dupSet = nitsDuplicadosV93();
+  if($("clientsMgmtCount")) $("clientsMgmtCount").textContent = `${rows.length} clientes`;
+  const pageSize = 50;
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  if(clientsMgmtStateV93.page > totalPages) clientsMgmtStateV93.page = totalPages;
+  const start = (clientsMgmtStateV93.page - 1) * pageSize;
+  const pageRows = rows.slice(start, start + pageSize);
+  const body = $("clientsMgmtBody");
+  if(!body) return;
+  body.innerHTML = "";
+  pageRows.forEach(c => {
+    const alerts = [];
+    if(!c.asesorAsignado || c.asesorAsignado === "SIN ASIGNACION") alerts.push('<span class="alert-chip warn">Sin asignación</span>');
+    if(dupSet.has(cleanNit(c.nit))) alerts.push('<span class="alert-chip danger">NIT duplicado</span>');
+    if(!c.cliente || !String(c.cliente).trim() || String(c.cliente).startsWith("Cliente ")) alerts.push('<span class="alert-chip warn">Sin nombre</span>');
+    if(isTransferidoRecienteV93(c)) alerts.push('<span class="alert-chip info">Transferido</span>');
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${esc(c.nit)}</td><td>${esc(c.cliente || "(sin nombre)")}</td><td>${esc(c.asesorAsignado || "SIN ASIGNACION")}</td><td>${esc(asesorMesPasadoV93(c))}</td><td>${esc(asesorMismoMesAnioPasadoV93(c))}</td><td>${fmtDateV93(c.fechaCreacion)}</td><td>${alerts.join(" ") || "—"}</td><td><button class="btn ghost small-btn" data-reassign-nit="${esc(c.nit)}">Reasignar</button></td>`;
+    body.appendChild(tr);
+  });
+  renderClientsPaginationV93(totalPages);
+  renderClientsAlertsV93();
+}
+
+// -------- Modal: confirmar reasignación de asesor --------
+
+let reassignStateV93 = { nit: null };
+
+function fillReassignSelectV93(current){
+  const sel = $("reassignNewAdvisorSelect");
+  if(!sel) return;
+  sel.innerHTML = "";
+  ["SIN ASIGNACION", ...(DATA.meta.asesores || [])].forEach(a => {
+    const o = document.createElement("option");
+    o.value = a; o.textContent = a;
+    if(a === current) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function openReassignModalV93(nit){
+  const c = DATA.clientes.find(x => cleanNit(x.nit) === cleanNit(nit));
+  if(!c) return;
+  reassignStateV93.nit = cleanNit(nit);
+  if($("reassignModalMeta")) $("reassignModalMeta").textContent = `${c.cliente || "Cliente sin nombre"} · NIT ${c.nit}`;
+  if($("reassignModalDetail")) $("reassignModalDetail").textContent = `Asesor actual: ${c.asesorAsignado || "SIN ASIGNACION"}`;
+  fillReassignSelectV93(c.asesorAsignado);
+  if($("reassignNewAdvisorIsNew")) $("reassignNewAdvisorIsNew").checked = false;
+  if($("reassignNewAdvisorName")){ $("reassignNewAdvisorName").style.display = "none"; $("reassignNewAdvisorName").value = ""; }
+  if($("reassignNewAdvisorSelect")) $("reassignNewAdvisorSelect").style.display = "";
+  if($("reassignConfirmModal")) $("reassignConfirmModal").classList.add("open");
+}
+
+function closeReassignModalV93(){
+  if($("reassignConfirmModal")) $("reassignConfirmModal").classList.remove("open");
+  reassignStateV93.nit = null;
+}
+
+function confirmReassignV93(){
+  if(!reassignStateV93.nit) return;
+  const c = DATA.clientes.find(x => cleanNit(x.nit) === reassignStateV93.nit);
+  if(!c){ closeReassignModalV93(); return; }
+  const isNew = !!($("reassignNewAdvisorIsNew") && $("reassignNewAdvisorIsNew").checked);
+  const newAdvisor = isNew ? ($("reassignNewAdvisorName")?.value || "").trim().toUpperCase() : ($("reassignNewAdvisorSelect")?.value || "");
+  if(!newAdvisor){ alert("Selecciona o escribe un asesor."); return; }
+  const changed = reassignClienteV93(c, newAdvisor, { isNewAdvisor: isNew });
+  closeReassignModalV93();
+  if(changed){
+    renderClientsManagementV93();
+    if(typeof renderAdvisorsManagementV93 === "function") renderAdvisorsManagementV93();
+    fillAdvisorFilter();
+    render();
+  }
+}
+
+// -------- Carga masiva Excel: asignación de clientes --------
+
+let clientsUploadValidatedV93 = [];
+
+function lowerKeyRowV93(row){
+  const out = {};
+  Object.keys(row).forEach(k => { out[String(k).trim().toLowerCase()] = row[k]; });
+  return out;
+}
+
+async function validateClientsUploadV93(){
+  const { rows, fileName } = await readWorkbook("clientsUploadFile");
+  if(!rows.length){
+    if($("clientsUploadResult")) $("clientsUploadResult").innerHTML = `<strong>Estado:</strong> no se encontraron filas en ${esc(fileName)}.`;
+    return;
+  }
+  clientsUploadValidatedV93 = rows.map(raw => {
+    const row = lowerKeyRowV93(raw);
+    const nit = cleanNit(row["nit"]);
+    const asesorNuevo = String(row["asesor"] || "").trim().toUpperCase();
+    const clienteNuevo = row["cliente"] !== undefined ? String(row["cliente"]).trim() : "";
+    const c = DATA.clientes.find(x => cleanNit(x.nit) === nit);
+    let status = "OK";
+    if(!nit) status = "Error: NIT vacío";
+    else if(!c) status = "Error: NIT no encontrado";
+    else if(!asesorNuevo) status = "Error: Asesor vacío";
+    else if(asesorNuevo === String(c.asesorAsignado || "").toUpperCase()) status = "Sin cambio";
+    else if(!(DATA.meta.asesores || []).includes(asesorNuevo)) status = "OK (asesor nuevo, quedará pendiente)";
+    const applicable = status === "OK" || status.indexOf("OK") === 0;
+    return { nit, asesorNuevo, clienteNuevo, clienteActual: c ? c.cliente : "", asesorActual: c ? c.asesorAsignado : "", status, applicable };
+  });
+  const body = $("clientsUploadPreviewBody");
+  if(body){
+    body.innerHTML = "";
+    clientsUploadValidatedV93.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${esc(r.nit)}</td><td>${esc(r.clienteActual || "")}</td><td>${esc(r.asesorActual || "")}</td><td>${esc(r.asesorNuevo)}</td><td>${esc(r.status)}</td>`;
+      body.appendChild(tr);
+    });
+  }
+  if($("clientsUploadPreviewWrap")) $("clientsUploadPreviewWrap").style.display = "";
+  const applicable = clientsUploadValidatedV93.filter(r => r.applicable).length;
+  const errors = clientsUploadValidatedV93.filter(r => r.status.indexOf("Error") === 0).length;
+  if($("clientsUploadResult")) $("clientsUploadResult").innerHTML = `<strong>Estado:</strong> ${clientsUploadValidatedV93.length} filas leídas de ${esc(fileName)}. ${applicable} aplicables, ${errors} con error.`;
+  if($("clientsApplyBtn")) $("clientsApplyBtn").disabled = applicable === 0;
+}
+
+function applyClientsUploadV93(){
+  let applied = 0;
+  clientsUploadValidatedV93.forEach(r => {
+    if(!r.applicable) return;
+    const c = DATA.clientes.find(x => cleanNit(x.nit) === r.nit);
+    if(!c) return;
+    const isNew = !(DATA.meta.asesores || []).includes(r.asesorNuevo);
+    if(reassignClienteV93(c, r.asesorNuevo, { isNewAdvisor: isNew })) applied++;
+    if(r.clienteNuevo && r.clienteNuevo !== c.cliente){
+      logMasterChangeV86(c.nit, c.cliente, "cliente", c.cliente, r.clienteNuevo);
+      c.cliente = r.clienteNuevo;
+    }
+  });
+  saveDataV93();
+  if($("clientsUploadResult")) $("clientsUploadResult").innerHTML = `<strong>Estado:</strong> ${applied} clientes actualizados correctamente.`;
+  if($("clientsApplyBtn")) $("clientsApplyBtn").disabled = true;
+  clientsUploadValidatedV93 = [];
+  if($("clientsUploadPreviewWrap")) $("clientsUploadPreviewWrap").style.display = "none";
+  renderClientsManagementV93();
+  if(typeof renderAdvisorsManagementV93 === "function") renderAdvisorsManagementV93();
+  fillAdvisorFilter();
+  render();
+}
+
+function downloadClientsTemplateV93(){
+  downloadCsvV86([["NIT","Asesor","Cliente (opcional)"]], "radar_plantilla_asignacion_clientes.csv");
+}
+
+// -------- Gestión de Asesores: tabla, aprobación y modal --------
+
+let advisorsMgmtSearchV93 = "";
+
+function renderAdvisorsPendingBarV93(){
+  const bar = $("advisorsPendingBar");
+  if(!bar) return;
+  ensureAsesorPerfilesV93();
+  const pending = (DATA.meta.asesores || []).filter(a => DATA.meta.asesorPerfiles[a] && DATA.meta.asesorPerfiles[a].pendienteAprobacion);
+  if(!pending.length){
+    bar.innerHTML = '<span class="alert-chip ok">Sin asesores pendientes de aprobación.</span>';
+    return;
+  }
+  bar.innerHTML = pending.map(a => `<span class="alert-chip warn">Nuevo: ${esc(a)} <button class="btn small-btn" data-approve-advisor="${esc(a)}">Aprobar</button></span>`).join(" ");
+}
+
+function renderAdvisorsManagementV93(){
+  if(!isAdminV86()) return;
+  ensureAsesorPerfilesV93();
+  const q = (advisorsMgmtSearchV93 || "").toLowerCase().trim();
+  const names = (DATA.meta.asesores || []).filter(a => {
+    if(!q) return true;
+    const perfil = DATA.meta.asesorPerfiles[a] || {};
+    return `${a} ${perfil.correo || ""}`.toLowerCase().includes(q);
+  }).slice().sort();
+  if($("advisorsMgmtCount")) $("advisorsMgmtCount").textContent = `${names.length} asesores`;
+  const body = $("advisorsMgmtBody");
+  if(body){
+    body.innerHTML = "";
+    names.forEach(a => {
+      const perfil = DATA.meta.asesorPerfiles[a] || {};
+      const count = (DATA.clientes || []).filter(c => c.asesorAsignado === a).length;
+      const pendingBadge = perfil.pendienteAprobacion ? ' <span class="alert-chip warn">Pendiente</span>' : "";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${esc(a)}${pendingBadge}</td><td>${esc(perfil.correo || "")}</td><td>${esc(perfil.telefono || "")}</td><td>${esc(perfil.estado || "Activo")}</td><td>${fmtDateV93(perfil.fechaNacimiento)}</td><td>${count}</td><td><button class="btn ghost small-btn" data-edit-advisor="${esc(a)}">Editar</button></td>`;
+      body.appendChild(tr);
+    });
+  }
+  renderAdvisorsPendingBarV93();
+}
+
+function openAdvisorModalV93(name){
+  ensureAsesorPerfilesV93();
+  const perfil = name ? (DATA.meta.asesorPerfiles[name] || {}) : {};
+  if($("advisorOriginalName")) $("advisorOriginalName").value = name || "";
+  if($("advisorNameInput")){ $("advisorNameInput").value = name || ""; $("advisorNameInput").disabled = !!name; }
+  if($("advisorEmailInput")) $("advisorEmailInput").value = perfil.correo || "";
+  if($("advisorPhoneInput")) $("advisorPhoneInput").value = perfil.telefono || "";
+  if($("advisorStatusInput")) $("advisorStatusInput").value = perfil.estado || "Activo";
+  if($("advisorBirthdateInput")) $("advisorBirthdateInput").value = perfil.fechaNacimiento || "";
+  if($("advisorModalTitle")) $("advisorModalTitle").textContent = name ? `Editar asesor: ${name}` : "Agregar asesor";
+  if($("advisorEditModal")) $("advisorEditModal").classList.add("open");
+}
+
+function closeAdvisorModalV93(){
+  if($("advisorEditModal")) $("advisorEditModal").classList.remove("open");
+}
+
+function saveAdvisorV93(){
+  ensureAsesorPerfilesV93();
+  const original = $("advisorOriginalName") ? $("advisorOriginalName").value : "";
+  const name = String($("advisorNameInput") ? $("advisorNameInput").value : "").trim().toUpperCase();
+  if(!name){ alert("El nombre del asesor es obligatorio."); return; }
+  if(!original){
+    if((DATA.meta.asesores || []).includes(name)){ alert("Ya existe un asesor con ese nombre."); return; }
+    registerAsesorIfNewV93(name, { pending: false });
+  }
+  const perfil = DATA.meta.asesorPerfiles[name] || { pendienteAprobacion:false };
+  perfil.correo = ($("advisorEmailInput")?.value || "").trim();
+  perfil.telefono = ($("advisorPhoneInput")?.value || "").trim();
+  perfil.estado = $("advisorStatusInput")?.value || "Activo";
+  perfil.fechaNacimiento = $("advisorBirthdateInput")?.value || "";
+  if(perfil.pendienteAprobacion === undefined) perfil.pendienteAprobacion = false;
+  DATA.meta.asesorPerfiles[name] = perfil;
+  saveDataV93();
+  closeAdvisorModalV93();
+  renderAdvisorsManagementV93();
+  fillAdvisorFilter();
+}
+
+// -------- Carga masiva Excel: asesores --------
+
+let advisorsUploadValidatedV93 = [];
+
+async function validateAdvisorsUploadV93(){
+  const { rows, fileName } = await readWorkbook("advisorsUploadFile");
+  if(!rows.length){
+    if($("advisorsUploadResult")) $("advisorsUploadResult").innerHTML = `<strong>Estado:</strong> no se encontraron filas en ${esc(fileName)}.`;
+    return;
+  }
+  advisorsUploadValidatedV93 = rows.map(raw => {
+    const row = lowerKeyRowV93(raw);
+    const nombre = String(row["nombre"] || "").trim().toUpperCase();
+    const correo = String(row["correo"] || "").trim();
+    const telefono = String(row["telefono"] || row["teléfono"] || "").trim();
+    const estado = String(row["estado"] || "Activo").trim();
+    const fechaNacimientoRaw = row["fecha de nacimiento"] || row["fechanacimiento"] || "";
+    const fechaNacimiento = fechaNacimientoRaw ? String(fechaNacimientoRaw) : "";
+    const exists = (DATA.meta.asesores || []).includes(nombre);
+    const status = !nombre ? "Error: Nombre vacío" : (exists ? "Actualiza datos existentes" : "Nuevo (quedará pendiente de aprobación)");
+    return { nombre, correo, telefono, estado, fechaNacimiento, status, applicable: !!nombre };
+  });
+  const body = $("advisorsUploadPreviewBody");
+  if(body){
+    body.innerHTML = "";
+    advisorsUploadValidatedV93.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${esc(r.nombre)}</td><td>${esc(r.correo)}</td><td>${esc(r.telefono)}</td><td>${esc(r.estado)}</td><td>${esc(r.fechaNacimiento)}</td><td>${esc(r.status)}</td>`;
+      body.appendChild(tr);
+    });
+  }
+  if($("advisorsUploadPreviewWrap")) $("advisorsUploadPreviewWrap").style.display = "";
+  const applicable = advisorsUploadValidatedV93.filter(r => r.applicable).length;
+  if($("advisorsUploadResult")) $("advisorsUploadResult").innerHTML = `<strong>Estado:</strong> ${advisorsUploadValidatedV93.length} filas leídas de ${esc(fileName)}. ${applicable} aplicables.`;
+  if($("advisorsApplyBtn")) $("advisorsApplyBtn").disabled = applicable === 0;
+}
+
+function applyAdvisorsUploadV93(){
+  let applied = 0;
+  advisorsUploadValidatedV93.forEach(r => {
+    if(!r.applicable) return;
+    const exists = (DATA.meta.asesores || []).includes(r.nombre);
+    registerAsesorIfNewV93(r.nombre, { pending: !exists });
+    const perfil = DATA.meta.asesorPerfiles[r.nombre] || { pendienteAprobacion: !exists };
+    if(r.correo) perfil.correo = r.correo;
+    if(r.telefono) perfil.telefono = r.telefono;
+    if(r.estado) perfil.estado = r.estado;
+    if(r.fechaNacimiento) perfil.fechaNacimiento = r.fechaNacimiento;
+    DATA.meta.asesorPerfiles[r.nombre] = perfil;
+    applied++;
+  });
+  saveDataV93();
+  if($("advisorsUploadResult")) $("advisorsUploadResult").innerHTML = `<strong>Estado:</strong> ${applied} asesores actualizados correctamente.`;
+  if($("advisorsApplyBtn")) $("advisorsApplyBtn").disabled = true;
+  advisorsUploadValidatedV93 = [];
+  if($("advisorsUploadPreviewWrap")) $("advisorsUploadPreviewWrap").style.display = "none";
+  renderAdvisorsManagementV93();
+  fillAdvisorFilter();
+}
+
+function downloadAdvisorsTemplateV93(){
+  downloadCsvV86([["Nombre","Correo","Telefono","Estado","Fecha de nacimiento"]], "radar_plantilla_asesores.csv");
+}
+
+// -------- Wiring de eventos V9.3 --------
+
+document.addEventListener("DOMContentLoaded", () => {
+  initV93();
+
+  if($("navClients")) $("navClients").addEventListener("click", showClientsManagementV93);
+  if($("navAdvisors")) $("navAdvisors").addEventListener("click", showAdvisorsManagementV93);
+
+  if($("mgmtDownloadAssignBtn")) $("mgmtDownloadAssignBtn").addEventListener("click", downloadMasterDataV86);
+  if($("mgmtDownloadLogBtn")) $("mgmtDownloadLogBtn").addEventListener("click", downloadMasterLogV86);
+
+  if($("clientsMgmtSearch")) $("clientsMgmtSearch").addEventListener("input", e => { clientsMgmtStateV93.search = e.target.value; clientsMgmtStateV93.page = 1; renderClientsManagementV93(); });
+  if($("clientsMgmtFilter")) $("clientsMgmtFilter").addEventListener("change", e => { setClientsFilterV93(e.target.value); });
+  if($("clientsMgmtSort")) $("clientsMgmtSort").addEventListener("change", e => { clientsMgmtStateV93.sort = e.target.value; renderClientsManagementV93(); });
+  if($("clientsMgmtUploadToggle")) $("clientsMgmtUploadToggle").addEventListener("click", () => { const p = $("clientsUploadPanel"); if(p) p.classList.toggle("hidden-view"); });
+  if($("clientsValidateBtn")) $("clientsValidateBtn").addEventListener("click", validateClientsUploadV93);
+  if($("clientsApplyBtn")) $("clientsApplyBtn").addEventListener("click", applyClientsUploadV93);
+  if($("clientsDownloadTemplateBtn")) $("clientsDownloadTemplateBtn").addEventListener("click", downloadClientsTemplateV93);
+
+  if($("advisorAddBtn")) $("advisorAddBtn").addEventListener("click", () => openAdvisorModalV93(null));
+  if($("advisorsDownloadTemplateBtn")) $("advisorsDownloadTemplateBtn").addEventListener("click", downloadAdvisorsTemplateV93);
+  if($("advisorsMgmtSearch")) $("advisorsMgmtSearch").addEventListener("input", e => { advisorsMgmtSearchV93 = e.target.value; renderAdvisorsManagementV93(); });
+  if($("advisorsMgmtUploadToggle")) $("advisorsMgmtUploadToggle").addEventListener("click", () => { const p = $("advisorsUploadPanel"); if(p) p.classList.toggle("hidden-view"); });
+  if($("advisorsValidateBtn")) $("advisorsValidateBtn").addEventListener("click", validateAdvisorsUploadV93);
+  if($("advisorsApplyBtn")) $("advisorsApplyBtn").addEventListener("click", applyAdvisorsUploadV93);
+
+  if($("reassignModalCloseBtn")) $("reassignModalCloseBtn").addEventListener("click", closeReassignModalV93);
+  if($("reassignCancelBtn")) $("reassignCancelBtn").addEventListener("click", closeReassignModalV93);
+  if($("reassignConfirmModal")) $("reassignConfirmModal").addEventListener("click", e => { if(e.target.id === "reassignConfirmModal") closeReassignModalV93(); });
+  if($("reassignConfirmBtn")) $("reassignConfirmBtn").addEventListener("click", confirmReassignV93);
+  if($("reassignNewAdvisorIsNew")) $("reassignNewAdvisorIsNew").addEventListener("change", e => {
+    const isNew = e.target.checked;
+    if($("reassignNewAdvisorName")) $("reassignNewAdvisorName").style.display = isNew ? "" : "none";
+    if($("reassignNewAdvisorSelect")) $("reassignNewAdvisorSelect").style.display = isNew ? "none" : "";
+  });
+
+  if($("advisorModalCloseBtn")) $("advisorModalCloseBtn").addEventListener("click", closeAdvisorModalV93);
+  if($("advisorModalCancelBtn")) $("advisorModalCancelBtn").addEventListener("click", closeAdvisorModalV93);
+  if($("advisorEditModal")) $("advisorEditModal").addEventListener("click", e => { if(e.target.id === "advisorEditModal") closeAdvisorModalV93(); });
+  if($("advisorSaveBtn")) $("advisorSaveBtn").addEventListener("click", saveAdvisorV93);
+
+  document.addEventListener("click", e => {
+    const t = e.target;
+    if(!t || !t.dataset) return;
+    if(t.dataset.reassignNit) openReassignModalV93(t.dataset.reassignNit);
+    if(t.dataset.approveAdvisor) approveAdvisorV93(t.dataset.approveAdvisor);
+    if(t.dataset.editAdvisor) openAdvisorModalV93(t.dataset.editAdvisor);
+    if(t.dataset.setFilter) setClientsFilterV93(t.dataset.setFilter);
+  });
+
+  applyAdminVisibilityV811();
+});

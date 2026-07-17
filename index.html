@@ -57,9 +57,9 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-icon">R</div>
-        <div><h1>Radar Comercial Industria</h1><small>ConAccion · V1.1 · Línea Espumas</small></div>
+        <div><h1>Radar Comercial Industria</h1><small>ConAccion · V1.2 · Línea Espumas</small></div>
       </div>
-      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navDashboard">Dashboard director</a><a id="navGlossary">Glosario comercial</a></nav>
+      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navDashboard">Dashboard director</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
         <small id="sessionRoleLabel"></small>
         <a id="logoutBtn" class="logout-link">Cerrar sesión</a>
@@ -136,15 +136,14 @@
         </div>
       </section>
 
-      <section class="admin-panel" id="masterDataAdminPanel">
-        <div class="panel-header"><div><h3>Gestión de base maestra de clientes</h3><p>Solo administrador. Descarga asignación actualizada y bitácora de cambios.</p></div></div>
+      <section class="admin-panel" id="masterDataAdminPanel" style="display:none">
         <div class="usage-actions">
           <button class="btn" id="downloadMasterDataBtn">Descargar asignación actualizada</button>
           <button class="btn ghost" id="downloadMasterLogBtn">Descargar historial de cambios</button>
         </div>
       </section>
 
-      
+
       <section class="admin-panel" id="syncAdminPanel">
         <div class="panel-header">
           <div>
@@ -411,6 +410,110 @@
         </section>
       </section>
 
+      <section class="clients-mgmt-view hidden-view" id="clientsManagementView">
+        <div class="dashboard-title">
+          <div><h2>Gestión de Clientes</h2><p>Asignación de asesor por cliente, historial de asesor y datos maestros. Solo Administrador y Super Administrador.</p></div>
+          <div class="dashboard-actions">
+            <button class="btn" id="mgmtDownloadAssignBtn">Descargar asignación actualizada</button>
+            <button class="btn ghost" id="mgmtDownloadLogBtn">Descargar historial de cambios</button>
+          </div>
+        </div>
+
+        <section class="alerts-bar" id="clientsAlertsBar"></section>
+
+        <section class="mgmt-toolbar">
+          <input type="search" id="clientsMgmtSearch" placeholder="Buscar por NIT, cliente o asesor"/>
+          <select id="clientsMgmtFilter">
+            <option value="todos">Todos los clientes</option>
+            <option value="sinAsignacion">Sin asignación</option>
+            <option value="duplicados">NIT duplicado</option>
+            <option value="sinNombre">Sin nombre / razón social</option>
+            <option value="transferidos">Transferidos (últimos 3 meses)</option>
+          </select>
+          <select id="clientsMgmtSort">
+            <option value="cliente">Ordenar: Cliente A-Z</option>
+            <option value="nit">Ordenar: NIT</option>
+            <option value="asesor">Ordenar: Asesor</option>
+          </select>
+          <button class="btn ghost" id="clientsMgmtUploadToggle">Cargar Excel de asignación</button>
+        </section>
+
+        <section class="upload-panel hidden-view" id="clientsUploadPanel">
+          <div class="panel-header"><div><h3>Carga masiva de asignación de clientes</h3><p>Columnas: NIT, Asesor (opcional: Cliente, Fecha de creación). Primero valida, luego aplica.</p></div></div>
+          <div class="upload-grid">
+            <article><h4>Archivo Excel de asignación</h4><input type="file" id="clientsUploadFile" accept=".xlsx,.xls,.csv"/></article>
+          </div>
+          <div class="actions">
+            <button class="btn" id="clientsValidateBtn">Validar archivo</button>
+            <button class="btn secondary" id="clientsApplyBtn" disabled>Aplicar cambios</button>
+            <button class="btn ghost" id="clientsDownloadTemplateBtn">Descargar plantilla</button>
+          </div>
+          <div class="update-result" id="clientsUploadResult"><strong>Estado:</strong> pendiente de carga.</div>
+          <div class="table-scroll" id="clientsUploadPreviewWrap" style="display:none">
+            <table class="usage-table">
+              <thead><tr><th>NIT</th><th>Cliente actual</th><th>Asesor actual</th><th>Asesor nuevo</th><th>Estado</th></tr></thead>
+              <tbody id="clientsUploadPreviewBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="mgmt-table-card">
+          <div class="table-header"><h3>Clientes</h3><span id="clientsMgmtCount">0 clientes</span></div>
+          <div class="table-scroll">
+            <table class="mgmt-table">
+              <thead><tr><th>NIT</th><th>Cliente / Razón social</th><th>Asesor asignado</th><th>Mes pasado</th><th>Mismo mes año pasado</th><th>Fecha creación</th><th>Alertas</th><th>Acción</th></tr></thead>
+              <tbody id="clientsMgmtBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="clientsMgmtPagination"></div>
+        </section>
+      </section>
+
+      <section class="advisors-mgmt-view hidden-view" id="advisorsManagementView">
+        <div class="dashboard-title">
+          <div><h2>Gestión de Asesores</h2><p>Datos de asesores comerciales y aprobación de asesores nuevos. Solo Administrador y Super Administrador.</p></div>
+          <div class="dashboard-actions">
+            <button class="btn" id="advisorAddBtn">Agregar asesor</button>
+            <button class="btn ghost" id="advisorsDownloadTemplateBtn">Descargar plantilla</button>
+          </div>
+        </div>
+
+        <section class="alerts-bar" id="advisorsPendingBar"></section>
+
+        <section class="mgmt-toolbar">
+          <input type="search" id="advisorsMgmtSearch" placeholder="Buscar asesor por nombre o correo"/>
+          <button class="btn ghost" id="advisorsMgmtUploadToggle">Cargar Excel de asesores</button>
+        </section>
+
+        <section class="upload-panel hidden-view" id="advisorsUploadPanel">
+          <div class="panel-header"><div><h3>Carga masiva de asesores</h3><p>Columnas: Nombre, Correo, Teléfono, Estado, Fecha de nacimiento. Primero valida, luego aplica.</p></div></div>
+          <div class="upload-grid">
+            <article><h4>Archivo Excel de asesores</h4><input type="file" id="advisorsUploadFile" accept=".xlsx,.xls,.csv"/></article>
+          </div>
+          <div class="actions">
+            <button class="btn" id="advisorsValidateBtn">Validar archivo</button>
+            <button class="btn secondary" id="advisorsApplyBtn" disabled>Aplicar cambios</button>
+          </div>
+          <div class="update-result" id="advisorsUploadResult"><strong>Estado:</strong> pendiente de carga.</div>
+          <div class="table-scroll" id="advisorsUploadPreviewWrap" style="display:none">
+            <table class="usage-table">
+              <thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Estado</th><th>Fecha nacimiento</th><th>Situación</th></tr></thead>
+              <tbody id="advisorsUploadPreviewBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="mgmt-table-card">
+          <div class="table-header"><h3>Asesores</h3><span id="advisorsMgmtCount">0 asesores</span></div>
+          <div class="table-scroll">
+            <table class="mgmt-table">
+              <thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Estado</th><th>Fecha nacimiento</th><th>Clientes</th><th>Acción</th></tr></thead>
+              <tbody id="advisorsMgmtBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
     </main>
   </div>
 
@@ -525,6 +628,49 @@
         <textarea id="modalComentario" rows="4" placeholder="Escribe aquí el avance, compromiso o comentario del cliente"></textarea>
 
         <button class="btn" id="modalSaveBtn">Guardar seguimiento</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="reassignConfirmModal">
+    <div class="modal-card small-modal">
+      <div class="modal-header">
+        <div><h3>Confirmar cambio de asesor</h3><p id="reassignModalMeta">Cliente</p></div>
+        <button class="modal-close" id="reassignModalCloseBtn">×</button>
+      </div>
+      <div class="modal-form">
+        <p id="reassignModalDetail"></p>
+        <label>Nuevo asesor</label>
+        <select id="reassignNewAdvisorSelect"></select>
+        <label class="remember-row"><input type="checkbox" id="reassignNewAdvisorIsNew"/> Es un asesor nuevo (escribir nombre abajo)</label>
+        <input type="text" id="reassignNewAdvisorName" placeholder="Nombre del nuevo asesor" style="display:none"/>
+        <div class="actions">
+          <button class="btn" id="reassignConfirmBtn">Confirmar cambio</button>
+          <button class="btn ghost" id="reassignCancelBtn">Cancelar cambio</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="advisorEditModal">
+    <div class="modal-card small-modal">
+      <div class="modal-header">
+        <div><h3 id="advisorModalTitle">Editar asesor</h3><p>Datos del asesor comercial</p></div>
+        <button class="modal-close" id="advisorModalCloseBtn">×</button>
+      </div>
+      <div class="modal-form">
+        <input type="hidden" id="advisorOriginalName"/>
+        <label>Nombre<input type="text" id="advisorNameInput"/></label>
+        <label>Correo<input type="email" id="advisorEmailInput"/></label>
+        <label>Teléfono<input type="tel" id="advisorPhoneInput"/></label>
+        <label>Estado
+          <select id="advisorStatusInput"><option>Activo</option><option>Inactivo</option><option>Pendiente</option></select>
+        </label>
+        <label>Fecha de nacimiento<input type="date" id="advisorBirthdateInput"/></label>
+        <div class="actions">
+          <button class="btn" id="advisorSaveBtn">Guardar asesor</button>
+          <button class="btn ghost" id="advisorModalCancelBtn">Cancelar</button>
+        </div>
       </div>
     </div>
   </div>

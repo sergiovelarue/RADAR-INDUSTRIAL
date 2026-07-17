@@ -1,5 +1,28 @@
 # Radar Comercial ConAccion Industria
 
+## V1.2 - Gestión de Clientes y Gestión de Asesores
+
+Se agregan dos pestañas nuevas en el menú lateral, visibles solo para **Administrador** y **Super Administrador**: "Gestión de clientes" y "Gestión de asesores". Reemplazan y amplían el antiguo panel de "Gestión de base maestra de clientes" (sus descargas se movieron a la pestaña nueva).
+
+**Gestión de Clientes**
+- Tabla con NIT, cliente/razón social, asesor asignado, asesor del mes pasado, asesor del mismo mes del año pasado, fecha de creación del cliente y alertas.
+- Buscar por NIT, cliente o asesor; filtrar por Sin asignación, NIT duplicado, Sin nombre o Transferidos recientes; ordenar por cliente, NIT o asesor. Tabla paginada (50 clientes por página).
+- Alertas de calidad de datos con conteo en vivo: clientes sin asignación, NIT duplicado (solo puede existir un NIT por cliente) y clientes sin nombre/razón social. Cada alerta es un filtro de un clic.
+- Reasignar asesor desde un botón por fila, con modal de confirmación (Confirmar cambio / Cancelar cambio) para evitar cambios accidentales. El cambio es **solo hacia adelante**: el histórico de ventas no se reescribe ni se resta/suma retroactivamente entre asesores, evitando doble conteo. El cliente queda marcado como "Transferido" durante los 3 meses siguientes al cambio.
+- El asesor del mes pasado y del mismo mes del año pasado se calculan a partir de un historial mensual que se registra automáticamente al abrir la aplicación; los meses anteriores a la existencia de este historial muestran "--------".
+- La fecha de creación del cliente se calcula automáticamente a partir de su primera venta registrada (2025 o 2026) y **no cambia** cuando el cliente pasa de un asesor a otro. Es editable manualmente si falta o está incorrecta.
+- Carga masiva por Excel (columnas NIT, Asesor, Cliente opcional) con flujo Validar → Aplicar: primero muestra una vista previa fila por fila (con el estado de cada una: aplica, sin cambio o error) y solo aplica los cambios después de revisarla. Incluye plantilla descargable.
+
+**Gestión de Asesores**
+- Tabla con nombre, correo, teléfono, estado, fecha de nacimiento y número de clientes asignados por asesor.
+- Crear asesor manualmente, editar datos de un asesor existente (el nombre no se puede renombrar desde el formulario, para no romper la asignación de clientes ya hecha).
+- Carga masiva por Excel (columnas Nombre, Correo, Teléfono, Estado, Fecha de nacimiento) con el mismo flujo Validar → Aplicar.
+- **Aprobación de asesores nuevos:** cuando se detecta un asesor que no existía (al reasignar un cliente a un nombre nuevo, al cargar un Excel de clientes con un asesor nuevo, o al cargar un Excel de asesores con un nombre nuevo), queda marcado como "Pendiente" en una barra de aprobación visible en la pestaña. Sus clientes y ventas ya cuentan en todos los totales desde el primer momento; el estado "Pendiente" es solo una señal visual hasta que un Administrador o Super Administrador presiona "Aprobar".
+
+Notas técnicas:
+- Todo sigue viviendo en localStorage del navegador (sin backend compartido), igual que el resto de Radar Comercial. Compartir cambios entre equipos/navegadores queda pendiente para una fase futura con base de datos centralizada (por ejemplo Supabase).
+- No se modificó ningún cálculo de Hoja de Ruta, Dashboard Director, Segmentos ni Salud del Portafolio: al ser un único total acumulado por cliente (no dividido por asesor y mes), la reasignación hacia adelante no genera doble conteo ni distorsión en los acumulados.
+
 ## V1.1 - Tres perfiles: Asesor / Administrador / Super Administrador
 
 Se agrega un tercer nivel de acceso para separar "ver todo" de "poder configurar la aplicación":
