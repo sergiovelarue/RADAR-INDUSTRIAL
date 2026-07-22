@@ -2403,8 +2403,9 @@ async function validateAdvisorsUploadV93(){
     const correo = String(row["correo"] || "").trim();
     const telefono = String(row["telefono"] || row["teléfono"] || "").trim();
     const estado = String(row["estado"] || "Activo").trim();
-    const fechaNacimientoRaw = row["fecha de nacimiento"] || row["fechanacimiento"] || "";
-    const fechaNacimiento = fechaNacimientoRaw ? String(fechaNacimientoRaw) : "";
+    const municipio = String(row["municipio"] || "").trim();
+    const canal = String(row["canal"] || "").trim();
+    const zona = String(row["zona"] || "").trim();
     const exists = (DATA.meta.asesores || []).includes(nombre);
     let status, applicable;
     if(!nombre){
@@ -2433,14 +2434,14 @@ async function validateAdvisorsUploadV93(){
     } else {
       status = "Actualiza datos existentes"; applicable = true;
     }
-    return { nombre, correo, telefono, estado, fechaNacimiento, status, applicable };
+    return { nombre, correo, telefono, estado, municipio, canal, zona, status, applicable };
   });
   const body = $("advisorsUploadPreviewBody");
   if(body){
     body.innerHTML = "";
     advisorsUploadValidatedV93.forEach(r => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${esc(r.nombre)}</td><td>${esc(r.correo)}</td><td>${esc(r.telefono)}</td><td>${esc(r.estado)}</td><td>${esc(r.fechaNacimiento)}</td><td>${esc(r.status)}</td>`;
+      tr.innerHTML = `<td>${esc(r.nombre)}</td><td>${esc(r.correo)}</td><td>${esc(r.telefono)}</td><td>${esc(r.estado)}</td><td>${esc(r.municipio)}</td><td>${esc(r.canal)}</td><td>${esc(r.zona)}</td><td>${esc(r.status)}</td>`;
       body.appendChild(tr);
     });
   }
@@ -2460,7 +2461,9 @@ function applyAdvisorsUploadV93(){
     if(r.correo) perfil.correo = r.correo;
     if(r.telefono) perfil.telefono = r.telefono;
     if(r.estado) perfil.estado = r.estado;
-    if(r.fechaNacimiento) perfil.fechaNacimiento = r.fechaNacimiento;
+    if(r.municipio) perfil.municipio = r.municipio;
+    if(r.canal) perfil.canal = r.canal;
+    if(r.zona) perfil.zona = r.zona;
     DATA.meta.asesorPerfiles[r.nombre] = perfil;
     applied++;
   });
@@ -2474,7 +2477,13 @@ function applyAdvisorsUploadV93(){
 }
 
 function downloadAdvisorsTemplateV93(){
-  downloadCsvV86([["Nombre","Correo","Telefono","Estado","Fecha de nacimiento"]], "radar_plantilla_asesores.csv");
+  ensureAsesorPerfilesV93();
+  const rows = [["Nombre","Correo","Telefono","Estado","Municipio","Canal","Zona"]];
+  (DATA.meta.asesores || []).slice().sort().forEach(nombre => {
+    const p = DATA.meta.asesorPerfiles[nombre] || {};
+    rows.push([nombre, p.correo || "", p.telefono || "", p.estado || "Activo", p.municipio || "", p.canal || "", p.zona || ""]);
+  });
+  downloadCsvV86(rows, "radar_plantilla_asesores.csv");
 }
 
 // -------- Wiring de eventos V9.3 --------

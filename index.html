@@ -483,7 +483,7 @@
         </section>
 
         <section class="upload-panel hidden-view" id="advisorsUploadPanel">
-          <div class="panel-header"><div><h3>Carga masiva de asesores</h3><p>Columnas: Nombre, Correo, Teléfono, Estado, Fecha de nacimiento. Primero valida, luego aplica.</p></div></div>
+          <div class="panel-header"><div><h3>Carga masiva de asesores</h3><p>Columnas: Nombre, Correo, Teléfono, Estado, Municipio, Canal, Zona. Usa "Descargar plantilla" para traer ya cargados los asesores actuales (para corregir o completar datos) y agrega filas nuevas al final para asesores nuevos. Primero valida, luego aplica.</p></div></div>
           <div class="upload-grid">
             <article><h4>Archivo Excel de asesores</h4><input type="file" id="advisorsUploadFile" accept=".xlsx,.xls,.csv"/></article>
           </div>
@@ -494,7 +494,7 @@
           <div class="update-result" id="advisorsUploadResult"><strong>Estado:</strong> pendiente de carga.</div>
           <div class="table-scroll" id="advisorsUploadPreviewWrap" style="display:none">
             <table class="usage-table">
-              <thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Estado</th><th>Fecha nacimiento</th><th>Situación</th></tr></thead>
+              <thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Estado</th><th>Municipio</th><th>Canal</th><th>Zona</th><th>Situación</th></tr></thead>
               <tbody id="advisorsUploadPreviewBody"></tbody>
             </table>
           </div>

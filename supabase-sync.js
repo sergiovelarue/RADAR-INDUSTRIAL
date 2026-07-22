@@ -17,13 +17,15 @@
 //     (todo lo que ya pasaba por saveDataV93)
 //   - Historial de cambios (auditoría compartida)
 //
+// FASE 1.5 — Configuración compartida (agregado tras detectar
+// que se perdía al recargar la app):
+//   - Canales y zonas (crear, renombrar, eliminar)
+//   - Perfiles de asesor (correo, teléfono, municipio, canal, zona)
+//   - Metas de crecimiento por clasificación
+//
 // FASE 2 — Pendiente (sigue funcionando solo en este navegador):
-//   - Configuración de metas de crecimiento por clasificación
 //   - Metas SOP por asesor
 //   - Registro de acceso / sesión de usuarios
-//   - Asesores nuevos que no estén en la lista de 7 originales
-//     (hay que agregarlos primero en la tabla "asesores" de
-//     Supabase para que la reasignación quede bien guardada)
 // ============================================================
 
 const SUPABASE_URL_V94 = "https://ljztqfzykvuvopgqgxxf.supabase.co";
@@ -218,17 +220,77 @@ logMasterChangeV86 = function (nit, cliente, field, oldValue, newValue) {
 // la fuente de verdad ahora es Supabase.
 restoreLocal = function () {};
 
+// ============================================================
+// FASE 1.5 — Configuración compartida (canales/zonas, perfiles
+// de asesor, metas de crecimiento). Antes solo vivía en el
+// navegador y se perdía al recargar o actualizar la app. Ahora
+// se guarda en la tabla "configuracion" de Supabase (clave/valor).
+// ============================================================
+
+async function cargarConfiguracionDesdeSupabaseV97() {
+  try {
+    const { data, error } = await supabaseClientV94.from('configuracion').select('clave, valor');
+    if (error) { console.error('[Radar-Supabase] Error cargando configuración:', error); return false; }
+    if (!data || data.length === 0) return false; // primera vez: no hay nada guardado todavía
+    const porClave = {};
+    data.forEach(row => { porClave[row.clave] = row.valor; });
+    if (porClave.canales) DATA.meta.canales = porClave.canales;
+    if (porClave.asesorPerfiles) DATA.meta.asesorPerfiles = porClave.asesorPerfiles;
+    if (porClave.growthByClass) DATA.meta.growthByClass = porClave.growthByClass;
+    return true;
+  } catch (e) {
+    console.error('[Radar-Supabase] Fallo de conexión al cargar configuración:', e);
+    return false;
+  }
+}
+
+let syncConfigEnCursoV97 = false;
+let syncConfigPendienteV97 = false;
+
+async function sincronizarConfiguracionV97() {
+  if (syncConfigEnCursoV97) { syncConfigPendienteV97 = true; return; }
+  syncConfigEnCursoV97 = true;
+  try {
+    const filas = [
+      { clave: 'canales', valor: DATA.meta.canales || {} },
+      { clave: 'asesorPerfiles', valor: DATA.meta.asesorPerfiles || {} },
+      { clave: 'growthByClass', valor: DATA.meta.growthByClass || {} }
+    ];
+    const { error } = await supabaseClientV94.from('configuracion').upsert(filas, { onConflict: 'clave' });
+    if (error) console.error('[Radar-Supabase] Error guardando configuración:', error);
+  } catch (e) {
+    console.error('[Radar-Supabase] Fallo de conexión al guardar configuración:', e);
+  } finally {
+    syncConfigEnCursoV97 = false;
+    if (syncConfigPendienteV97) { syncConfigPendienteV97 = false; sincronizarConfiguracionV97(); }
+  }
+}
+
+// saveDataV93 también es el punto central de canales/zonas y de
+// edición de asesores (Gestión de Asesores), así que ampliamos
+// el mismo enganche para que también sincronice esta configuración.
+const _saveDataV93OriginalV97 = saveDataV93;
+saveDataV93 = function () {
+  _saveDataV93OriginalV97();
+  sincronizarConfiguracionV97();
+};
+
 // ------------------------------------------------------------
 // ARRANQUE: la app ya pintó la pantalla con data.js (rápido,
 // sin esperar), y aquí la actualizamos con los datos reales y
 // compartidos de Supabase apenas responden.
 // ------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", async () => {
-  const ok = await cargarClientesDesdeSupabaseV94();
-  if (ok) {
+  const [okClientes, okConfig] = await Promise.all([
+    cargarClientesDesdeSupabaseV94(),
+    cargarConfiguracionDesdeSupabaseV97()
+  ]);
+  if (typeof ensureAsesorPerfilesV93 === "function") ensureAsesorPerfilesV93();
+  if (typeof ensureCanalCatalogV94 === "function") ensureCanalCatalogV94();
+  if (okClientes || okConfig) {
     fillAdvisorFilter();
     render();
-    console.log('[Radar-Supabase] Datos actualizados desde Supabase:', DATA.clientes.length, 'clientes');
+    console.log('[Radar-Supabase] Datos actualizados desde Supabase:', DATA.clientes.length, 'clientes. Config compartida:', okConfig ? 'sí' : 'usando valores por defecto (primera vez)');
   } else {
     console.warn('[Radar-Supabase] Mostrando datos locales de respaldo (no se pudo conectar a Supabase).');
   }
