@@ -2313,7 +2313,7 @@ function renderAdvisorsManagementV93(){
       const count = (DATA.clientes || []).filter(c => c.asesorAsignado === a).length;
       const pendingBadge = perfil.pendienteAprobacion ? ' <span class="alert-chip warn">Pendiente</span>' : "";
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${esc(a)}${pendingBadge}</td><td>${esc(perfil.correo || "")}</td><td>${esc(perfil.telefono || "")}</td><td>${esc(perfil.estado || "Activo")}</td><td>${esc(perfil.municipio || "—")}</td><td>${esc(perfil.canal || "—")}</td><td>${esc(perfil.zona || "—")}</td><td>${fmtDateV93(perfil.fechaNacimiento)}</td><td>${count}</td><td><button class="btn ghost small-btn" data-edit-advisor="${esc(a)}">Editar</button></td>`;
+      tr.innerHTML = `<td>${esc(a)}${pendingBadge}</td><td>${esc(perfil.correo || "")}</td><td>${esc(perfil.telefono || "")}</td><td>${esc(perfil.estado || "Activo")}</td><td>${esc(perfil.municipio || "—")}</td><td>${esc(perfil.canal || "—")}</td><td>${esc(perfil.zona || "—")}</td><td>${count}</td><td><button class="btn ghost small-btn" data-edit-advisor="${esc(a)}">Editar</button></td>`;
       body.appendChild(tr);
     });
   }

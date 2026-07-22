@@ -59,7 +59,7 @@
         <div class="brand-icon">R</div>
         <div><h1>Radar Comercial Industria</h1><small>ConAccion · V1.3 · Línea Espumas</small></div>
       </div>
-      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navDashboard">Dashboard director</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navGlossary">Glosario comercial</a></nav>
+      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navDashboard">Dashboard</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
         <small id="sessionRoleLabel"></small>
         <a id="logoutBtn" class="logout-link">Cerrar sesión</a>
@@ -191,7 +191,7 @@
             <option value="cliente">Cliente A-Z</option>
           </select>
         </div>
-        <div><label>Vista negocio</label><select id="businessView"><option value="total">Total Radar</option><option value="espumas">Solo Espumas</option></select></div>
+        <div style="display:none"><label>Vista negocio</label><select id="businessView"><option value="total">Total Radar</option><option value="espumas">Solo Espumas</option></select></div>
         <div><label>Asesor</label><select id="advisorFilter"></select></div>
         <div><label>Tipo cliente</label><select id="typeFilter"><option value="todos">Todos</option><option value="Espumas">Espumas</option><option value="Nuevo">Nuevo</option><option value="Bloqueado">Bloqueado</option></select></div>
         <div><label>Estado</label><select id="statusFilter"><option value="todos">Todos</option><option value="Activo">Activo</option><option value="Baja">Baja</option><option value="Nuevo">Nuevo</option><option value="Bloqueado">Bloqueado</option></select></div>
@@ -228,8 +228,8 @@
       <section class="director-dashboard hidden-view" id="directorDashboardView">
         <div class="dashboard-title">
           <div>
-            <h2>Dashboard Director</h2>
-            <p>Vista ejecutiva para analizar evolución, composición, asesores y clientes Pareto.</p>
+            <h2>Dashboard</h2>
+            <p id="dashboardSubtitle">Vista ejecutiva para analizar evolución, composición, asesores y clientes Pareto.</p>
           </div>
           <div class="dashboard-actions"><button class="btn ghost" id="exportDashboardBtn">Exportar resumen CSV</button></div>
         </div>
@@ -399,7 +399,7 @@
 
     
       <section class="glossary-view hidden-view" id="glossaryView">
-        <div class="dashboard-title"><div><h2>Glosario Comercial Radar</h2><p>Definiciones prácticas para leer correctamente la Hoja de Ruta y el Dashboard Director.</p></div></div>
+        <div class="dashboard-title"><div><h2>Glosario Comercial Radar</h2><p>Definiciones prácticas para leer correctamente la Hoja de Ruta y el Dashboard.</p></div></div>
         <section class="glossary-grid">
           <article><h3>Estados comerciales</h3><p><strong>Activo:</strong> facturó en el mes actual o mes anterior.</p><p><strong>Inactivo:</strong> lleva 2 meses sin facturar.</p><p><strong>PB / Posible Baja:</strong> lleva 3 meses sin facturar; requiere gestión especial.</p><p><strong>Baja:</strong> lleva 4 o más meses sin facturar; requiere recuperación.</p><p><strong>Nuevo:</strong> compra por primera vez o tiene menos de 3 meses de historia.</p><p><strong>Reingresado:</strong> estaba en PB o Baja y volvió a facturar.</p></article>
           <article><h3>Clasificación A-B-C-E-N</h3><p><strong>A:</strong> alto valor + alta consecutividad.</p><p><strong>B:</strong> bajo valor + alta consecutividad.</p><p><strong>C:</strong> bajo valor + baja consecutividad.</p><p><strong>E:</strong> alto valor + baja consecutividad.</p><p><strong>N:</strong> cliente nuevo.</p></article>
@@ -507,7 +507,7 @@
           <div class="table-header"><h3>Asesores</h3><span id="advisorsMgmtCount">0 asesores</span></div>
           <div class="table-scroll">
             <table class="mgmt-table">
-              <thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Estado</th><th>Municipio</th><th>Canal</th><th>Zona</th><th>Fecha nacimiento</th><th>Clientes</th><th>Acción</th></tr></thead>
+              <thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Estado</th><th>Municipio</th><th>Canal</th><th>Zona</th><th>Clientes</th><th>Acción</th></tr></thead>
               <tbody id="advisorsMgmtBody"></tbody>
             </table>
           </div>
@@ -539,6 +539,14 @@
           <p id="modalClientMeta">Detalle comercial</p>
         </div>
         <button class="modal-close" id="modalCloseBtn">×</button>
+      </div>
+
+      <div id="modalTransferBanner" style="display:none;background:#fff7e6;border:1px solid #f0c36d;border-radius:8px;padding:12px 16px;margin-bottom:16px;">
+        <strong>Cliente transferido a ti.</strong>
+        <span id="modalTransferText"></span>
+        <div style="margin-top:8px;">
+          <button class="btn" id="modalAcceptTransferBtn" type="button">Aceptar cliente</button>
+        </div>
       </div>
 
       <div class="modal-grid">
@@ -673,7 +681,6 @@
         <label>Estado
           <select id="advisorStatusInput"><option>Activo</option><option>Inactivo</option><option>Pendiente</option></select>
         </label>
-        <label>Fecha de nacimiento<input type="date" id="advisorBirthdateInput"/></label>
         <label>Municipio base<input type="text" id="advisorMunicipioInput" list="municipiosDatalist" placeholder="Municipio donde opera el asesor"/></label>
         <datalist id="municipiosDatalist"></datalist>
         <label>Canal<select id="advisorCanalInput"><option value="">Sin canal</option></select></label>
@@ -693,6 +700,7 @@
   <script src="data.js"></script>
   <script src="app.js"></script>
   <script src="supabase-sync.js"></script>
+  <script src="mejoras-v1.js"></script>
   <script>
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();
