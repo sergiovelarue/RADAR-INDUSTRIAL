@@ -219,7 +219,7 @@
         <div class="table-header"><h3>Hoja de ruta</h3><span id="rowCount">0 clientes</span></div>
         <div class="table-scroll">
           <table id="routeTable">
-            <thead><tr><th>Cliente</th><th>NIT</th><th>Tipo</th><th>Asesor</th><th>Estado</th><th>Venta 2025</th><th>Venta actual</th><th>Meta</th><th>Cump.</th><th>Faltante</th><th>Detalle</th></tr></thead>
+            <thead><tr><th>Cliente</th><th>NIT</th><th>Asesor</th><th>Estado</th><th>Venta 2025</th><th>Venta actual</th><th>Meta</th><th>Cump.</th><th>Faltante</th><th>Detalle</th></tr></thead>
             <tbody id="routeBody"></tbody>
           </table>
         </div>
@@ -550,7 +550,7 @@
       </div>
 
       <div class="modal-grid">
-        <article><span>Tipo cliente</span><strong id="modalTipo"></strong></article>
+        <article style="display:none"><span>Tipo cliente</span><strong id="modalTipo"></strong></article>
         <article><span>Asesor</span><strong id="modalAsesor"></strong></article>
         <article><span>Venta 2025</span><strong id="modalVenta2025"></strong></article>
         <article><span>Venta actual</span><strong id="modalVentaActual"></strong></article>
@@ -579,7 +579,6 @@
               <option value="">Seleccionar canal</option>
             </select>
           </label>
-          <label>Línea base<input type="text" id="modalLineaBaseEdit"/></label>
           <label>Gestión especial
             <select id="modalVipGerenciaEdit">
               <option value="false">Normal</option>
