@@ -194,7 +194,7 @@
         <div style="display:none"><label>Vista negocio</label><select id="businessView"><option value="total">Total Radar</option><option value="espumas">Solo Espumas</option></select></div>
         <div><label>Asesor</label><select id="advisorFilter"></select></div>
         <div><label>Tipo cliente</label><select id="typeFilter"><option value="todos">Todos</option><option value="Espumas">Espumas</option><option value="Nuevo">Nuevo</option><option value="Bloqueado">Bloqueado</option></select></div>
-        <div><label>Estado</label><select id="statusFilter"><option value="todos">Todos</option><option value="Activo">Activo</option><option value="Baja">Baja</option><option value="Nuevo">Nuevo</option><option value="Bloqueado">Bloqueado</option></select></div>
+        <div><label>Estado</label><select id="statusFilter"><option value="todos">Todos</option><option value="Activo">Activo</option><option value="Baja">Baja</option><option value="Nuevo">Nuevo</option><option value="Posible Baja">Posible Baja</option><option value="Inactivo">Inactivo</option><option value="Reingresado">Reingresado</option><option value="Bloqueado">Bloqueado</option></select></div>
         <div><label>Buscar</label><input type="search" id="searchInput" placeholder="Cliente o NIT"/></div>
       </section>
       <section class="kpi-grid">
@@ -205,12 +205,9 @@
         <article><span>Cumplimiento</span><strong id="kCompliance">0%</strong><small>Venta / meta</small></article>
         <article><span>Faltante</span><strong id="kMissing">$0</strong><small>Meta - venta</small></article>
       </section>
-      <section class="type-grid" style="grid-template-columns:repeat(2,1fr)">
-        <article data-type-card="Espumas"><span>Espumas</span><strong id="tEspumas">0</strong></article>
-        <article data-type-card="Nuevo"><span>Nuevo</span><strong id="tNuevo">0</strong></article>
-        <span id="tColchones" hidden>0</span>
-        <span id="tMixto" hidden>0</span>
-      </section>
+      <section class="type-grid" id="statusCardsGrid"></section>
+      <span id="tColchones" hidden>0</span>
+      <span id="tMixto" hidden>0</span>
       <section class="breakdown" id="breakdownTotal" style="display:none">
         <article><span>Espumas actual</span><strong id="bEspActual">$0</strong><small id="bEsp2025">2025: $0</small></article>
         <article><span>Colchones actual</span><strong id="bColActual">$0</strong><small id="bCol2025">2025: $0</small></article>
@@ -656,8 +653,7 @@
         <p id="reassignModalDetail"></p>
         <label>Nuevo asesor</label>
         <select id="reassignNewAdvisorSelect"></select>
-        <label class="remember-row"><input type="checkbox" id="reassignNewAdvisorIsNew"/> Es un asesor nuevo (escribir nombre abajo)</label>
-        <input type="text" id="reassignNewAdvisorName" placeholder="Nombre del nuevo asesor" style="display:none"/>
+        <small style="color:#6b7280;">¿El asesor no aparece en la lista? Créalo primero en "Gestión de asesores".</small>
         <div class="actions">
           <button class="btn" id="reassignConfirmBtn">Confirmar cambio</button>
           <button class="btn ghost" id="reassignCancelBtn">Cancelar cambio</button>

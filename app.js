@@ -2348,6 +2348,18 @@ function saveAdvisorV93(){
   if(!name){ alert("El nombre del asesor es obligatorio."); return; }
   if(!original){
     if((DATA.meta.asesores || []).includes(name)){ alert("Ya existe un asesor con ese nombre."); return; }
+    const correoNuevo = ($("advisorEmailInput")?.value || "").trim().toLowerCase();
+    const telefonoNuevo = ($("advisorPhoneInput")?.value || "").trim();
+    for(const [otroNombre, p] of Object.entries(DATA.meta.asesorPerfiles || {})){
+      if(correoNuevo && String(p.correo || "").trim().toLowerCase() === correoNuevo){
+        alert(`Ya existe un asesor con ese correo (${otroNombre}). Verifica que no sea un error de digitación.`);
+        return;
+      }
+      if(telefonoNuevo && String(p.telefono || "").trim() === telefonoNuevo){
+        alert(`Ya existe un asesor con ese teléfono (${otroNombre}). Verifica que no sea un error de digitación.`);
+        return;
+      }
+    }
     registerAsesorIfNewV93(name, { pending: false });
   }
   const perfil = DATA.meta.asesorPerfiles[name] || { pendienteAprobacion:false };
@@ -2376,6 +2388,15 @@ async function validateAdvisorsUploadV93(){
     if($("advisorsUploadResult")) $("advisorsUploadResult").innerHTML = `<strong>Estado:</strong> no se encontraron filas en ${esc(fileName)}.`;
     return;
   }
+  const correosExistentes = {};
+  const telefonosExistentes = {};
+  Object.entries(DATA.meta.asesorPerfiles || {}).forEach(([nombreExistente, p]) => {
+    if(p.correo) correosExistentes[String(p.correo).trim().toLowerCase()] = nombreExistente;
+    if(p.telefono) telefonosExistentes[String(p.telefono).trim()] = nombreExistente;
+  });
+  const correosEnEsteArchivo = {};
+  const telefonosEnEsteArchivo = {};
+
   advisorsUploadValidatedV93 = rows.map(raw => {
     const row = lowerKeyRowV93(raw);
     const nombre = String(row["nombre"] || "").trim().toUpperCase();
@@ -2385,8 +2406,34 @@ async function validateAdvisorsUploadV93(){
     const fechaNacimientoRaw = row["fecha de nacimiento"] || row["fechanacimiento"] || "";
     const fechaNacimiento = fechaNacimientoRaw ? String(fechaNacimientoRaw) : "";
     const exists = (DATA.meta.asesores || []).includes(nombre);
-    const status = !nombre ? "Error: Nombre vacío" : (exists ? "Actualiza datos existentes" : "Nuevo (quedará pendiente de aprobación)");
-    return { nombre, correo, telefono, estado, fechaNacimiento, status, applicable: !!nombre };
+    let status, applicable;
+    if(!nombre){
+      status = "Error: Nombre vacío"; applicable = false;
+    } else if(!exists){
+      // Estas validaciones de duplicado SOLO aplican a asesores nuevos,
+      // para evitar errores de digitación o registros falsos/mal creados.
+      const correoKey = correo.toLowerCase();
+      const dupCorreoExistente = correo && correosExistentes[correoKey] && correosExistentes[correoKey] !== nombre;
+      const dupTelExistente = telefono && telefonosExistentes[telefono] && telefonosExistentes[telefono] !== nombre;
+      const dupCorreoArchivo = correo && correosEnEsteArchivo[correoKey] && correosEnEsteArchivo[correoKey] !== nombre;
+      const dupTelArchivo = telefono && telefonosEnEsteArchivo[telefono] && telefonosEnEsteArchivo[telefono] !== nombre;
+      if(dupCorreoExistente){
+        status = `Error: correo ya usado por ${correosExistentes[correoKey]}`; applicable = false;
+      } else if(dupTelExistente){
+        status = `Error: teléfono ya usado por ${telefonosExistentes[telefono]}`; applicable = false;
+      } else if(dupCorreoArchivo){
+        status = `Error: correo repetido en el archivo (fila de ${correosEnEsteArchivo[correoKey]})`; applicable = false;
+      } else if(dupTelArchivo){
+        status = `Error: teléfono repetido en el archivo (fila de ${telefonosEnEsteArchivo[telefono]})`; applicable = false;
+      } else {
+        status = "Nuevo (quedará pendiente de aprobación)"; applicable = true;
+        if(correo) correosEnEsteArchivo[correoKey] = nombre;
+        if(telefono) telefonosEnEsteArchivo[telefono] = nombre;
+      }
+    } else {
+      status = "Actualiza datos existentes"; applicable = true;
+    }
+    return { nombre, correo, telefono, estado, fechaNacimiento, status, applicable };
   });
   const body = $("advisorsUploadPreviewBody");
   if(body){

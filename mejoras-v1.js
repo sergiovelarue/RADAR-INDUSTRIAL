@@ -150,3 +150,60 @@ renderTable = function (arr) {
   _renderTableOriginalV95(arr);
   marcarClientesTransferidosV95();
 };
+
+// ============================================================
+// 6. Tarjetas de Estado (reemplazan las tarjetas fijas de Tipo)
+// ------------------------------------------------------------
+// Antes: tarjetas fijas "Espumas" / "Nuevo" (campo tipoCliente,
+// ya no se usa). Ahora: una tarjeta por cada Estado real de los
+// clientes (Activo, Baja, Nuevo, Posible Baja, etc. + Bloqueado),
+// sincronizada con el filtro "Estado" de arriba.
+// ============================================================
+function renderStatusCardsV96() {
+  const grid = document.getElementById("statusCardsGrid");
+  if (!grid) return;
+
+  const base = DATA.clientes.filter(c => {
+    const vip = (typeof isVipGerenciaV88 === "function") && isVipGerenciaV88(c);
+    if (state.profile !== "admin" && vip) return false;
+    if (state.profile === "admin") {
+      if (state.advisor !== "todos" && c.asesorAsignado !== state.advisor) return false;
+    } else {
+      if (c.asesorAsignado !== state.profile) return false;
+    }
+    return true;
+  });
+
+  const isBlocked = c => (typeof isBlockedV87 === "function") && isBlockedV87(c);
+  const blockedCount = base.filter(isBlocked).length;
+  const counts = {};
+  base.filter(c => !isBlocked(c)).forEach(c => {
+    const e = c.estado || "Sin estado";
+    counts[e] = (counts[e] || 0) + 1;
+  });
+
+  const estados = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  if (blockedCount > 0) { estados.push("Bloqueado"); counts["Bloqueado"] = blockedCount; }
+
+  grid.style.gridTemplateColumns = `repeat(${Math.min(estados.length || 1, 6)}, 1fr)`;
+  grid.innerHTML = "";
+  estados.forEach(estado => {
+    const card = document.createElement("article");
+    card.dataset.statusCard = estado;
+    card.className = state.status === estado ? "active" : "";
+    card.style.cursor = "pointer";
+    card.innerHTML = `<span>${estado}</span><strong>${counts[estado]}</strong>`;
+    card.onclick = () => {
+      state.status = (state.status === estado) ? "todos" : estado;
+      const sel = document.getElementById("statusFilter");
+      if (sel) sel.value = state.status;
+      render();
+    };
+    grid.appendChild(card);
+  });
+}
+
+renderTypeSummary = function () {
+  renderStatusCardsV96();
+};
+
