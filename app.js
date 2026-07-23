@@ -1562,6 +1562,40 @@ function exportDashboardCsvV812(){const clients=directorClientsV812();const tota
 document.addEventListener("DOMContentLoaded",()=>{if($("navDashboard"))$("navDashboard").addEventListener("click",()=>showViewV812("dashboard"));if($("navRoute"))$("navRoute").addEventListener("click",()=>showViewV812("route"));if($("navUpdate"))$("navUpdate").addEventListener("click",()=>showViewV812("route"));if($("exportDashboardBtn"))$("exportDashboardBtn").addEventListener("click",exportDashboardCsvV812);});
 
 // ===============================
+// V8.15 - Tendencia proyectada Dashboard Director (Método B: índice estacional 2025)
+// ===============================
+// Lógica: se ancla la proyección en el ÚLTIMO MES CON DATO REAL de 2026 (venta actual).
+// Para cada mes futuro, se calcula cuánto varió ese mes en 2025 respecto al mes ancla de 2025
+// (mismo mes que el mes actual, ej. Mayo) y se aplica esa misma variación porcentual sobre
+// el valor real de 2026. Así la línea punteada "hereda" la forma/estacionalidad de 2025
+// pero arranca siempre desde el dato real más reciente de 2026, no desde un promedio genérico.
+// Fallback: si el mes ancla de 2025 fue 0 (o no hay dato), se usa el promedio de los meses
+// transcurridos de 2025 como referencia, para evitar división por cero o distorsiones.
+function tendenciaProyectadaV815(m25, m26){
+  const anchorIdx = (typeof latestIdxV812 === "function") ? latestIdxV812() : (() => {
+    let last = -1; m26.forEach((v,i)=>{ if(Number(v||0) > 0) last = i; }); return last;
+  })();
+  if(anchorIdx < 0 || anchorIdx >= m26.length) return m26.map(()=>null);
+  const anchor = Number(m26[anchorIdx] || 0);
+  const anchor25 = Number(m25[anchorIdx] || 0);
+  const avg25Base = m25.slice(0, anchorIdx + 1).reduce((s,v)=>s + Number(v || 0), 0) / Math.max(1, anchorIdx + 1);
+  const ref = anchor25 > 0 ? anchor25 : avg25Base;
+  const trend = m26.map(()=>null);
+  trend[anchorIdx] = anchor; // el punto de arranque coincide con el último dato real, para que la línea conecte visualmente
+  for(let i = anchorIdx + 1; i < m25.length; i++){
+    const mes25 = Number(m25[i] || 0);
+    if(ref > 0){
+      trend[i] = Math.max(0, anchor * (mes25 / ref));
+    } else if(anchor > 0){
+      trend[i] = anchor; // sin referencia histórica confiable: proyección plana sobre el último dato real
+    } else {
+      trend[i] = null; // sin dato real 2026 ni referencia 2025: no se proyecta (evita inventar cifras)
+    }
+  }
+  return trend;
+}
+
+// ===============================
 // V8.13 - Dashboard Director estratégico
 // ===============================
 let directorLineV813 = "espumas";
@@ -1591,7 +1625,8 @@ function renderDirectorDashboardV812(){
   let acc=0, pareto=0; for(const c of sorted){acc+=c.ventaDash; pareto++; if(total26&&acc/total26>=.8) break;}
   setV812("dVenta2026",money(total26)); setV812("dVenta2025",money(total25)); setV812("dCrecimiento",pctV812(growth)); setV812("dClientesVenta",withSale.toLocaleString("es-CO")); setV812("dParetoClientes",pareto.toLocaleString("es-CO")); setV812("dTicketPromedio",money(ticket));
   const m25=months.map(m=>clients.reduce((s,c)=>s+lineSaleMonthV813(c,2025,m),0)), m26=months.map(m=>clients.reduce((s,c)=>s+lineSaleMonthV813(c,2026,m),0));
-  chartV812("monthlySalesChart",{type:"line",data:{labels:months,datasets:[{label:"2025",data:m25,tension:.25},{label:"2026",data:m26,tension:.25}]},options:{responsive:true,plugins:{legend:{position:"bottom"}},scales:{y:{beginAtZero:true}}}});
+  const tendencia=tendenciaProyectadaV815(m25,m26);
+  chartV812("monthlySalesChart",{type:"line",data:{labels:months,datasets:[{label:"2025",data:m25,tension:.25},{label:"2026",data:m26,tension:.25},{label:"Tendencia proyectada 2026",data:tendencia,tension:.25,borderDash:[6,4],borderColor:"#f59e0b",backgroundColor:"rgba(245,158,11,0.08)",pointRadius:2,pointStyle:"circle",fill:false}]},options:{responsive:true,plugins:{legend:{position:"bottom"}},scales:{y:{beginAtZero:true}}}});
   const adv={}; clients.forEach(c=>{const a=c.asesorAsignado||"SIN ASIGNACION"; adv[a]=adv[a]||{v26:0,v25:0}; adv[a].v26+=totalYtdLineV813(c,2026); adv[a].v25+=totalYtdLineV813(c,2025);});
   const advRows=Object.entries(adv).sort((a,b)=>b[1].v26-a[1].v26).slice(0,10);
   chartV812("advisorSalesChart",{type:"bar",data:{labels:advRows.map(x=>x[0]),datasets:[{label:"2025",data:advRows.map(x=>x[1].v25)},{label:"2026",data:advRows.map(x=>x[1].v26)}]},options:{indexAxis:"y",responsive:true,plugins:{legend:{position:"bottom"}},scales:{x:{beginAtZero:true}}}});
