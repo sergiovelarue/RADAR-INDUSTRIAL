@@ -342,6 +342,24 @@ function clasificarEventoV98(row) {
   return "dato";
 }
 
+// Nombre real de la columna de fecha en historial_cambios. Se
+// detecta una sola vez (varía según cómo se creó la tabla en
+// Supabase: puede ser "timestamp", "created_at", "inserted_at",
+// "fecha", etc.). Si no se puede detectar, se usa null y el log
+// se muestra sin filtro de rango ni orden por fecha (con aviso).
+let COL_FECHA_LOG_V98 = undefined;
+
+async function detectarColumnaFechaV98() {
+  if (COL_FECHA_LOG_V98 !== undefined) return COL_FECHA_LOG_V98;
+  const { data, error } = await supabaseClientV94.from("historial_cambios").select("*").limit(1);
+  if (error || !data || !data.length) { COL_FECHA_LOG_V98 = null; return null; }
+  const candidatos = ["timestamp", "created_at", "inserted_at", "fecha", "fecha_evento", "creado_en", "actualizado_en"];
+  const columnas = Object.keys(data[0]);
+  const encontrada = candidatos.find(c => columnas.includes(c));
+  COL_FECHA_LOG_V98 = encontrada || null;
+  return COL_FECHA_LOG_V98;
+}
+
 async function cargarLogEventosV98() {
   const dias = Number($("logRangeSelect")?.value || 10);
   const tipoSel = $("logTypeSelect")?.value || "todos";
@@ -353,25 +371,35 @@ async function cargarLogEventosV98() {
     if (feed) feed.innerHTML = '<p style="color:var(--muted)">Supabase no está disponible en este momento.</p>';
     return;
   }
-  const { data, error } = await supabaseClientV94
-    .from("historial_cambios")
-    .select("*")
-    .gte("timestamp", desde.toISOString())
-    .order("timestamp", { ascending: false })
-    .limit(1000);
+  const colFecha = await detectarColumnaFechaV98();
+  let data, error, avisoSinFecha = false;
+  if (colFecha) {
+    ({ data, error } = await supabaseClientV94
+      .from("historial_cambios")
+      .select("*")
+      .gte(colFecha, desde.toISOString())
+      .order(colFecha, { ascending: false })
+      .limit(1000));
+  } else {
+    avisoSinFecha = true;
+    ({ data, error } = await supabaseClientV94
+      .from("historial_cambios")
+      .select("*")
+      .limit(1000));
+  }
   if (error) {
-    if (feed) feed.innerHTML = `<p style="color:#dc2626">Error cargando el log: ${esc(error.message)}</p>`;
+    if (feed) feed.innerHTML = `<p style="color:#dc2626">Error cargando el log: ${esc(error.message)}</p><p style="color:var(--muted);font-size:12px">Columna de fecha usada: ${esc(colFecha || "ninguna detectada")}. Revisa el nombre real de la columna en Supabase (tabla historial_cambios) y avísame para ajustarlo.</p>`;
     return;
   }
   let rows = data || [];
-  rows = rows.map(r => ({ ...r, _tipo: clasificarEventoV98(r) }));
+  rows = rows.map(r => ({ ...r, _tipo: clasificarEventoV98(r), _fecha: colFecha ? r[colFecha] : null }));
   if (tipoSel !== "todos") rows = rows.filter(r => r._tipo === tipoSel);
   window._logRowsV98 = rows;
-  if ($("logCount")) $("logCount").textContent = `${rows.length} eventos`;
+  if ($("logCount")) $("logCount").textContent = `${rows.length} eventos` + (avisoSinFecha ? " · sin columna de fecha detectada, mostrando los más recientes disponibles sin filtrar por rango" : "");
   if (!feed) return;
   if (!rows.length) { feed.innerHTML = '<p style="color:var(--muted)">Sin eventos en el rango seleccionado.</p>'; return; }
   feed.innerHTML = rows.map(r => {
-    const fecha = r.timestamp ? new Date(r.timestamp).toLocaleString("es-CO") : (r.actualizado_en || "");
+    const fecha = r._fecha ? new Date(r._fecha).toLocaleString("es-CO") : "(sin fecha)";
     const entidad = r.cliente_nombre ? ` · ${esc(r.cliente_nombre)}${r.cliente_nit ? " (" + esc(r.cliente_nit) + ")" : ""}` : "";
     const detalle = r.campo === r._tipo
       ? esc(r.valor_nuevo || "")
@@ -387,7 +415,7 @@ function exportarLogAExcelV98() {
   const rows = window._logRowsV98 || [];
   if (!rows.length) { alert("No hay eventos cargados para exportar."); return; }
   const data = rows.map(r => ({
-    Fecha: r.timestamp ? new Date(r.timestamp).toLocaleString("es-CO") : "",
+    Fecha: r._fecha ? new Date(r._fecha).toLocaleString("es-CO") : "",
     Tipo: TIPO_LABELS_V98[r._tipo] || r._tipo,
     Usuario: r.usuario_email || "",
     Cliente: r.cliente_nombre || "",
