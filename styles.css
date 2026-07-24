@@ -496,3 +496,27 @@ input,select,textarea{font-size:16px}
 .commercial-segment-section {
   margin-bottom: 18px;
 }
+
+/* ===== V98 mejoras: switch de bloqueo, log de cambios, tarjetas estado/clasificación ===== */
+.block-box{background:#fff7ed;border:1px solid #fed7aa;border-radius:16px;padding:16px;margin-top:14px}
+.block-box h4{margin:0 0 10px}
+.switch-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.switch{position:relative;display:inline-block;width:46px;height:26px}
+.switch input{opacity:0;width:0;height:0}
+.switch-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#cbd5e1;border-radius:999px;transition:.2s}
+.switch-slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.2s}
+.switch input:checked + .switch-slider{background:#dc2626}
+.switch input:checked + .switch-slider:before{transform:translateX(20px)}
+.switch input:disabled + .switch-slider{opacity:.5;cursor:not-allowed}
+#blockSwitchLabel{font-weight:800;font-size:13px}
+.log-toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.log-toolbar select{border:1px solid #d1d5db;border-radius:12px;padding:9px 12px}
+.log-feed{display:flex;flex-direction:column;gap:8px;max-height:640px;overflow:auto}
+.log-item{background:#f9fafb;border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:13px}
+.log-item .log-meta{color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px}
+.log-item.tipo-acceso{border-left:4px solid #2563eb}
+.log-item.tipo-bloqueo{border-left:4px solid #dc2626}
+.log-item.tipo-transferencia{border-left:4px solid #7c3aed}
+.log-item.tipo-canal{border-left:4px solid #059669}
+.log-item.tipo-ventas{border-left:4px solid #d97706}
+.log-item.tipo-dato{border-left:4px solid #64748b}

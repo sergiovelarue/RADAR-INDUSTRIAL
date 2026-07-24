@@ -17,7 +17,7 @@
         <div class="login-icon">R</div>
         <div>
           <h1>Radar Comercial Industria</h1>
-          <p>Acceso seguro · ConAccion · línea Espumas</p>
+          <p>Acceso seguro · ConAccion</p>
         </div>
       </div>
 
@@ -57,9 +57,9 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-icon">R</div>
-        <div><h1>Radar Comercial Industria</h1><small>ConAccion · V1.3 · Línea Espumas</small></div>
+        <div><h1>Radar Comercial Industria</h1><small>ConAccion · V9.8</small></div>
       </div>
-      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navDashboard">Dashboard</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navGlossary">Glosario comercial</a></nav>
+      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navDashboard">Dashboard</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
         <small id="sessionRoleLabel"></small>
         <a id="logoutBtn" class="logout-link">Cerrar sesión</a>
@@ -194,7 +194,8 @@
         <div style="display:none"><label>Vista negocio</label><select id="businessView"><option value="total">Total Radar</option><option value="espumas">Solo Espumas</option></select></div>
         <div><label>Asesor</label><select id="advisorFilter"></select></div>
         <div><label>Tipo cliente</label><select id="typeFilter"><option value="todos">Todos</option><option value="Espumas">Espumas</option><option value="Nuevo">Nuevo</option><option value="Bloqueado">Bloqueado</option></select></div>
-        <div><label>Estado</label><select id="statusFilter"><option value="todos">Todos</option><option value="Activo">Activo</option><option value="Baja">Baja</option><option value="Nuevo">Nuevo</option><option value="Posible Baja">Posible Baja</option><option value="Inactivo">Inactivo</option><option value="Reingresado">Reingresado</option><option value="Bloqueado">Bloqueado</option></select></div>
+        <div><label>Estado</label><select id="statusFilter"><option value="todos">Todos</option><option value="Activo">Activo</option><option value="Inactivo">Inactivo</option><option value="Posible Baja">Posible Baja</option><option value="Baja">Baja</option><option value="Reingreso">Reingreso</option><option value="Nuevo">Nuevo</option><option value="Bloqueado">Bloqueado</option></select></div>
+        <div><label>Clasificación</label><select id="classFilter"><option value="todos">Todas</option></select></div>
         <div><label>Buscar</label><input type="search" id="searchInput" placeholder="Cliente o NIT"/></div>
       </section>
       <section class="kpi-grid">
@@ -206,6 +207,7 @@
         <article><span>Faltante</span><strong id="kMissing">$0</strong><small>Meta - venta</small></article>
       </section>
       <section class="type-grid" id="statusCardsGrid"></section>
+      <section class="type-grid" id="classCardsGrid"></section>
       <span id="tColchones" hidden>0</span>
       <span id="tMixto" hidden>0</span>
       <section class="breakdown" id="breakdownTotal" style="display:none">
@@ -395,15 +397,43 @@
       </section>
 
     
+      <section class="log-view hidden-view" id="logView">
+        <div class="dashboard-title"><div><h2>Log de cambios</h2><p>Registro de eventos relevantes del equipo comercial: accesos, cambios de datos, canales/zonas, transferencias, bloqueos y cargas de ventas.</p></div></div>
+        <div class="log-toolbar">
+          <label>Ver últimos
+            <select id="logRangeSelect">
+              <option value="3">3 días</option>
+              <option value="10" selected>10 días</option>
+              <option value="30">30 días</option>
+            </select>
+          </label>
+          <label>Tipo de evento
+            <select id="logTypeSelect">
+              <option value="todos">Todos</option>
+              <option value="acceso">Accesos de usuario</option>
+              <option value="dato">Cambios de datos de cliente</option>
+              <option value="canal">Canales / zonas</option>
+              <option value="transferencia">Transferencias de asesor</option>
+              <option value="bloqueo">Bloqueo / desbloqueo</option>
+              <option value="ventas">Cargas de ventas</option>
+            </select>
+          </label>
+          <button class="btn ghost" id="logRefreshBtn">Actualizar</button>
+          <button class="btn secondary" id="logExportBtn">Exportar a Excel</button>
+          <span id="logCount" style="margin-left:auto;color:var(--muted);font-weight:800"></span>
+        </div>
+        <div class="log-feed" id="logFeed"><p style="color:var(--muted)">Cargando eventos…</p></div>
+      </section>
+
       <section class="glossary-view hidden-view" id="glossaryView">
         <div class="dashboard-title"><div><h2>Glosario Comercial Radar</h2><p>Definiciones prácticas para leer correctamente la Hoja de Ruta y el Dashboard.</p></div></div>
         <section class="glossary-grid">
-          <article><h3>Estados comerciales</h3><p><strong>Activo:</strong> facturó en el mes actual o mes anterior.</p><p><strong>Inactivo:</strong> lleva 2 meses sin facturar.</p><p><strong>PB / Posible Baja:</strong> lleva 3 meses sin facturar; requiere gestión especial.</p><p><strong>Baja:</strong> lleva 4 o más meses sin facturar; requiere recuperación.</p><p><strong>Nuevo:</strong> compra por primera vez o tiene menos de 3 meses de historia.</p><p><strong>Reingresado:</strong> estaba en PB o Baja y volvió a facturar.</p></article>
+          <article><h3>Estados comerciales</h3><p><strong>Activo:</strong> facturó en el mes actual o mes anterior.</p><p><strong>Inactivo:</strong> lleva 2 meses sin facturar.</p><p><strong>PB / Posible Baja:</strong> lleva 3 meses sin facturar; requiere gestión especial.</p><p><strong>Baja:</strong> lleva 4 o más meses sin facturar; requiere recuperación.</p><p><strong>Reingreso:</strong> estaba en PB o Baja y volvió a facturar.</p><p><strong>Nuevo:</strong> compra por primera vez o tiene menos de 3 meses de historia.</p><p><strong>Bloqueado:</strong> no gestionable hasta que un administrador lo desbloquee.</p></article>
           <article><h3>Clasificación A-B-C-E-N</h3><p><strong>A:</strong> alto valor + alta consecutividad.</p><p><strong>B:</strong> bajo valor + alta consecutividad.</p><p><strong>C:</strong> bajo valor + baja consecutividad.</p><p><strong>E:</strong> alto valor + baja consecutividad.</p><p><strong>N:</strong> cliente nuevo.</p></article>
           <article><h3>Mediana y valor relativo</h3><p><strong>Mediana:</strong> valor central de la cartera ordenada por venta acumulada.</p><p><strong>Alto valor:</strong> venta acumulada superior a la mediana.</p><p><strong>Bajo valor:</strong> venta acumulada igual o inferior a la mediana.</p></article>
           <article><h3>KPI principales</h3><p><strong>Cumplimiento:</strong> venta actual / meta.</p><p><strong>Ticket u orden promedio:</strong> venta / clientes con venta.</p><p><strong>Pareto:</strong> clientes que explican cerca del 80% de la venta.</p><p><strong>Meta S&amp;OP:</strong> objetivo oficial mensual definido en el proceso S&amp;OP para medir cumplimiento comercial por línea.</p><p><strong>Gap S&amp;OP:</strong> diferencia entre Meta S&amp;OP y venta real del mes.</p><p><strong>Consecutividad:</strong> meses que compra / meses posibles.</p></article>
           <article><h3>Salud del Portafolio de Clientes</h3><p>Indicador comercial de actividad, recuperación, riesgo y sostenibilidad. No tiene relación con recaudo ni cartera financiera.</p><p><strong>Ventana móvil 12 meses:</strong> los estados y la Salud del Portafolio se calculan solo con clientes con actividad en los últimos 12 meses.</p><p><strong>Portafolio gestionable:</strong> clientes con actividad dentro de esa ventana móvil.</p><p><strong>Índice de actividad:</strong> Activos / (Activos + Nuevos + PB).</p><p><strong>Tasa de recuperación:</strong> recuperados / PB mes anterior.</p><p><strong>Tasa de pérdida:</strong> nuevas bajas / PB mes anterior.</p></article>
-          <article><h3>Leyenda práctica</h3><p><strong>Activos:</strong> más susceptibles de comprar en el corto plazo.</p><p><strong>PB:</strong> alerta temprana de pérdida comercial.</p><p><strong>Baja:</strong> recuperación más difícil.</p><p><strong>Nuevos:</strong> señal de crecimiento futuro.</p><p><strong>Reingresados:</strong> recuperación comercial lograda.</p></article>
+          <article><h3>Leyenda práctica</h3><p><strong>Activos:</strong> más susceptibles de comprar en el corto plazo.</p><p><strong>PB:</strong> alerta temprana de pérdida comercial.</p><p><strong>Baja:</strong> recuperación más difícil.</p><p><strong>Nuevos:</strong> señal de crecimiento futuro.</p><p><strong>Reingresos:</strong> recuperación comercial lograda.</p></article>
         </section>
       </section>
 
@@ -571,34 +601,16 @@
           <small id="modalAsesorZonaInfo" class="field-help"></small>
           <label>Departamento (solo carga masiva)<select id="modalDepartamentoEdit" disabled></select></label>
           <label>Ciudad / municipio (solo carga masiva)<select id="modalCiudadEdit" disabled></select></label>
-          <label>Canal
-            <select id="modalCanalEdit">
-              <option value="">Seleccionar canal</option>
-            </select>
+          <label>Canal (asignado por el asesor a cargo)
+            <input type="text" id="modalCanalView" disabled/>
           </label>
-          <label>Gestión especial
-            <select id="modalVipGerenciaEdit">
-              <option value="false">Normal</option>
-              <option value="true">VIP Gerencia</option>
-            </select>
-          </label>
-          <label>Motivo VIP Gerencia
-            <select id="modalMotivoVipEdit">
-              <option value="">No aplica</option>
-              <option>Cliente estratégico</option>
-              <option>Cuenta corporativa</option>
-              <option>Cliente nacional</option>
-              <option>Negociación especial</option>
-              <option>Cliente institucional</option>
-              <option>Otro</option>
-            </select>
-          </label>
-          <label>Estado maestro
-            <select id="modalBloqueadoEdit">
-              <option value="false">Activo para gestión</option>
-              <option value="true">Bloqueado / no gestionable</option>
-            </select>
-          </label>
+        </div>
+        <div class="block-box" id="blockBox">
+          <h4>Bloqueo del cliente</h4>
+          <div class="switch-row">
+            <label class="switch"><input type="checkbox" id="modalBloqueoSwitch"/><span class="switch-slider"></span></label>
+            <span id="blockSwitchLabel">Cliente activo (no bloqueado)</span>
+          </div>
           <label>Motivo de bloqueo
             <select id="modalMotivoBloqueoEdit">
               <option value="">No aplica</option>
@@ -611,8 +623,9 @@
               <option>Otro</option>
             </select>
           </label>
+          <small id="blockHelp">Cualquier usuario puede bloquear un cliente indicando el motivo. Solo un administrador puede desbloquearlo.</small>
         </div>
-        <small id="masterEditHelp">Los asesores pueden completar información de sus clientes. Solo Super Administrador puede reasignar asesor, bloquear clientes o marcar VIP Gerencia. Departamento y Ciudad/Municipio solo se actualizan por carga masiva de Excel, no desde este formulario.</small>
+        <small id="masterEditHelp">Los asesores pueden completar información de sus clientes. Solo Super Administrador puede reasignar asesor. Canal, Departamento y Ciudad/Municipio solo se actualizan por carga masiva de Excel o desde Gestión de clientes/asesores.</small>
       </div>
 
       <div class="modal-form">
