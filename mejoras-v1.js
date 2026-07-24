@@ -179,11 +179,56 @@ render = function () {
   renderStatusAndClassCardsV98();
 };
 
-const _filteredBaseOriginalV98 = filteredBase;
+// ------------------------------------------------------------
+// Mejora: los clientes bloqueados ahora son visibles para
+// cualquier perfil (asesor y administradores) como un estado más
+// de la Hoja de Ruta — ya no se ocultan ni se restringen a un
+// filtro especial solo-admin. En cambio, se excluyen de las
+// cuentas de venta/meta/cumplimiento (KPIs), no de la visibilidad.
+// Por eso se reemplaza filteredBase por completo en vez de
+// envolver la versión anterior (que traía ese ocultamiento).
+// ------------------------------------------------------------
 filteredBase = function () {
-  const arr = _filteredBaseOriginalV98();
-  if (!state.classFilter || state.classFilter === "todos") return arr;
-  return arr.filter(c => (c.clasificacion || "N") === state.classFilter);
+  const q = String(state.search || "").toLowerCase().trim();
+  return DATA.clientes.filter(c => {
+    if (typeof businessMatchV810 === "function" && !businessMatchV810(c)) return false;
+    if (state.profile === "admin") {
+      if (state.advisor !== "todos" && c.asesorAsignado !== state.advisor) return false;
+    } else if (state.profile) {
+      if (c.asesorAsignado !== state.profile) return false;
+    }
+    if (state.status !== "todos" && c.estado !== state.status) return false;
+    if (state.classFilter && state.classFilter !== "todos" && (c.clasificacion || "N") !== state.classFilter) return false;
+    if (q && ![c.cliente, c.nit, c.asesorAsignado, c.ciudad, c.departamento, c.tipoCliente, c.canal].join(" ").toLowerCase().includes(q)) return false;
+    return true;
+  });
+};
+
+// KPIs: excluyen del cálculo monetario (venta, meta, cumplimiento,
+// faltante) a los clientes bloqueados. El conteo de "Clientes" sí
+// incluye a los bloqueados, porque refleja lo que se ve en la tabla.
+renderKpis = function (arr) {
+  const blocked = c => (typeof isBlockedV87 === "function" ? isBlockedV87(c) : false);
+  const arrPresupuesto = arr.filter(c => !blocked(c));
+  const venta = arrPresupuesto.reduce((s, c) => s + saleCurrent(c), 0);
+  const prev = arrPresupuesto.reduce((s, c) => s + salePrev(c), 0);
+  const meta = arrPresupuesto.reduce((s, c) => s + goal(c), 0);
+  const falt = Math.max(meta - venta, 0);
+  if ($("kClients")) $("kClients").textContent = arr.length.toLocaleString("es-CO");
+  if ($("kCurrentSale")) $("kCurrentSale").textContent = money(venta);
+  if ($("kPrevSale")) $("kPrevSale").textContent = money(prev);
+  if ($("kGoal")) $("kGoal").textContent = money(meta);
+  if ($("kCompliance")) $("kCompliance").textContent = meta ? pct(venta / meta * 100) : "0%";
+  if ($("kMissing")) $("kMissing").textContent = money(falt);
+  if ($("kClientsSub")) $("kClientsSub").textContent = businessLabel();
+  if ($("kCurrentSaleSub")) $("kCurrentSaleSub").textContent = (typeof selectedMonthV810 === "function") ? selectedMonthV810() : "";
+  const m = (typeof selectedMonthV810 === "function") ? selectedMonthV810() : null;
+  if (m && typeof totalMonth2026V810 === "function") {
+    if ($("bEspActual")) $("bEspActual").textContent = money(arrPresupuesto.reduce((s, c) => s + totalMonth2026V810(c, m, "espumas"), 0));
+    if ($("bColActual")) $("bColActual").textContent = money(arrPresupuesto.reduce((s, c) => s + totalMonth2026V810(c, m, "colchones"), 0));
+    if ($("bEsp2025")) $("bEsp2025").textContent = "2025: " + money(arrPresupuesto.reduce((s, c) => s + totalMonth2025V810(c, m, "espumas"), 0));
+    if ($("bCol2025")) $("bCol2025").textContent = "2025: " + money(arrPresupuesto.reduce((s, c) => s + totalMonth2025V810(c, m, "colchones"), 0));
+  }
 };
 
 // ------------------------------------------------------------
@@ -192,6 +237,29 @@ filteredBase = function () {
 // ------------------------------------------------------------
 if (typeof isVipGerenciaV88 === "function") {
   isVipGerenciaV88 = function () { return false; };
+}
+
+// ------------------------------------------------------------
+// Helper de UI: pinta el pill Activo/Bloqueado y sincroniza el
+// campo de motivo con el switch (obligatorio solo si se bloquea),
+// tanto al abrir el modal como mientras el usuario mueve el switch.
+// ------------------------------------------------------------
+function actualizarUiBloqueoV99(prefijo, esAdmin, bloqueadoOriginal) {
+  const switchEl = $(prefijo + "BloqueoSwitch");
+  const pill = $(prefijo === "modal" ? "blockStatusPill" : "editBlockStatusPill");
+  const motivoLabel = $(prefijo === "modal" ? "motivoBloqueoLabel" : "editMotivoBloqueoLabel");
+  const motivoSelect = $(prefijo === "modal" ? "modalMotivoBloqueoEdit" : "editMotivoBloqueoSelect");
+  if (!switchEl) return;
+  const marcado = switchEl.checked;
+  if (pill) {
+    pill.textContent = marcado ? "Bloqueado" : "Activo";
+    pill.classList.toggle("blocked", marcado);
+  }
+  if (motivoSelect) {
+    // El motivo solo tiene sentido si el switch está marcado (bloqueando).
+    motivoSelect.disabled = !marcado || (bloqueadoOriginal && !esAdmin);
+  }
+  if (motivoLabel) motivoLabel.classList.toggle("attention", marcado && motivoSelect && !motivoSelect.value);
 }
 
 // ------------------------------------------------------------
@@ -213,14 +281,12 @@ openClientDetailV81 = function (nit) {
   if ($("modalBloqueoSwitch")) {
     $("modalBloqueoSwitch").checked = bloqueado;
     $("modalBloqueoSwitch").disabled = bloqueado && !esAdmin;
+    $("modalBloqueoSwitch").onchange = () => actualizarUiBloqueoV99("modal", esAdmin, bloqueado);
   }
   if ($("modalMotivoBloqueoEdit")) {
     $("modalMotivoBloqueoEdit").value = c.motivoBloqueo || "";
-    $("modalMotivoBloqueoEdit").disabled = bloqueado && !esAdmin;
   }
-  if ($("blockSwitchLabel")) {
-    $("blockSwitchLabel").textContent = bloqueado ? "Cliente bloqueado / no gestionable" : "Cliente activo (no bloqueado)";
-  }
+  actualizarUiBloqueoV99("modal", esAdmin, bloqueado);
   if ($("blockHelp")) {
     $("blockHelp").textContent = bloqueado
       ? (esAdmin ? "Está bloqueado. Puedes desbloquearlo desde aquí." : "Está bloqueado. Solo un administrador puede desbloquearlo.")
@@ -258,6 +324,10 @@ saveClientDetailV81 = function () {
         const permitido = (!bloqueadoAntes && bloqueadoNuevo) || (bloqueadoAntes && bloqueadoNuevo === false && esAdmin) || (bloqueadoAntes === bloqueadoNuevo);
         if (permitido && bloqueadoAntes !== bloqueadoNuevo) {
           const motivo = $("modalMotivoBloqueoEdit") ? $("modalMotivoBloqueoEdit").value : "";
+          if (bloqueadoNuevo && !motivo) {
+            alert("Para bloquear este cliente debes seleccionar un motivo de bloqueo.");
+            return;
+          }
           c.bloqueado = bloqueadoNuevo;
           c.motivoBloqueo = bloqueadoNuevo ? motivo : "";
           c.estado = bloqueadoNuevo ? "Bloqueado" : (c.estado === "Bloqueado" ? "Activo" : c.estado);
@@ -297,9 +367,12 @@ openReassignModalV93 = function (nit) {
   if (!c) return;
   if ($("editClienteNombreInput")) $("editClienteNombreInput").value = c.cliente || "";
   const bloqueado = typeof isBlockedV87 === "function" ? isBlockedV87(c) : false;
-  if ($("editBloqueoSwitch")) $("editBloqueoSwitch").checked = bloqueado;
+  if ($("editBloqueoSwitch")) {
+    $("editBloqueoSwitch").checked = bloqueado;
+    $("editBloqueoSwitch").onchange = () => actualizarUiBloqueoV99("edit", true, bloqueado);
+  }
   if ($("editMotivoBloqueoSelect")) $("editMotivoBloqueoSelect").value = c.motivoBloqueo || "";
-  if ($("editBlockSwitchLabel")) $("editBlockSwitchLabel").textContent = bloqueado ? "Cliente bloqueado / no gestionable" : "Cliente activo (no bloqueado)";
+  actualizarUiBloqueoV99("edit", true, bloqueado);
 };
 
 const _confirmReassignOriginalV98 = confirmReassignV93;
@@ -308,16 +381,20 @@ confirmReassignV93 = function () {
   const c = DATA.clientes.find(x => cleanNit(x.nit) === reassignStateV93.nit);
   let huboCambioExtra = false;
   if (c) {
+    const bloqueadoAntes = typeof isBlockedV87 === "function" ? isBlockedV87(c) : false;
+    const bloqueadoNuevo = !!$("editBloqueoSwitch")?.checked;
+    const motivo = $("editMotivoBloqueoSelect")?.value || "";
+    if (bloqueadoNuevo && !motivo) {
+      alert("Para bloquear este cliente debes seleccionar un motivo de bloqueo.");
+      return;
+    }
     const nuevoNombre = ($("editClienteNombreInput")?.value || "").trim();
     if (nuevoNombre && nuevoNombre !== (c.cliente || "")) {
       if (typeof logMasterChangeV86 === "function") logMasterChangeV86(c.nit, c.cliente, "cliente", c.cliente, nuevoNombre);
       c.cliente = nuevoNombre;
       huboCambioExtra = true;
     }
-    const bloqueadoAntes = typeof isBlockedV87 === "function" ? isBlockedV87(c) : false;
-    const bloqueadoNuevo = !!$("editBloqueoSwitch")?.checked;
     if (bloqueadoAntes !== bloqueadoNuevo) {
-      const motivo = $("editMotivoBloqueoSelect")?.value || "";
       c.bloqueado = bloqueadoNuevo;
       c.motivoBloqueo = bloqueadoNuevo ? motivo : "";
       c.estado = bloqueadoNuevo ? "Bloqueado" : (c.estado === "Bloqueado" ? "Activo" : c.estado);
@@ -339,6 +416,20 @@ confirmReassignV93 = function () {
 // Punto 3: botón de actualización manual (sin salir/entrar),
 // clave para uso desde celular.
 // ------------------------------------------------------------
+// Marca visualmente (opacidad + texto rojo) las filas de clientes
+// bloqueados en la Hoja de Ruta, ya que ahora son visibles junto
+// al resto en vez de estar ocultas.
+const _renderTableOriginalV99 = renderTable;
+renderTable = function (arr) {
+  _renderTableOriginalV99(arr);
+  const tbody = $("routeBody");
+  if (!tbody) return;
+  Array.from(tbody.querySelectorAll("tr")).forEach(tr => {
+    const estadoCell = tr.querySelector('[data-label="Estado"]');
+    if (estadoCell && estadoCell.textContent.trim() === "Bloqueado") tr.classList.add("blocked-row");
+  });
+};
+
 async function actualizarDatosManualV98() {
   const btn = $("refreshDataBtn");
   if (!btn) return;

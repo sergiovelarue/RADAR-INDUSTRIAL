@@ -610,11 +610,12 @@
           <h4>Bloqueo del cliente</h4>
           <div class="switch-row">
             <label class="switch"><input type="checkbox" id="modalBloqueoSwitch"/><span class="switch-slider"></span></label>
-            <span id="blockSwitchLabel">Cliente activo (no bloqueado)</span>
+            <span class="block-status-pill" id="blockStatusPill">Activo</span>
           </div>
-          <label>Motivo de bloqueo
+          <p class="block-explainer">Un cliente <strong>bloqueado</strong> sigue siendo visible en la Hoja de Ruta, tanto para el asesor como para los administradores, pero <strong>no se incluye</strong> en las cuentas de venta, meta ni cumplimiento.</p>
+          <label id="motivoBloqueoLabel">Motivo de bloqueo (obligatorio para bloquear)
             <select id="modalMotivoBloqueoEdit">
-              <option value="">No aplica</option>
+              <option value="">Selecciona un motivo</option>
               <option>No pertenece al canal</option>
               <option>Cliente cerrado</option>
               <option>Cambio de razón social / NIT</option>
@@ -674,11 +675,12 @@
           <h4>Bloqueo del cliente</h4>
           <div class="switch-row">
             <label class="switch"><input type="checkbox" id="editBloqueoSwitch"/><span class="switch-slider"></span></label>
-            <span id="editBlockSwitchLabel">Cliente activo (no bloqueado)</span>
+            <span class="block-status-pill" id="editBlockStatusPill">Activo</span>
           </div>
-          <label>Motivo de bloqueo
+          <p class="block-explainer">Un cliente <strong>bloqueado</strong> sigue siendo visible en la Hoja de Ruta, tanto para el asesor como para los administradores, pero <strong>no se incluye</strong> en las cuentas de venta, meta ni cumplimiento.</p>
+          <label id="editMotivoBloqueoLabel">Motivo de bloqueo (obligatorio para bloquear)
             <select id="editMotivoBloqueoSelect">
-              <option value="">No aplica</option>
+              <option value="">Selecciona un motivo</option>
               <option>No pertenece al canal</option>
               <option>Cliente cerrado</option>
               <option>Cambio de razón social / NIT</option>
