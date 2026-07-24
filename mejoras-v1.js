@@ -204,7 +204,7 @@ openClientDetailV81 = function (nit) {
   const c = DATA.clientes.find(x => cleanNit(x.nit) === cleanNit(nit));
   if (!c) return;
 
-  // Canal: ahora es solo lectura
+  // Canal: solo lectura
   if ($("modalCanalView")) $("modalCanalView").value = c.canal || "Sin canal asignado";
 
   const bloqueado = typeof isBlockedV87 === "function" ? isBlockedV87(c) : false;
@@ -212,8 +212,6 @@ openClientDetailV81 = function (nit) {
 
   if ($("modalBloqueoSwitch")) {
     $("modalBloqueoSwitch").checked = bloqueado;
-    // Si ya está bloqueado, solo un admin puede tocar el switch (para desbloquear).
-    // Si NO está bloqueado, cualquier usuario puede tocarlo (para bloquear).
     $("modalBloqueoSwitch").disabled = bloqueado && !esAdmin;
   }
   if ($("modalMotivoBloqueoEdit")) {
@@ -228,6 +226,23 @@ openClientDetailV81 = function (nit) {
       ? (esAdmin ? "Está bloqueado. Puedes desbloquearlo desde aquí." : "Está bloqueado. Solo un administrador puede desbloquearlo.")
       : "Cualquier usuario puede bloquear un cliente indicando el motivo. Solo un administrador puede desbloquearlo.";
   }
+
+  // ----------------------------------------------------------
+  // Punto 1: Datos maestros de solo lectura en esta vista.
+  // Única excepción (Punto 2): un asesor (no admin) puede escribir
+  // la razón social UNA sola vez, si el cliente que tiene asignado
+  // todavía no tiene nombre (típico de un cliente recién transferido).
+  // ----------------------------------------------------------
+  const sinNombre = !c.cliente || !String(c.cliente).trim() || String(c.cliente).startsWith("Cliente ");
+  const esSuAsesor = typeof currentUserV84 !== "undefined" && currentUserV84 && c.asesorAsignado === currentUserV84.advisor;
+  const puedeNombrarPorPrimeraVez = !esAdmin && esSuAsesor && sinNombre;
+
+  if ($("modalClienteEdit")) $("modalClienteEdit").disabled = !puedeNombrarPorPrimeraVez;
+  if ($("modalAsesorEdit")) $("modalAsesorEdit").disabled = true; // la reasignación ya no se hace desde aquí
+  if ($("modalAsesorZonaInfo")) {
+    const zona = (typeof zonaOfAdvisorV94 === "function") ? zonaOfAdvisorV94(c.asesorAsignado) : "";
+    $("modalAsesorZonaInfo").textContent = zona ? `Zona del asesor asignado: ${zona}` : "";
+  }
 };
 
 const _saveClientDetailOriginalV98 = saveClientDetailV81;
@@ -240,8 +255,6 @@ saveClientDetailV81 = function () {
       const switchEl = $("modalBloqueoSwitch");
       if (switchEl && !switchEl.disabled) {
         const bloqueadoNuevo = switchEl.checked;
-        // Reglas: cualquiera puede pasar de false->true (bloquear).
-        // Solo admin puede pasar de true->false (desbloquear).
         const permitido = (!bloqueadoAntes && bloqueadoNuevo) || (bloqueadoAntes && bloqueadoNuevo === false && esAdmin) || (bloqueadoAntes === bloqueadoNuevo);
         if (permitido && bloqueadoAntes !== bloqueadoNuevo) {
           const motivo = $("modalMotivoBloqueoEdit") ? $("modalMotivoBloqueoEdit").value : "";
@@ -253,64 +266,106 @@ saveClientDetailV81 = function () {
           logEventoV98("bloqueo", c.nit, c.cliente, bloqueadoAntes ? "Bloqueado" : "Activo", bloqueadoNuevo ? `Bloqueado (${motivo || "sin motivo"})` : "Desbloqueado");
         }
       }
-      // Canal ya NO se toma del modal (ahora es solo lectura).
+      // Nota: el nombre SÍ puede guardarse aquí en el caso excepcional
+      // (campo habilitado por openClientDetailV81 arriba); esa parte la
+      // sigue manejando la capa original de app.js, que ya compara y
+      // guarda modalClienteEdit cuando el campo no está deshabilitado.
+      // Asesor y Canal ya no se leen ni se escriben desde este modal.
     }
   }
   _saveClientDetailOriginalV98();
 };
 
 // ------------------------------------------------------------
-// 4) Canal solo lectura: quitamos el intento de escritura que
-// hacía app.js (modalCanalEdit ya no existe en el HTML nuevo,
-// así que las referencias a él simplemente no encuentran el
-// elemento y no hacen nada — no se requiere más ajuste aquí).
-// ------------------------------------------------------------
-
-// ------------------------------------------------------------
-// 3) Bloqueo desde Gestión de clientes (admin)
+// Punto 2: en Gestión de clientes, "Reasignar" pasa a llamarse
+// "Editar" y su modal ahora permite: razón social, asesor y
+// bloqueo/desbloqueo (aquí siempre es un administrador, así que
+// puede tanto bloquear como desbloquear).
 // ------------------------------------------------------------
 const _renderClientsManagementOriginalV98 = renderClientsManagementV93;
 renderClientsManagementV93 = function () {
   _renderClientsManagementOriginalV98();
   const body = $("clientsMgmtBody");
   if (!body) return;
-  Array.from(body.querySelectorAll("tr")).forEach(tr => {
-    const btn = tr.querySelector("[data-reassign-nit]");
-    if (!btn || tr.querySelector("[data-toggle-block-nit]")) return;
-    const nit = btn.dataset.reassignNit;
-    const c = DATA.clientes.find(x => cleanNit(x.nit) === cleanNit(nit));
-    if (!c) return;
-    const bloqueado = typeof isBlockedV87 === "function" ? isBlockedV87(c) : false;
-    const blockBtn = document.createElement("button");
-    blockBtn.className = "btn ghost small-btn";
-    blockBtn.dataset.toggleBlockNit = c.nit;
-    blockBtn.textContent = bloqueado ? "Desbloquear" : "Bloquear";
-    blockBtn.style.marginLeft = "6px";
-    blockBtn.onclick = () => toggleBloqueoDesdeGestionV98(c.nit);
-    btn.parentElement.appendChild(blockBtn);
-  });
+  body.querySelectorAll("[data-reassign-nit]").forEach(btn => { btn.textContent = "Editar"; });
 };
 
-function toggleBloqueoDesdeGestionV98(nit) {
+const _openReassignModalOriginalV98 = openReassignModalV93;
+openReassignModalV93 = function (nit) {
+  _openReassignModalOriginalV98(nit);
   const c = DATA.clientes.find(x => cleanNit(x.nit) === cleanNit(nit));
   if (!c) return;
-  const bloqueadoAntes = typeof isBlockedV87 === "function" ? isBlockedV87(c) : false;
-  const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
-  if (bloqueadoAntes && !esAdmin) { alert("Solo un administrador puede desbloquear este cliente."); return; }
-  let motivo = "";
-  if (!bloqueadoAntes) {
-    motivo = prompt("Motivo de bloqueo:") || "";
-    if (motivo === "") { if (!confirm("¿Bloquear sin motivo especificado?")) return; }
+  if ($("editClienteNombreInput")) $("editClienteNombreInput").value = c.cliente || "";
+  const bloqueado = typeof isBlockedV87 === "function" ? isBlockedV87(c) : false;
+  if ($("editBloqueoSwitch")) $("editBloqueoSwitch").checked = bloqueado;
+  if ($("editMotivoBloqueoSelect")) $("editMotivoBloqueoSelect").value = c.motivoBloqueo || "";
+  if ($("editBlockSwitchLabel")) $("editBlockSwitchLabel").textContent = bloqueado ? "Cliente bloqueado / no gestionable" : "Cliente activo (no bloqueado)";
+};
+
+const _confirmReassignOriginalV98 = confirmReassignV93;
+confirmReassignV93 = function () {
+  if (!reassignStateV93.nit) { _confirmReassignOriginalV98(); return; }
+  const c = DATA.clientes.find(x => cleanNit(x.nit) === reassignStateV93.nit);
+  let huboCambioExtra = false;
+  if (c) {
+    const nuevoNombre = ($("editClienteNombreInput")?.value || "").trim();
+    if (nuevoNombre && nuevoNombre !== (c.cliente || "")) {
+      if (typeof logMasterChangeV86 === "function") logMasterChangeV86(c.nit, c.cliente, "cliente", c.cliente, nuevoNombre);
+      c.cliente = nuevoNombre;
+      huboCambioExtra = true;
+    }
+    const bloqueadoAntes = typeof isBlockedV87 === "function" ? isBlockedV87(c) : false;
+    const bloqueadoNuevo = !!$("editBloqueoSwitch")?.checked;
+    if (bloqueadoAntes !== bloqueadoNuevo) {
+      const motivo = $("editMotivoBloqueoSelect")?.value || "";
+      c.bloqueado = bloqueadoNuevo;
+      c.motivoBloqueo = bloqueadoNuevo ? motivo : "";
+      c.estado = bloqueadoNuevo ? "Bloqueado" : (c.estado === "Bloqueado" ? "Activo" : c.estado);
+      c.fechaBloqueo = bloqueadoNuevo ? new Date().toLocaleDateString("es-CO") : "";
+      c.usuarioBloqueo = bloqueadoNuevo ? (typeof currentUserLabelV86 === "function" ? currentUserLabelV86() : "") : "";
+      logEventoV98("bloqueo", c.nit, c.cliente, bloqueadoAntes ? "Bloqueado" : "Activo", bloqueadoNuevo ? `Bloqueado (${motivo || "sin motivo"})` : "Desbloqueado");
+      huboCambioExtra = true;
+    }
   }
-  c.bloqueado = !bloqueadoAntes;
-  c.motivoBloqueo = !bloqueadoAntes ? motivo : "";
-  c.estado = !bloqueadoAntes ? "Bloqueado" : (c.estado === "Bloqueado" ? "Activo" : c.estado);
-  c.fechaBloqueo = !bloqueadoAntes ? new Date().toLocaleDateString("es-CO") : "";
-  c.usuarioBloqueo = !bloqueadoAntes ? (typeof currentUserLabelV86 === "function" ? currentUserLabelV86() : "") : "";
-  logEventoV98("bloqueo", c.nit, c.cliente, bloqueadoAntes ? "Bloqueado" : "Activo", !bloqueadoAntes ? `Bloqueado (${motivo || "sin motivo"})` : "Desbloqueado");
-  saveDataV93();
-  renderClientsManagementV93();
+  _confirmReassignOriginalV98(); // maneja reasignación de asesor (si cambió), cierre de modal y su propio refresco
+  if (huboCambioExtra) {
+    saveDataV93();
+    renderClientsManagementV93();
+    render();
+  }
+};
+
+// ------------------------------------------------------------
+// Punto 3: botón de actualización manual (sin salir/entrar),
+// clave para uso desde celular.
+// ------------------------------------------------------------
+async function actualizarDatosManualV98() {
+  const btn = $("refreshDataBtn");
+  if (!btn) return;
+  const textoOriginal = "↻ Actualizar datos";
+  btn.disabled = true;
+  btn.textContent = "Actualizando…";
+  try {
+    const [okClientes, okConfig] = await Promise.all([
+      typeof cargarClientesDesdeSupabaseV94 === "function" ? cargarClientesDesdeSupabaseV94() : Promise.resolve(false),
+      typeof cargarConfiguracionDesdeSupabaseV97 === "function" ? cargarConfiguracionDesdeSupabaseV97() : Promise.resolve(false)
+    ]);
+    if (typeof ensureAsesorPerfilesV93 === "function") ensureAsesorPerfilesV93();
+    if (typeof ensureCanalCatalogV94 === "function") ensureCanalCatalogV94();
+    if (typeof fillAdvisorFilter === "function") fillAdvisorFilter();
+    render();
+    btn.textContent = (okClientes || okConfig) ? "✓ Datos actualizados" : "Sin datos nuevos";
+  } catch (e) {
+    console.error("[Radar] Error actualizando manualmente:", e);
+    btn.textContent = "Error al actualizar";
+  } finally {
+    setTimeout(() => { btn.textContent = textoOriginal; btn.disabled = false; }, 1800);
+  }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  if ($("refreshDataBtn")) $("refreshDataBtn").addEventListener("click", actualizarDatosManualV98);
+});
 
 // ------------------------------------------------------------
 // Registrar eventos adicionales: accesos, canales/zonas, ventas

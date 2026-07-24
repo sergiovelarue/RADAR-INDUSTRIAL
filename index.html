@@ -61,6 +61,7 @@
       </div>
       <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navDashboard">Dashboard</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
+        <button class="btn ghost" id="refreshDataBtn" style="width:100%;margin-bottom:10px">↻ Actualizar datos</button>
         <small id="sessionRoleLabel"></small>
         <a id="logoutBtn" class="logout-link">Cerrar sesión</a>
       </div>
@@ -593,11 +594,11 @@
       </div>
 
             <div class="master-edit-box">
-        <h4>Datos maestros del cliente</h4>
+        <h4>Datos del cliente (solo lectura)</h4>
         <div class="master-grid">
-          <label>Razón social / cliente<input type="text" id="modalClienteEdit"/></label>
+          <label>Razón social / cliente<input type="text" id="modalClienteEdit" disabled/></label>
           <label>NIT<input type="text" id="modalNitEdit" disabled/></label>
-          <label>Asesor asignado<select id="modalAsesorEdit"></select></label>
+          <label>Asesor asignado<select id="modalAsesorEdit" disabled></select></label>
           <small id="modalAsesorZonaInfo" class="field-help"></small>
           <label>Departamento (solo carga masiva)<select id="modalDepartamentoEdit" disabled></select></label>
           <label>Ciudad / municipio (solo carga masiva)<select id="modalCiudadEdit" disabled></select></label>
@@ -625,7 +626,7 @@
           </label>
           <small id="blockHelp">Cualquier usuario puede bloquear un cliente indicando el motivo. Solo un administrador puede desbloquearlo.</small>
         </div>
-        <small id="masterEditHelp">Los asesores pueden completar información de sus clientes. Solo Super Administrador puede reasignar asesor. Canal, Departamento y Ciudad/Municipio solo se actualizan por carga masiva de Excel o desde Gestión de clientes/asesores.</small>
+        <small id="masterEditHelp">Estos datos son de solo lectura aquí. Se editan desde la pestaña "Gestión de clientes" (administrador). Excepción: si este cliente fue transferido a ti y aún no tiene razón social, puedes escribirla una sola vez.</small>
       </div>
 
       <div class="modal-form">
@@ -659,17 +660,38 @@
   <div class="modal-overlay" id="reassignConfirmModal">
     <div class="modal-card small-modal">
       <div class="modal-header">
-        <div><h3>Confirmar cambio de asesor</h3><p id="reassignModalMeta">Cliente</p></div>
+        <div><h3>Editar cliente</h3><p id="reassignModalMeta">Cliente</p></div>
         <button class="modal-close" id="reassignModalCloseBtn">×</button>
       </div>
       <div class="modal-form">
         <p id="reassignModalDetail"></p>
+        <label>Razón social / cliente</label>
+        <input type="text" id="editClienteNombreInput"/>
         <label>Nuevo asesor</label>
         <select id="reassignNewAdvisorSelect"></select>
         <small style="color:#6b7280;">¿El asesor no aparece en la lista? Créalo primero en "Gestión de asesores".</small>
+        <div class="block-box" id="editBlockBox">
+          <h4>Bloqueo del cliente</h4>
+          <div class="switch-row">
+            <label class="switch"><input type="checkbox" id="editBloqueoSwitch"/><span class="switch-slider"></span></label>
+            <span id="editBlockSwitchLabel">Cliente activo (no bloqueado)</span>
+          </div>
+          <label>Motivo de bloqueo
+            <select id="editMotivoBloqueoSelect">
+              <option value="">No aplica</option>
+              <option>No pertenece al canal</option>
+              <option>Cliente cerrado</option>
+              <option>Cambio de razón social / NIT</option>
+              <option>Información insuficiente</option>
+              <option>Duplicado</option>
+              <option>Cartera / condición especial</option>
+              <option>Otro</option>
+            </select>
+          </label>
+        </div>
         <div class="actions">
-          <button class="btn" id="reassignConfirmBtn">Confirmar cambio</button>
-          <button class="btn ghost" id="reassignCancelBtn">Cancelar cambio</button>
+          <button class="btn" id="reassignConfirmBtn">Guardar cambios</button>
+          <button class="btn ghost" id="reassignCancelBtn">Cancelar</button>
         </div>
       </div>
     </div>
