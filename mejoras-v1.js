@@ -82,29 +82,42 @@ function logEventoV98(tipo, nit, nombre, detalleAnterior, detalleNuevo) {
 // ------------------------------------------------------------
 // 1) y 2) Tarjetas de Estado y Clasificación + filtro de Clasificación
 // ------------------------------------------------------------
-function renderStatusAndClassCardsV98() {
-  const grid = $("statusCardsGrid");
-  const gridClass = $("classCardsGrid");
-  if (!grid && !gridClass) return;
-
-  // Base sin filtrar por Estado ni Clasificación (para que las
-  // tarjetas muestren el universo completo bajo asesor/tipo/búsqueda actuales),
-  // respetando el mismo criterio de visibilidad por perfil que usa filteredBase().
-  const blocked = c => (typeof isBlockedV87 === "function" ? isBlockedV87(c) : false);
-  const base = (DATA.clientes || []).filter(c => {
+// Base común de visibilidad (perfil/asesor/tipo/búsqueda), sin
+// aplicar todavía Estado ni Clasificación — estos se aplican por
+// separado en cada tarjeta para lograr el conteo cruzado: cada
+// dimensión se cuenta respetando la OTRA dimensión ya elegida,
+// pero no a sí misma (así el usuario ve "cuántos B hay dentro de
+// los Activos ya filtrados", no el total global de B).
+function baseVisibilidadV98() {
+  const q = String(state.search || "").toLowerCase().trim();
+  return (DATA.clientes || []).filter(c => {
     if (typeof typeBelongs === "function" && !typeBelongs(c)) return false;
     if (state.profile === "admin") {
       if (state.advisor !== "todos" && c.asesorAsignado !== state.advisor) return false;
     } else if (state.profile) {
       if (c.asesorAsignado !== state.profile) return false;
     }
+    if (q && ![c.cliente, c.nit, c.asesorAsignado, c.ciudad, c.departamento, c.tipoCliente, c.canal].join(" ").toLowerCase().includes(q)) return false;
     return true;
   });
+}
+
+function renderStatusAndClassCardsV98() {
+  const grid = $("statusCardsGrid");
+  const gridClass = $("classCardsGrid");
+  if (!grid && !gridClass) return;
+
+  const blocked = c => (typeof isBlockedV87 === "function" ? isBlockedV87(c) : false);
+  const base = baseVisibilidadV98();
+  const claseActiva = state.classFilter && state.classFilter !== "todos" ? state.classFilter : null;
+  const estadoActivo = state.status && state.status !== "todos" ? state.status : null;
 
   if (grid) {
     grid.innerHTML = "";
+    // Las tarjetas de Estado respetan la Clasificación ya elegida (si hay).
+    const baseParaEstado = base.filter(c => !claseActiva || (c.clasificacion || "N") === claseActiva);
     ORDEN_ESTADOS_V98.forEach(estado => {
-      const count = base.filter(c => (estado === "Bloqueado" ? blocked(c) : (!blocked(c) && c.estado === estado))).length;
+      const count = baseParaEstado.filter(c => (estado === "Bloqueado" ? blocked(c) : (!blocked(c) && c.estado === estado))).length;
       const art = document.createElement("article");
       art.dataset.statusCard = estado;
       art.className = "status-card" + (state.status === estado ? " active" : "");
@@ -120,9 +133,12 @@ function renderStatusAndClassCardsV98() {
 
   if (gridClass) {
     gridClass.innerHTML = "";
-    const clases = Array.from(new Set(base.map(c => c.clasificacion || "N"))).sort();
-    (clases.length ? clases : ["A", "B", "C", "E", "N"]).forEach(k => {
-      const count = base.filter(c => !blocked(c) && (c.clasificacion || "N") === k).length;
+    // Las tarjetas de Clasificación respetan el Estado ya elegido (si hay).
+    // "N" (Nuevo) se excluye: ya está cubierto por el Estado "Nuevo".
+    const baseParaClase = base.filter(c => !blocked(c) && (!estadoActivo || c.estado === estadoActivo));
+    const clases = Array.from(new Set(base.map(c => c.clasificacion || "N"))).filter(k => k !== "N").sort();
+    (clases.length ? clases : ["A", "B", "C", "E"]).forEach(k => {
+      const count = baseParaClase.filter(c => (c.clasificacion || "N") === k).length;
       const art = document.createElement("article");
       art.dataset.classCard = k;
       art.className = "status-card" + (state.classFilter === k ? " active" : "");
@@ -141,7 +157,7 @@ function fillClassFilterV98() {
   const sel = $("classFilter");
   if (!sel) return;
   const current = sel.value || "todos";
-  const clases = Array.from(new Set((DATA.clientes || []).map(c => c.clasificacion || "N"))).sort();
+  const clases = Array.from(new Set((DATA.clientes || []).map(c => c.clasificacion || "N"))).filter(k => k !== "N").sort();
   sel.innerHTML = '<option value="todos">Todas</option>' + clases.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join("");
   sel.value = clases.includes(current) ? current : "todos";
 }
