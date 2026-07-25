@@ -59,7 +59,7 @@
         <div class="brand-icon">R</div>
         <div><h1>Radar Comercial Industria</h1><small>ConAccion · V9.8</small></div>
       </div>
-      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navDashboard">Dashboard</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
+      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
         <button class="btn ghost" id="refreshDataBtn" style="width:100%;margin-bottom:10px">↻ Actualizar datos</button>
         <small id="sessionRoleLabel"></small>
@@ -398,6 +398,28 @@
       </section>
 
     
+      <section class="log-view hidden-view" id="seguimientoView">
+        <div class="dashboard-title"><div><h2>Seguimiento diario</h2><p>Próximas acciones ordenadas cronológicamente, con la fecha actual como referencia: <strong id="seguimientoHoyLabel">—</strong>.</p></div></div>
+        <div class="log-toolbar">
+          <label>Rango
+            <select id="seguimientoRangoSelect">
+              <option value="vencidas">Vencidas (sin ejecutar)</option>
+              <option value="pasada">Semana pasada</option>
+              <option value="actual" selected>Semana actual</option>
+              <option value="siguiente">Semana siguiente</option>
+            </select>
+          </label>
+          <label id="seguimientoAsesorFilterWrap" style="display:none">Asesor
+            <select id="seguimientoAsesorSelect"><option value="todos">Todos</option></select>
+          </label>
+          <label>
+            <input type="checkbox" id="seguimientoOcultarEjecutadas"/> Ocultar ya ejecutadas
+          </label>
+          <span id="seguimientoCount" style="margin-left:auto;color:var(--muted);font-weight:800"></span>
+        </div>
+        <div class="log-feed" id="seguimientoFeed"><p style="color:var(--muted)">Cargando…</p></div>
+      </section>
+
       <section class="log-view hidden-view" id="logView">
         <div class="dashboard-title"><div><h2>Log de cambios</h2><p>Registro de eventos relevantes del equipo comercial: accesos, cambios de datos, canales/zonas, transferencias, bloqueos y cargas de ventas.</p></div></div>
         <div class="log-toolbar">

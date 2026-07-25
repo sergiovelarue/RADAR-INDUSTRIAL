@@ -602,13 +602,165 @@ function showLogViewV98() {
   cargarLogEventosV98();
 }
 
-// Aseguramos que logView también se oculte cuando se navega a
-// cualquier otra pestaña (Hoja de ruta, Dashboard, Glosario, etc.)
+// ------------------------------------------------------------
+// Seguimiento diario / prioridades
+// ------------------------------------------------------------
+// Utilidades de fecha. Todo se calcula a partir de new Date()
+// (fecha real del dispositivo/navegador), igual que el resto de
+// la app (ver todayBadgeV89), para que "semana actual" siempre
+// refleje el día real, sin depender de datos guardados.
+function parseFechaLocalV100(str) {
+  if (!str) return null;
+  const partes = String(str).split("-");
+  if (partes.length !== 3) return null;
+  const d = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+function inicioDelDiaV100(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+function finDelDiaV100(d) { const x = new Date(d); x.setHours(23, 59, 59, 999); return x; }
+function lunesDeSemanaV100(d, offsetSemanas) {
+  const x = inicioDelDiaV100(d);
+  const dia = x.getDay(); // 0=domingo..6=sábado
+  const diffALunes = (dia === 0 ? -6 : 1 - dia);
+  x.setDate(x.getDate() + diffALunes + offsetSemanas * 7);
+  return x;
+}
+function rangoSemanaV100(offsetSemanas) {
+  const hoy = new Date();
+  const inicio = lunesDeSemanaV100(hoy, offsetSemanas);
+  const fin = finDelDiaV100(new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + 6));
+  return { inicio, fin };
+}
+
+function seguimientosVisiblesV100() {
+  const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
+  const asesorSel = $("seguimientoAsesorSelect")?.value || "todos";
+  return (DATA.clientes || []).filter(c => {
+    if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return false; // no aporta a la operación diaria
+    if (!c.fechaSeguimiento) return false;
+    if (esAdmin) {
+      if (asesorSel !== "todos" && c.asesorAsignado !== asesorSel) return false;
+    } else {
+      if (typeof currentUserV84 === "undefined" || !currentUserV84 || c.asesorAsignado !== currentUserV84.advisor) return false;
+    }
+    return true;
+  });
+}
+
+function renderSeguimientoView() {
+  const feed = $("seguimientoFeed");
+  if (!feed) return;
+  const rango = $("seguimientoRangoSelect")?.value || "actual";
+  const ocultarEjecutadas = !!$("seguimientoOcultarEjecutadas")?.checked;
+  const hoy = inicioDelDiaV100(new Date());
+
+  let desde, hasta, soloVencidasSinEjecutar = false;
+  if (rango === "vencidas") {
+    soloVencidasSinEjecutar = true;
+    hasta = finDelDiaV100(new Date(lunesDeSemanaV100(new Date(), 0).getTime() - 1));
+  } else if (rango === "pasada") {
+    ({ inicio: desde, fin: hasta } = rangoSemanaV100(-1));
+  } else if (rango === "siguiente") {
+    ({ inicio: desde, fin: hasta } = rangoSemanaV100(1));
+  } else {
+    ({ inicio: desde, fin: hasta } = rangoSemanaV100(0));
+  }
+
+  let items = seguimientosVisiblesV100().map(c => ({ c, fecha: parseFechaLocalV100(c.fechaSeguimiento) })).filter(x => x.fecha);
+  if (soloVencidasSinEjecutar) {
+    items = items.filter(x => x.fecha <= hasta && !x.c.seguimientoEjecutado);
+  } else {
+    items = items.filter(x => x.fecha >= desde && x.fecha <= hasta);
+    if (ocultarEjecutadas) items = items.filter(x => !x.c.seguimientoEjecutado);
+  }
+  items.sort((a, b) => a.fecha - b.fecha);
+
+  if ($("seguimientoCount")) $("seguimientoCount").textContent = `${items.length} acciones`;
+  if (!items.length) { feed.innerHTML = '<p style="color:var(--muted)">No hay acciones en este rango.</p>'; return; }
+
+  const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
+  let ultimoDia = null;
+  let html = "";
+  items.forEach(({ c, fecha }) => {
+    const diaKey = fecha.toDateString();
+    if (diaKey !== ultimoDia) {
+      html += `<div class="seg-day-heading">${fecha.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}</div>`;
+      ultimoDia = diaKey;
+    }
+    const vencida = fecha < hoy && !c.seguimientoEjecutado;
+    const esHoy = fecha.toDateString() === hoy.toDateString();
+    const clase = c.seguimientoEjecutado ? "ejecutada" : (vencida ? "vencida" : (esHoy ? "hoy" : "futura"));
+    html += `<div class="seg-item ${clase}">
+      <input type="checkbox" class="seg-check" data-seg-nit="${esc(c.nit)}" ${c.seguimientoEjecutado ? "checked" : ""}/>
+      <div class="seg-body">
+        <div class="seg-fecha">${fecha.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" })}${vencida ? " · VENCIDA" : ""}</div>
+        <div class="seg-cliente">${esc(c.cliente || "Cliente sin nombre")} <span style="color:var(--muted);font-weight:400">· NIT ${esc(c.nit)}</span></div>
+        <div class="seg-meta">${esc(c.proximaAccion || "Sin tipo de acción")}${esAdmin ? " · " + esc(c.asesorAsignado || "SIN ASIGNACION") : ""}</div>
+        ${c.comentario ? `<div class="seg-meta">"${esc(c.comentario)}"</div>` : ""}
+      </div>
+    </div>`;
+  });
+  feed.innerHTML = html;
+
+  feed.querySelectorAll("[data-seg-nit]").forEach(chk => {
+    chk.addEventListener("change", () => {
+      const c = DATA.clientes.find(x => cleanNit(x.nit) === cleanNit(chk.dataset.segNit));
+      if (!c) return;
+      c.seguimientoEjecutado = chk.checked;
+      logEventoV98("dato", c.nit, c.cliente, chk.checked ? "Pendiente" : "Ejecutado", chk.checked ? "Ejecutado" : "Pendiente");
+      saveDataV93();
+      renderSeguimientoView();
+    });
+  });
+}
+
+function poblarAsesorFilterSeguimientoV100() {
+  const sel = $("seguimientoAsesorSelect");
+  const wrap = $("seguimientoAsesorFilterWrap");
+  const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
+  if (wrap) wrap.style.display = esAdmin ? "" : "none";
+  if (!sel || !esAdmin) return;
+  const current = sel.value || "todos";
+  const asesores = (DATA.meta && DATA.meta.asesores) || [];
+  sel.innerHTML = '<option value="todos">Todos</option>' + asesores.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
+  sel.value = asesores.includes(current) ? current : "todos";
+}
+
+function showSeguimientoViewV100() {
+  if (typeof hideAllPrimaryViewsV93 === "function") hideAllPrimaryViewsV93();
+  const sv = $("seguimientoView");
+  if (sv) sv.classList.remove("hidden-view");
+  const cv = $("clientsManagementView"); if (cv) cv.classList.add("hidden-view");
+  const av = $("advisorsManagementView"); if (av) av.classList.add("hidden-view");
+  if ($("navSeguimiento")) $("navSeguimiento").classList.add("active");
+  if ($("seguimientoHoyLabel")) $("seguimientoHoyLabel").textContent = new Date().toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  poblarAsesorFilterSeguimientoV100();
+  renderSeguimientoView();
+}
+
+// Si cambia la fecha de seguimiento o la próxima acción de un
+// cliente, el check de "ejecutado" queda obsoleto: se reinicia.
+const _saveClientDetailOriginalV100 = saveClientDetailV81;
+saveClientDetailV81 = function () {
+  let fechaAntes = null, accionAntes = null, c = null;
+  if (activeClientNit) {
+    c = DATA.clientes.find(x => cleanNit(x.nit) === activeClientNit);
+    if (c) { fechaAntes = c.fechaSeguimiento || ""; accionAntes = c.proximaAccion || ""; }
+  }
+  _saveClientDetailOriginalV100();
+  if (c && ((c.fechaSeguimiento || "") !== fechaAntes || (c.proximaAccion || "") !== accionAntes)) {
+    c.seguimientoEjecutado = false;
+  }
+};
+
+// Aseguramos que logView y seguimientoView también se oculten al
+// navegar a cualquier otra pestaña (Hoja de ruta, Dashboard, etc.)
 if (typeof hideAllPrimaryViewsV93 === "function") {
   const _hideAllOriginalV98 = hideAllPrimaryViewsV93;
   hideAllPrimaryViewsV93 = function () {
     _hideAllOriginalV98();
     const lv = $("logView"); if (lv) lv.classList.add("hidden-view");
+    const sv = $("seguimientoView"); if (sv) sv.classList.add("hidden-view");
   };
 }
 [
@@ -620,7 +772,10 @@ if (typeof hideAllPrimaryViewsV93 === "function") {
   ["navGlossary", () => showGlossaryV814 && showGlossaryV814()]
 ].forEach(([id]) => {
   const el = $(id);
-  if (el) el.addEventListener("click", () => { const lv = $("logView"); if (lv) lv.classList.add("hidden-view"); });
+  if (el) el.addEventListener("click", () => {
+    const lv = $("logView"); if (lv) lv.classList.add("hidden-view");
+    const sv = $("seguimientoView"); if (sv) sv.classList.add("hidden-view");
+  });
 });
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -629,6 +784,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if ($("logRangeSelect")) $("logRangeSelect").addEventListener("change", cargarLogEventosV98);
   if ($("logTypeSelect")) $("logTypeSelect").addEventListener("change", cargarLogEventosV98);
   if ($("logExportBtn")) $("logExportBtn").addEventListener("click", exportarLogAExcelV98);
+
+  if ($("navSeguimiento")) $("navSeguimiento").addEventListener("click", showSeguimientoViewV100);
+  if ($("seguimientoRangoSelect")) $("seguimientoRangoSelect").addEventListener("change", renderSeguimientoView);
+  if ($("seguimientoAsesorSelect")) $("seguimientoAsesorSelect").addEventListener("change", renderSeguimientoView);
+  if ($("seguimientoOcultarEjecutadas")) $("seguimientoOcultarEjecutadas").addEventListener("change", renderSeguimientoView);
 
   // Solo administradores ven la pestaña de Log de cambios.
   const checarVisibilidadLog = () => {
