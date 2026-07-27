@@ -430,6 +430,27 @@ renderTable = function (arr) {
   });
 };
 
+// ------------------------------------------------------------
+// Lee la clave "mesOperativo" de la tabla configuracion (la
+// escribe/actualiza el simulador diario en Supabase cada vez que
+// corre) y la aplica a DATA.meta, para que la app reconozca que
+// el mes en curso ya tiene ventas cargadas y deje de mostrarlo
+// como "aún no existe".
+const _cargarConfigOriginalV101 = cargarConfiguracionDesdeSupabaseV97;
+cargarConfiguracionDesdeSupabaseV97 = async function () {
+  const r = await _cargarConfigOriginalV101();
+  try {
+    const { data, error } = await supabaseClientV94.from("configuracion").select("clave, valor").eq("clave", "mesOperativo").maybeSingle();
+    if (!error && data && data.valor) {
+      if (data.valor.latestOperationalMonth2026) DATA.meta.latestOperationalMonth2026 = data.valor.latestOperationalMonth2026;
+      if (data.valor.currentMonthName) DATA.meta.currentMonthName = data.valor.currentMonthName;
+    }
+  } catch (e) {
+    console.error("[Radar] Error cargando mesOperativo:", e);
+  }
+  return r;
+};
+
 async function actualizarDatosManualV98() {
   const btn = $("refreshDataBtn");
   if (!btn) return;
