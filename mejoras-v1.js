@@ -477,6 +477,18 @@ async function actualizarDatosManualV98() {
 
 document.addEventListener("DOMContentLoaded", () => {
   if ($("refreshDataBtn")) $("refreshDataBtn").addEventListener("click", actualizarDatosManualV98);
+
+  // Corrige un bug de app.js: el listener de arranque
+  // (document.addEventListener("DOMContentLoaded", init)) capturó
+  // la versión ORIGINAL de init() antes de que el resto del
+  // archivo la fuera mejorando con "init = function(){...}".
+  // Esas mejoras posteriores (que forzaban el mes real del
+  // calendario) nunca se ejecutan. Lo forzamos aquí directamente.
+  if (typeof realCurrentMonthV810 === "function") {
+    state.month = realCurrentMonthV810();
+    if ($("monthSelect")) $("monthSelect").value = state.month;
+    render();
+  }
 });
 
 // ------------------------------------------------------------
