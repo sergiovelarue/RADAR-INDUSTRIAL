@@ -451,6 +451,45 @@ cargarConfiguracionDesdeSupabaseV97 = async function () {
   return r;
 };
 
+// ------------------------------------------------------------
+// El Dashboard (Director/Gerencial) no filtraba por asesor: un
+// asesor entrando ahí veía la venta y el ranking de TODA la
+// empresa, incluyendo a los demás asesores. directorClientsV813()
+// es la función base que alimenta todos los gráficos e insights
+// del Dashboard (venta, pareto, ranking de asesores, salud de
+// cartera, evolución por clasificación) — filtrándola aquí se
+// corrige de una sola vez en todas partes.
+const _directorClientsOriginalV102 = directorClientsV813;
+directorClientsV813 = function () {
+  const base = _directorClientsOriginalV102();
+  if (state.profile === "admin") return base;
+  if (!state.profile) return base;
+  return base.filter(c => c.asesorAsignado === state.profile);
+};
+
+// El nav de "Actualización diaria", "Gestión de clientes" y
+// "Gestión de asesores" son funciones exclusivas de administrador
+// (ya estaban bloqueadas por código), pero el enlace seguía
+// visible para asesores aunque no llevara a ningún lado. Se oculta
+// para que la barra lateral solo muestre lo que sí pueden usar.
+function ocultarNavAdminV102() {
+  const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
+  ["navUpdate", "navClients", "navAdvisors"].forEach(id => {
+    const el = $(id);
+    if (el) el.style.display = esAdmin ? "" : "none";
+  });
+}
+document.addEventListener("DOMContentLoaded", () => {
+  ocultarNavAdminV102();
+  const _applyUserProfileOriginalV102 = applyUserProfileV84;
+  if (typeof _applyUserProfileOriginalV102 === "function") {
+    applyUserProfileV84 = function () {
+      _applyUserProfileOriginalV102();
+      ocultarNavAdminV102();
+    };
+  }
+});
+
 async function actualizarDatosManualV98() {
   const btn = $("refreshDataBtn");
   if (!btn) return;
