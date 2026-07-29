@@ -80,6 +80,99 @@ function logEventoV98(tipo, nit, nombre, detalleAnterior, detalleNuevo) {
 }
 
 // ------------------------------------------------------------
+// Dirección completa (departamento/ciudad/dirección), con enlaces
+// directos a Google Maps y Waze; y hasta 5 contactos por cliente
+// (nombre, cargo, teléfono, correo) con enlaces de llamar/escribir.
+// ------------------------------------------------------------
+function fillDeptSelectGenV103(selId, selectedDep) {
+  const sel = $(selId);
+  if (!sel || typeof GEO_CATALOG_V87 === "undefined") return;
+  sel.innerHTML = '<option value="">Seleccionar departamento</option>';
+  Object.keys(GEO_CATALOG_V87).sort().forEach(dep => {
+    const op = document.createElement("option"); op.value = dep; op.textContent = dep; sel.appendChild(op);
+  });
+  sel.value = selectedDep || "";
+}
+function fillCitySelectGenV103(selId, dep, selectedCity) {
+  const sel = $(selId);
+  if (!sel || typeof GEO_CATALOG_V87 === "undefined") return;
+  sel.innerHTML = '<option value="">Seleccionar ciudad / municipio</option>';
+  (GEO_CATALOG_V87[dep] || []).forEach(city => {
+    const op = document.createElement("option"); op.value = city; op.textContent = city; sel.appendChild(op);
+  });
+  sel.value = selectedCity || "";
+}
+
+function actualizarAccionesDireccionV103(c) {
+  const wrap = $("modalDireccionAcciones");
+  if (!wrap) return;
+  const partes = [c.direccion, c.ciudad, c.departamento].filter(Boolean);
+  if (!partes.length) { wrap.hidden = true; return; }
+  wrap.hidden = false;
+  const q = encodeURIComponent(partes.join(", ") + ", Colombia");
+  if ($("modalDireccionMaps")) $("modalDireccionMaps").href = `https://www.google.com/maps/search/?api=1&query=${q}`;
+  if ($("modalDireccionWaze")) $("modalDireccionWaze").href = `https://waze.com/ul?q=${q}&navigate=yes`;
+}
+
+function contactoCardHtmlV103(ct, i, opts) {
+  const tel = String(ct.telefono || "").replace(/[^\d+]/g, "");
+  const mail = ct.correo || "";
+  return `<div class="contact-card">
+    <div class="contact-grid">
+      <label>Nombre completo<input type="text" data-c-nombre value="${esc(ct.nombre || "")}"/></label>
+      <label>Cargo<input type="text" data-c-cargo value="${esc(ct.cargo || "")}"/></label>
+      <label>Teléfono<input type="text" data-c-telefono value="${esc(ct.telefono || "")}"/></label>
+      <label>Correo<input type="email" data-c-correo value="${esc(ct.correo || "")}"/></label>
+    </div>
+    <div class="contact-actions">
+      ${tel ? `<a href="tel:${esc(tel)}">📞 Llamar</a>` : ""}
+      ${mail ? `<a href="mailto:${esc(mail)}">✉️ Correo</a>` : ""}
+      ${opts.puedeEliminar ? `<button type="button" class="contact-remove" data-remove-contacto="${i}">Eliminar</button>` : ""}
+    </div>
+  </div>`;
+}
+
+function renderContactosV103(containerId, contactos, opts) {
+  const cont = $(containerId);
+  if (!cont) return;
+  const lista = (contactos || []).slice(0, 5);
+  cont.innerHTML = lista.length
+    ? lista.map((ct, i) => contactoCardHtmlV103(ct, i, opts)).join("")
+    : '<p class="contact-empty-msg">Sin contactos registrados.</p>';
+  cont.querySelectorAll("[data-remove-contacto]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.removeContacto);
+      const actuales = leerContactosDesdeUIV103(containerId);
+      actuales.splice(idx, 1);
+      renderContactosV103(containerId, actuales, opts);
+    });
+  });
+}
+
+function leerContactosDesdeUIV103(containerId) {
+  const cont = $(containerId);
+  if (!cont) return [];
+  return Array.from(cont.querySelectorAll(".contact-card")).map(card => ({
+    nombre: card.querySelector("[data-c-nombre]")?.value.trim() || "",
+    cargo: card.querySelector("[data-c-cargo]")?.value.trim() || "",
+    telefono: card.querySelector("[data-c-telefono]")?.value.trim() || "",
+    correo: card.querySelector("[data-c-correo]")?.value.trim() || ""
+  })).filter(ct => ct.nombre || ct.cargo || ct.telefono || ct.correo);
+}
+
+function agregarContactoVacioV103(containerId, opts) {
+  const actuales = leerContactosDesdeUIV103(containerId);
+  if (actuales.length >= 5) { alert("Ya hay 5 contactos registrados — ese es el máximo permitido por cliente."); return; }
+  actuales.push({ nombre: "", cargo: "", telefono: "", correo: "" });
+  renderContactosV103(containerId, actuales, opts);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if ($("modalAddContactoBtn")) $("modalAddContactoBtn").addEventListener("click", () => agregarContactoVacioV103("modalContactosList", { puedeEliminar: false }));
+  if ($("editAddContactoBtn")) $("editAddContactoBtn").addEventListener("click", () => agregarContactoVacioV103("editContactosList", { puedeEliminar: true }));
+});
+
+// ------------------------------------------------------------
 // 1) y 2) Tarjetas de Estado y Clasificación + filtro de Clasificación
 // ------------------------------------------------------------
 // Base común de visibilidad (perfil/asesor/tipo/búsqueda), sin
@@ -309,6 +402,29 @@ openClientDetailV81 = function (nit) {
     const zona = (typeof zonaOfAdvisorV94 === "function") ? zonaOfAdvisorV94(c.asesorAsignado) : "";
     $("modalAsesorZonaInfo").textContent = zona ? `Zona del asesor asignado: ${zona}` : "";
   }
+
+  // ----------------------------------------------------------
+  // Mejora: Departamento, Ciudad y Dirección vienen normalmente
+  // de los datos maestros (carga masiva). Si faltan, el asesor
+  // asignado los puede completar aquí mismo (misma lógica que la
+  // razón social: solo si está vacío, y solo su propio asesor).
+  // ----------------------------------------------------------
+  const puedeCompletarUbicacion = !esAdmin && esSuAsesor;
+  if (typeof fillDepartmentSelectV87 === "function") fillDepartmentSelectV87(c.departamento || "");
+  if (typeof fillCitySelectV87 === "function") fillCitySelectV87(c.departamento || "", c.ciudad || "");
+  if ($("modalDepartamentoEdit")) {
+    $("modalDepartamentoEdit").disabled = !(puedeCompletarUbicacion && !c.departamento);
+    $("modalDepartamentoEdit").onchange = e => { if (typeof fillCitySelectV87 === "function") fillCitySelectV87(e.target.value, ""); };
+  }
+  if ($("modalCiudadEdit")) $("modalCiudadEdit").disabled = !(puedeCompletarUbicacion && !c.ciudad);
+  if ($("modalDireccionEdit")) {
+    $("modalDireccionEdit").value = c.direccion || "";
+    $("modalDireccionEdit").disabled = !(puedeCompletarUbicacion && !c.direccion);
+  }
+  actualizarAccionesDireccionV103(c);
+
+  // Contactos: el asesor puede agregar/editar (hasta 5), pero no eliminar.
+  renderContactosV103("modalContactosList", c.contactos || [], { puedeEliminar: false });
 };
 
 const _saveClientDetailOriginalV98 = saveClientDetailV81;
@@ -341,6 +457,24 @@ saveClientDetailV81 = function () {
       // sigue manejando la capa original de app.js, que ya compara y
       // guarda modalClienteEdit cuando el campo no está deshabilitado.
       // Asesor y Canal ya no se leen ni se escriben desde este modal.
+
+      if ($("modalDepartamentoEdit") && !$("modalDepartamentoEdit").disabled) {
+        const v = $("modalDepartamentoEdit").value.trim();
+        if (v && v !== (c.departamento || "")) { logMasterChangeV86(c.nit, c.cliente, "departamento", c.departamento, v); c.departamento = v; }
+      }
+      if ($("modalCiudadEdit") && !$("modalCiudadEdit").disabled) {
+        const v = $("modalCiudadEdit").value.trim();
+        if (v && v !== (c.ciudad || "")) { logMasterChangeV86(c.nit, c.cliente, "ciudad", c.ciudad, v); c.ciudad = v; }
+      }
+      if ($("modalDireccionEdit") && !$("modalDireccionEdit").disabled) {
+        const v = $("modalDireccionEdit").value.trim();
+        if (v && v !== (c.direccion || "")) { logMasterChangeV86(c.nit, c.cliente, "direccion", c.direccion, v); c.direccion = v; }
+      }
+      const nuevosContactos = leerContactosDesdeUIV103("modalContactosList");
+      if (JSON.stringify(nuevosContactos) !== JSON.stringify(c.contactos || [])) {
+        c.contactos = nuevosContactos;
+        logEventoV98("dato", c.nit, c.cliente, "", "Contactos actualizados");
+      }
     }
   }
   _saveClientDetailOriginalV98();
@@ -373,6 +507,13 @@ openReassignModalV93 = function (nit) {
   }
   if ($("editMotivoBloqueoSelect")) $("editMotivoBloqueoSelect").value = c.motivoBloqueo || "";
   actualizarUiBloqueoV99("edit", true, bloqueado);
+
+  // Departamento / Ciudad / Dirección / Contactos (admin: control total)
+  fillDeptSelectGenV103("editDepartamentoSelect", c.departamento || "");
+  fillCitySelectGenV103("editCiudadSelect", c.departamento || "", c.ciudad || "");
+  if ($("editDepartamentoSelect")) $("editDepartamentoSelect").onchange = e => fillCitySelectGenV103("editCiudadSelect", e.target.value, "");
+  if ($("editDireccionInput")) $("editDireccionInput").value = c.direccion || "";
+  renderContactosV103("editContactosList", c.contactos || [], { puedeEliminar: true });
 };
 
 const _confirmReassignOriginalV98 = confirmReassignV93;
@@ -401,6 +542,31 @@ confirmReassignV93 = function () {
       c.fechaBloqueo = bloqueadoNuevo ? new Date().toLocaleDateString("es-CO") : "";
       c.usuarioBloqueo = bloqueadoNuevo ? (typeof currentUserLabelV86 === "function" ? currentUserLabelV86() : "") : "";
       logEventoV98("bloqueo", c.nit, c.cliente, bloqueadoAntes ? "Bloqueado" : "Activo", bloqueadoNuevo ? `Bloqueado (${motivo || "sin motivo"})` : "Desbloqueado");
+      huboCambioExtra = true;
+    }
+
+    const nuevoDep = $("editDepartamentoSelect")?.value.trim() || "";
+    if (nuevoDep !== (c.departamento || "")) {
+      logMasterChangeV86(c.nit, c.cliente, "departamento", c.departamento, nuevoDep);
+      c.departamento = nuevoDep;
+      huboCambioExtra = true;
+    }
+    const nuevaCiudad = $("editCiudadSelect")?.value.trim() || "";
+    if (nuevaCiudad !== (c.ciudad || "")) {
+      logMasterChangeV86(c.nit, c.cliente, "ciudad", c.ciudad, nuevaCiudad);
+      c.ciudad = nuevaCiudad;
+      huboCambioExtra = true;
+    }
+    const nuevaDireccion = $("editDireccionInput")?.value.trim() || "";
+    if (nuevaDireccion !== (c.direccion || "")) {
+      logMasterChangeV86(c.nit, c.cliente, "direccion", c.direccion, nuevaDireccion);
+      c.direccion = nuevaDireccion;
+      huboCambioExtra = true;
+    }
+    const nuevosContactos = leerContactosDesdeUIV103("editContactosList");
+    if (JSON.stringify(nuevosContactos) !== JSON.stringify(c.contactos || [])) {
+      c.contactos = nuevosContactos;
+      logEventoV98("dato", c.nit, c.cliente, "", "Contactos actualizados (administrador)");
       huboCambioExtra = true;
     }
   }

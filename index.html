@@ -616,18 +616,28 @@
       </div>
 
             <div class="master-edit-box">
-        <h4>Datos del cliente (solo lectura)</h4>
+        <h4>Datos del cliente</h4>
         <div class="master-grid">
           <label>Razón social / cliente<input type="text" id="modalClienteEdit" disabled/></label>
           <label>NIT<input type="text" id="modalNitEdit" disabled/></label>
           <label>Asesor asignado<select id="modalAsesorEdit" disabled></select></label>
           <small id="modalAsesorZonaInfo" class="field-help"></small>
-          <label>Departamento (solo carga masiva)<select id="modalDepartamentoEdit" disabled></select></label>
-          <label>Ciudad / municipio (solo carga masiva)<select id="modalCiudadEdit" disabled></select></label>
+          <label>Departamento<select id="modalDepartamentoEdit" disabled></select></label>
+          <label>Ciudad / municipio<select id="modalCiudadEdit" disabled></select></label>
+          <label>Dirección<input type="text" id="modalDireccionEdit" placeholder="Ej: Calle 10 # 20-30, Bodega 5" disabled/></label>
           <label>Canal (asignado por el asesor a cargo)
             <input type="text" id="modalCanalView" disabled/>
           </label>
         </div>
+        <div id="modalDireccionAcciones" class="address-actions" hidden>
+          <a id="modalDireccionMaps" target="_blank" rel="noopener" class="btn ghost small-btn">📍 Abrir en Maps</a>
+          <a id="modalDireccionWaze" target="_blank" rel="noopener" class="btn ghost small-btn">🚗 Abrir en Waze</a>
+        </div>
+
+        <h4 style="margin-top:18px">Contactos del cliente</h4>
+        <div id="modalContactosList" class="contacts-list"></div>
+        <button type="button" class="btn ghost small-btn" id="modalAddContactoBtn">+ Agregar contacto</button>
+        <small class="field-help">Hasta 5 contactos. Los agregas o editas aquí; borrarlos solo lo puede hacer un administrador desde Gestión de clientes.</small>
         <div class="block-box" id="blockBox">
           <h4>Bloqueo del cliente</h4>
           <div class="switch-row">
@@ -649,7 +659,7 @@
           </label>
           <small id="blockHelp">Cualquier usuario puede bloquear un cliente indicando el motivo. Solo un administrador puede desbloquearlo.</small>
         </div>
-        <small id="masterEditHelp">Estos datos son de solo lectura aquí. Se editan desde la pestaña "Gestión de clientes" (administrador). Excepción: si este cliente fue transferido a ti y aún no tiene razón social, puedes escribirla una sola vez.</small>
+        <small id="masterEditHelp">Estos datos son de solo lectura aquí y se editan desde la pestaña "Gestión de clientes" (administrador). Excepciones para tu propio cliente: si no tiene razón social, departamento, ciudad o dirección, los puedes completar tú una sola vez; y los contactos los puedes agregar o editar cuando quieras (hasta 5).</small>
       </div>
 
       <div class="modal-form">
@@ -693,6 +703,19 @@
         <label>Nuevo asesor</label>
         <select id="reassignNewAdvisorSelect"></select>
         <small style="color:#6b7280;">¿El asesor no aparece en la lista? Créalo primero en "Gestión de asesores".</small>
+
+        <label>Departamento</label>
+        <select id="editDepartamentoSelect"></select>
+        <label>Ciudad / municipio</label>
+        <select id="editCiudadSelect"></select>
+        <label>Dirección</label>
+        <input type="text" id="editDireccionInput" placeholder="Ej: Calle 10 # 20-30, Bodega 5"/>
+
+        <h4 style="margin-top:18px">Contactos del cliente</h4>
+        <div id="editContactosList" class="contacts-list"></div>
+        <button type="button" class="btn ghost small-btn" id="editAddContactoBtn">+ Agregar contacto</button>
+        <small class="field-help">Hasta 5 contactos. Como administrador puedes editar y eliminar.</small>
+
         <div class="block-box" id="editBlockBox">
           <h4>Bloqueo del cliente</h4>
           <div class="switch-row">
