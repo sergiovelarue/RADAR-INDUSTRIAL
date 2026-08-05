@@ -1779,6 +1779,54 @@ function proyeccionRestoAnioClienteV106(c) {
   return { real2026Transcurrido, proyeccionResto, total2026Estimado: real2026Transcurrido + proyeccionResto };
 }
 
+// Serie mes a mes (12 valores, Enero-Diciembre) de 2026 real+proyectado
+// para un cliente: meses ya transcurridos = venta real; meses futuros =
+// promedio real 2026 × factor de estacionalidad de ese mes en 2025
+// (mismo criterio que proyeccionRestoAnioClienteV106, pero mes a mes
+// en vez de solo el total del resto del año).
+function serieMensual2026ClienteV106(c) {
+  const meses = monthsV812();
+  const transcurridos = typeof availableMonthsV812 === "function" ? availableMonthsV812() : meses;
+  const real2026Transcurrido = transcurridos.reduce((s, m) => s + ventaMesClienteV106(c, 2026, m), 0);
+  const promedioReal2026 = transcurridos.length ? real2026Transcurrido / transcurridos.length : 0;
+  const promedio2025Transcurrido = transcurridos.length
+    ? transcurridos.reduce((s, m) => s + ventaMesClienteV106(c, 2025, m), 0) / transcurridos.length
+    : 0;
+
+  return meses.map(m => {
+    if (transcurridos.includes(m)) return ventaMesClienteV106(c, 2026, m);
+    const venta2025Mes = ventaMesClienteV106(c, 2025, m);
+    const factorEstacional = promedio2025Transcurrido > 0 ? (venta2025Mes / promedio2025Transcurrido) : 1;
+    return promedioReal2026 * factorEstacional;
+  });
+}
+
+// Serie mes a mes de la organización completa: 2025 real, 2026
+// real+proyectado, y 2027 proyectado (cada mes de la serie 2026 de
+// cada cliente × su % de crecimiento por clasificación).
+function serieMensualOrganizacionV106() {
+  const meses = monthsV812();
+  const cfg = typeof growthConfigV810 === "function" ? growthConfigV810() : { A: 12, B: 10, C: 5, E: 15, N: 0 };
+  const clientes = (DATA.clientes || []).filter(c => !(typeof isBlockedV87 === "function" && isBlockedV87(c)));
+
+  const serie2025 = new Array(12).fill(0);
+  const serie2026 = new Array(12).fill(0);
+  const serie2027 = new Array(12).fill(0);
+
+  clientes.forEach(c => {
+    const g = Number(cfg[c.clasificacion] ?? 0);
+    const factor2027 = 1 + g / 100;
+    const s2026 = serieMensual2026ClienteV106(c);
+    meses.forEach((m, i) => {
+      serie2025[i] += ventaMesClienteV106(c, 2025, m);
+      serie2026[i] += s2026[i];
+      serie2027[i] += s2026[i] * factor2027;
+    });
+  });
+
+  return { meses, serie2025, serie2026, serie2027 };
+}
+
 // Resumen de metas por asesor (o total si nombreAsesor es null).
 function resumenMetasAsesorV106(nombreAsesor) {
   const clientes = (DATA.clientes || []).filter(c => {
@@ -1865,6 +1913,30 @@ function renderMetasViewV106() {
           { label: "2025 real", data: resumenes.map(r => r.real2025) },
           { label: "2026 proyectado", data: resumenes.map(r => r.proyectado2026) },
           { label: "2027 propuesto", data: resumenes.map(r => r.propuesto2027) }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    const mensual = serieMensualOrganizacionV106();
+    const idxUltimoTranscurrido = transcurridos.length ? meses.indexOf(transcurridos[transcurridos.length - 1]) : -1;
+    chartV812("metasMensualChart", {
+      type: "line",
+      data: {
+        labels: mensual.meses,
+        datasets: [
+          { label: "2025 real", data: mensual.serie2025, borderColor: "#94a3b8", backgroundColor: "#94a3b8", tension: .25 },
+          {
+            label: "2026 real + proyectado",
+            data: mensual.serie2026,
+            borderColor: "#2563eb",
+            backgroundColor: "#2563eb",
+            tension: .25,
+            segment: {
+              borderDash: ctx => ctx.p0DataIndex >= idxUltimoTranscurrido ? [6, 4] : undefined
+            }
+          },
+          { label: "2027 proyectado", data: mensual.serie2027, borderColor: "#16a34a", backgroundColor: "#16a34a", tension: .25, borderDash: [3, 3] }
         ]
       },
       options: { responsive: true, plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true } } }
