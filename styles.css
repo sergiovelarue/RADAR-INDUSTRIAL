@@ -555,3 +555,19 @@ tr.blocked-row .status{color:#b91c1c;font-weight:900}
 .contact-card .contact-actions a{font-size:12px;font-weight:800;text-decoration:none;color:#2563eb;background:#eff6ff;border-radius:999px;padding:4px 10px}
 .contact-card .contact-remove{margin-left:auto;font-size:12px;font-weight:800;color:#dc2626;background:#fef2f2;border:none;border-radius:999px;padding:4px 10px;cursor:pointer}
 .contact-empty-msg{color:var(--muted);font-size:12px;font-style:italic}
+
+/* ===== V105: Vista móvil compacta para Meta diaria y Acciones recomendadas ===== */
+/* Estas dos tablas tienen 7-8 columnas; en celular cada fila se
+   vuelve una tarjeta apilada (regla genérica @media max-width:760px
+   ya existente arriba). Aquí solo la hacemos más compacta para que
+   no ocupe tanto espacio vertical, sin tocar el resto de tablas. */
+@media(max-width:760px){
+  #metaDiariaPanel,#accionesRecomendadasPanel{padding:14px}
+  #metaDiariaPanel .table-header h3,#accionesRecomendadasPanel .table-header h3{font-size:17px}
+  #metaDiariaTable tr,#recomendadasTable tr{padding:10px 12px;margin-bottom:8px;font-size:12px}
+  #metaDiariaTable td,#recomendadasTable td{padding:5px 0;font-size:12px;align-items:center}
+  #metaDiariaTable td::before,#recomendadasTable td::before{font-size:10px;flex:0 0 auto;margin-right:10px}
+  #metaDiariaTable td:first-child,#recomendadasTable td:first-child{font-weight:800;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--line)!important}
+  #recomendadasTable td[data-label=""]{justify-content:flex-end}
+  #recomendadasTable td[data-label=""] button{width:100%}
+}

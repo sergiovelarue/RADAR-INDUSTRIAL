@@ -1102,13 +1102,13 @@ function renderMetaDiariaSeguimientoV101() {
     const diaria = diasHabilesMes > 0 ? r.faltante / diasHabilesMes : 0;
     const semanal = diaria * diasHabilesSemana;
     return `<tr>
-      <td>${esc(r.asesor)}</td>
-      <td>${money(r.metaMes)}</td>
-      <td>${money(r.ventaActual)}</td>
-      <td>${pct(cumplimiento)}</td>
-      <td>${money(r.faltante)}</td>
-      <td>${money(diaria)}</td>
-      <td>${money(semanal)}</td>
+      <td data-label="Asesor">${esc(r.asesor)}</td>
+      <td data-label="Meta del mes">${money(r.metaMes)}</td>
+      <td data-label="Venta actual">${money(r.ventaActual)}</td>
+      <td data-label="Cumplimiento">${pct(cumplimiento)}</td>
+      <td data-label="Faltante">${money(r.faltante)}</td>
+      <td data-label="Venta diaria requerida">${money(diaria)}</td>
+      <td data-label="Venta semanal requerida">${money(semanal)}</td>
     </tr>`;
   };
 
@@ -1123,13 +1123,13 @@ function renderMetaDiariaSeguimientoV101() {
     }), { asesor: "TOTAL ORGANIZACIÓN", metaMes: 0, ventaActual: 0, faltante: 0 });
 
     let html = `<tr style="font-weight:800;background:var(--panel-alt,#f4f6fb)">` +
-      `<td>${esc(total.asesor)}</td>` +
-      `<td>${money(total.metaMes)}</td>` +
-      `<td>${money(total.ventaActual)}</td>` +
-      `<td>${pct(total.metaMes ? (total.ventaActual / total.metaMes) * 100 : 0)}</td>` +
-      `<td>${money(total.faltante)}</td>` +
-      `<td>${money(diasHabilesMes > 0 ? total.faltante / diasHabilesMes : 0)}</td>` +
-      `<td>${money((diasHabilesMes > 0 ? total.faltante / diasHabilesMes : 0) * diasHabilesSemana)}</td>` +
+      `<td data-label="Asesor">${esc(total.asesor)}</td>` +
+      `<td data-label="Meta del mes">${money(total.metaMes)}</td>` +
+      `<td data-label="Venta actual">${money(total.ventaActual)}</td>` +
+      `<td data-label="Cumplimiento">${pct(total.metaMes ? (total.ventaActual / total.metaMes) * 100 : 0)}</td>` +
+      `<td data-label="Faltante">${money(total.faltante)}</td>` +
+      `<td data-label="Venta diaria requerida">${money(diasHabilesMes > 0 ? total.faltante / diasHabilesMes : 0)}</td>` +
+      `<td data-label="Venta semanal requerida">${money((diasHabilesMes > 0 ? total.faltante / diasHabilesMes : 0) * diasHabilesSemana)}</td>` +
       `</tr>`;
     html += resumenes.map(filaHtml).join("");
     body.innerHTML = html;
@@ -1324,14 +1324,14 @@ function renderAccionesRecomendadasV102() {
   const pageItems = scored.slice(start, start + pageSize);
 
   body.innerHTML = pageItems.map(({ c, score, faltante, dias }) => `<tr>
-    <td>${esc(c.cliente || "Cliente sin nombre")} <span style="color:var(--muted);font-weight:400">· NIT ${esc(c.nit)}</span></td>
-    <td>${esc(c.asesorAsignado || "SIN ASIGNACION")}</td>
-    <td>${esc(c.clasificacion || "—")}</td>
-    <td>${esc(c.estado || "—")}</td>
-    <td>${money(faltante)}</td>
-    <td>${dias === null ? "Sin gestión previa" : dias + " día(s)"}</td>
-    <td><strong>${Math.round(score)}</strong>/100</td>
-    <td><button class="btn ghost small-btn" data-detail-nit="${esc(c.nit)}" type="button">Definir acción</button></td>
+    <td data-label="Cliente">${esc(c.cliente || "Cliente sin nombre")} <span style="color:var(--muted);font-weight:400">· NIT ${esc(c.nit)}</span></td>
+    <td data-label="Asesor">${esc(c.asesorAsignado || "SIN ASIGNACION")}</td>
+    <td data-label="Clasificación">${esc(c.clasificacion || "—")}</td>
+    <td data-label="Estado">${esc(c.estado || "—")}</td>
+    <td data-label="Faltante">${money(faltante)}</td>
+    <td data-label="Días sin gestión">${dias === null ? "Sin gestión previa" : dias + " día(s)"}</td>
+    <td data-label="Score"><strong>${Math.round(score)}</strong>/100</td>
+    <td data-label=""><button class="btn ghost small-btn" data-detail-nit="${esc(c.nit)}" type="button">Definir acción</button></td>
   </tr>`).join("");
 
   const pagWrap = $("recomendadasPagination");
