@@ -870,6 +870,40 @@ function rangoSemanaV100(offsetSemanas) {
   return { inicio, fin };
 }
 
+// Genera el enlace "Agregar a Google Calendar" para una acción de
+// seguimiento. Se usa evento de todo el día (la app no maneja hora),
+// con el tipo de acción y el cliente en el título para reconocerlo
+// fácil dentro del calendario.
+function urlGoogleCalendarV103(c, fecha) {
+  // La app no captura hora, así que se asume un horario genérico
+  // (9:00–10:00am, hora Colombia) para que la acción quede como una
+  // cita real y no como evento de todo el día; el asesor la reubica
+  // en su calendario si necesita otro horario.
+  const HORA_INICIO_V103 = 9; // 9:00am
+  const DURACION_HORAS_V103 = 1;
+  const pad = n => String(n).padStart(2, "0");
+  const fmtLocal = (d, h) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(h)}0000`;
+  const inicioStr = fmtLocal(fecha, HORA_INICIO_V103);
+  const finStr = fmtLocal(fecha, HORA_INICIO_V103 + DURACION_HORAS_V103);
+  const titulo = `${c.proximaAccion || "Seguimiento"} · ${c.cliente || "Cliente sin nombre"}`;
+  const detalles = [
+    `Cliente: ${c.cliente || "—"} (NIT ${c.nit || "—"})`,
+    `Asesor: ${c.asesorAsignado || "SIN ASIGNACION"}`,
+    c.comentario ? `Comentario: ${c.comentario}` : null,
+    "",
+    "Hora sugerida automáticamente (9:00–10:00am). Ajusta el horario según tu disponibilidad real.",
+    "Generado desde Radar Comercial Industria."
+  ].filter(Boolean).join("\n");
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: titulo,
+    dates: `${inicioStr}/${finStr}`,
+    details: detalles,
+    ctz: "America/Bogota"
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 function seguimientosVisiblesV100() {
   const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
   const asesorSel = $("seguimientoAsesorSelect")?.value || "todos";
@@ -900,6 +934,9 @@ function renderSeguimientoView() {
     ({ inicio: desde, fin: hasta } = rangoSemanaV100(-1));
   } else if (rango === "siguiente") {
     ({ inicio: desde, fin: hasta } = rangoSemanaV100(1));
+  } else if (rango === "todas") {
+    desde = rangoSemanaV100(-1).inicio;
+    hasta = rangoSemanaV100(1).fin;
   } else {
     ({ inicio: desde, fin: hasta } = rangoSemanaV100(0));
   }
@@ -936,6 +973,7 @@ function renderSeguimientoView() {
         <div class="seg-meta">${esc(c.proximaAccion || "Sin tipo de acción")}${esAdmin ? " · " + esc(c.asesorAsignado || "SIN ASIGNACION") : ""}</div>
         ${c.comentario ? `<div class="seg-meta">"${esc(c.comentario)}"</div>` : ""}
       </div>
+      <a class="btn ghost small-btn" href="${urlGoogleCalendarV103(c, fecha)}" target="_blank" rel="noopener" title="Agregar a Google Calendar">📅 Calendario</a>
     </div>`;
   });
   feed.innerHTML = html;
@@ -1350,8 +1388,317 @@ if (typeof hideAllPrimaryViewsV93 === "function") {
   if (el) el.addEventListener("click", () => {
     const lv = $("logView"); if (lv) lv.classList.add("hidden-view");
     const sv = $("seguimientoView"); if (sv) sv.classList.add("hidden-view");
+    const pv = $("prospeccionView"); if (pv) pv.classList.add("hidden-view");
   });
 });
+// navSeguimiento, navClients y navAdvisors también deben ocultar
+// Prospección al salir de ella (seguimos el mismo patrón anterior).
+["navSeguimiento", "navClients", "navAdvisors"].forEach(id => {
+  const el = $(id);
+  if (el) el.addEventListener("click", () => {
+    const pv = $("prospeccionView"); if (pv) pv.classList.add("hidden-view");
+  });
+});
+
+// ------------------------------------------------------------
+// Módulo de Prospección: registro y gestión de leads comerciales.
+// Mismo patrón de permisos que Hoja de Ruta: admin ve todos los
+// leads, cada asesor ve solo los suyos. Se guarda en DATA.leads
+// (persistido en localStorage) y, si existe tabla "leads" en
+// Supabase, también se sincroniza para que todo el equipo vea lo
+// mismo (ver sincronizarLeadsV104 más abajo).
+// ------------------------------------------------------------
+if (!Array.isArray(DATA.leads)) DATA.leads = [];
+
+const leadsStateV104 = { search: "", estado: "todos", asesor: "todos" };
+let activeLeadIdV104 = null;
+
+function uuidV104() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "lead-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+}
+
+function poblarAsesorFilterLeadsV104() {
+  const sel = $("leadsAsesorFilter");
+  const wrap = $("leadsAsesorFilterWrap");
+  const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
+  if (wrap) wrap.style.display = esAdmin ? "" : "none";
+  if (!sel || !esAdmin) return;
+  const current = sel.value || "todos";
+  const asesores = (DATA.meta && DATA.meta.asesores) || [];
+  sel.innerHTML = '<option value="todos">Todos</option>' + asesores.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
+  sel.value = asesores.includes(current) ? current : "todos";
+}
+
+function leadsVisiblesV104() {
+  const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
+  return (DATA.leads || []).filter(l => {
+    if (esAdmin) {
+      if (leadsStateV104.asesor !== "todos" && l.asesorAsignado !== leadsStateV104.asesor) return false;
+    } else {
+      if (typeof currentUserV84 === "undefined" || !currentUserV84 || l.asesorAsignado !== currentUserV84.advisor) return false;
+    }
+    if (leadsStateV104.estado !== "todos" && l.estado !== leadsStateV104.estado) return false;
+    if (leadsStateV104.search) {
+      const q = leadsStateV104.search.toLowerCase();
+      const campo = `${l.nombre || ""} ${l.telefono || ""} ${l.email || ""}`.toLowerCase();
+      if (!campo.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderLeadsV104() {
+  const body = $("leadsBody");
+  if (!body) return;
+  poblarAsesorFilterLeadsV104();
+  const rows = leadsVisiblesV104().slice().sort((a, b) => new Date(b.creadoEn || 0) - new Date(a.creadoEn || 0));
+  if ($("leadsCount")) $("leadsCount").textContent = `${rows.length} lead(s)`;
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="8" style="color:var(--muted)">No hay leads registrados en este filtro.</td></tr>';
+    return;
+  }
+  const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
+  body.innerHTML = rows.map(l => `<tr>
+    <td>${esc(l.nombre || "—")}</td>
+    <td>${esc(l.telefono || "")}${l.telefono && l.email ? " · " : ""}${esc(l.email || "")}</td>
+    <td>${esc(l.origen || "—")}</td>
+    <td>${esc(l.ciudad || "—")}</td>
+    <td>${esc(l.asesorAsignado || "—")}</td>
+    <td>${money(l.valorPotencial || 0)}</td>
+    <td>${esc(l.estado || "Nuevo")}</td>
+    <td><button class="btn ghost small-btn" data-edit-lead-id="${esc(l.id)}" type="button">${esAdmin ? "Ver / Editar" : "Gestionar"}</button></td>
+  </tr>`).join("");
+}
+
+function openLeadModalV104(id) {
+  activeLeadIdV104 = id;
+  const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
+  const l = id ? (DATA.leads || []).find(x => x.id === id) : null;
+
+  if ($("leadModalTitle")) $("leadModalTitle").textContent = l ? "Editar lead" : "Nuevo lead";
+  if ($("leadIdInput")) $("leadIdInput").value = l ? l.id : "";
+  if ($("leadNombreInput")) $("leadNombreInput").value = l ? (l.nombre || "") : "";
+  if ($("leadTelefonoInput")) $("leadTelefonoInput").value = l ? (l.telefono || "") : "";
+  if ($("leadEmailInput")) $("leadEmailInput").value = l ? (l.email || "") : "";
+  if ($("leadOrigenInput")) $("leadOrigenInput").value = l ? (l.origen || "") : "";
+  if ($("leadValorInput")) $("leadValorInput").value = l ? (l.valorPotencial || 0) : "";
+  if ($("leadEstadoInput")) $("leadEstadoInput").value = l ? (l.estado || "Nuevo") : "Nuevo";
+  if ($("leadComentarioInput")) $("leadComentarioInput").value = l ? (l.comentario || "") : "";
+
+  // Asesor: admin puede elegir cualquiera; el asesor solo se asigna a sí mismo.
+  const selAsesor = $("leadAsesorInput");
+  if (selAsesor) {
+    if (esAdmin) {
+      const asesores = (DATA.meta && DATA.meta.asesores) || [];
+      selAsesor.innerHTML = asesores.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
+      selAsesor.disabled = false;
+      selAsesor.value = l ? (l.asesorAsignado || "") : (asesores[0] || "");
+    } else {
+      const nombre = (typeof currentUserV84 !== "undefined" && currentUserV84) ? currentUserV84.advisor : "";
+      selAsesor.innerHTML = `<option value="${esc(nombre)}">${esc(nombre)}</option>`;
+      selAsesor.disabled = true;
+      selAsesor.value = nombre;
+    }
+  }
+
+  fillDeptSelectGenV103("leadDepartamentoInput", l ? (l.departamento || "") : "");
+  fillCitySelectGenV103("leadCiudadInput", l ? (l.departamento || "") : "", l ? (l.ciudad || "") : "");
+
+  // Eliminar: solo visible editando un lead existente, y solo para admin
+  // o el asesor dueño del lead (evita que un asesor borre leads ajenos).
+  const btnEliminar = $("leadEliminarBtn");
+  if (btnEliminar) {
+    const puedeEliminar = !!l && (esAdmin || (typeof currentUserV84 !== "undefined" && currentUserV84 && l.asesorAsignado === currentUserV84.advisor));
+    btnEliminar.style.display = puedeEliminar ? "" : "none";
+  }
+
+  const modal = $("leadModal");
+  if (modal) modal.classList.add("open");
+}
+
+function closeLeadModalV104() {
+  const modal = $("leadModal");
+  if (modal) modal.classList.remove("open");
+  activeLeadIdV104 = null;
+}
+
+function guardarLeadV104() {
+  const nombre = ($("leadNombreInput")?.value || "").trim();
+  const asesor = ($("leadAsesorInput")?.value || "").trim();
+  if (!nombre) { alert("El nombre / empresa del lead es obligatorio."); return; }
+  if (!asesor) { alert("Debes asignar un asesor responsable del lead."); return; }
+
+  const id = $("leadIdInput")?.value || "";
+  let l = id ? (DATA.leads || []).find(x => x.id === id) : null;
+  const esNuevo = !l;
+  if (!l) {
+    l = { id: uuidV104(), creadoEn: new Date().toISOString(), creadoPor: (typeof currentUserV84 !== "undefined" && currentUserV84) ? currentUserV84.email : "" };
+    DATA.leads.push(l);
+  }
+  l.nombre = nombre;
+  l.telefono = $("leadTelefonoInput")?.value || "";
+  l.email = $("leadEmailInput")?.value || "";
+  l.asesorAsignado = asesor;
+  l.origen = $("leadOrigenInput")?.value || "";
+  l.departamento = $("leadDepartamentoInput")?.value || "";
+  l.ciudad = $("leadCiudadInput")?.value || "";
+  l.valorPotencial = Number($("leadValorInput")?.value || 0);
+  l.estado = $("leadEstadoInput")?.value || "Nuevo";
+  l.comentario = $("leadComentarioInput")?.value || "";
+  l.actualizadoEn = new Date().toISOString();
+
+  if (typeof logEventoV98 === "function") {
+    logEventoV98("dato", l.id, l.nombre, esNuevo ? "—" : "Editado", esNuevo ? "Lead creado" : "Lead actualizado");
+  }
+
+  guardarLeadsLocalV104();
+  if (typeof sincronizarLeadsV104 === "function") sincronizarLeadsV104();
+  closeLeadModalV104();
+  renderLeadsV104();
+}
+
+function eliminarLeadV104() {
+  const id = $("leadIdInput")?.value || "";
+  if (!id) return;
+  if (!confirm("¿Eliminar este lead? Esta acción no se puede deshacer.")) return;
+  const l = (DATA.leads || []).find(x => x.id === id);
+  DATA.leads = (DATA.leads || []).filter(x => x.id !== id);
+  if (typeof logEventoV98 === "function" && l) {
+    logEventoV98("dato", l.id, l.nombre, "Activo", "Lead eliminado");
+  }
+  guardarLeadsLocalV104();
+  if (typeof sincronizarLeadsV104 === "function") sincronizarLeadsV104();
+  closeLeadModalV104();
+  renderLeadsV104();
+}
+
+function guardarLeadsLocalV104() {
+  try { localStorage.setItem("radarLeadsV104", JSON.stringify(DATA.leads || [])); } catch (e) {}
+}
+
+function cargarLeadsLocalV104() {
+  try {
+    const saved = localStorage.getItem("radarLeadsV104");
+    if (saved) DATA.leads = JSON.parse(saved);
+  } catch (e) {}
+}
+cargarLeadsLocalV104();
+
+// ------------------------------------------------------------
+// Sincronización de leads con Supabase (compartido entre todo el
+// equipo, igual que los clientes). Requiere la tabla "leads" —
+// ver crear_tabla_leads.sql. Si la tabla todavía no existe, la app
+// sigue funcionando normal con el respaldo local (localStorage);
+// solo se ve una advertencia en consola.
+// ------------------------------------------------------------
+let leadsSupabaseDisponibleV104 = null; // null = aún no se sabe, true/false = ya se probó
+
+function filaSupabaseALeadV104(row) {
+  return {
+    id: row.id,
+    nombre: row.nombre,
+    telefono: row.telefono || "",
+    email: row.email || "",
+    asesorAsignado: row.asesor_id ? (ASESOR_NAME_MAP_V94[row.asesor_id] || "") : "",
+    origen: row.origen || "",
+    ciudad: row.ciudad || "",
+    departamento: row.departamento || "",
+    valorPotencial: Number(row.valor_potencial || 0),
+    estado: row.estado || "Nuevo",
+    comentario: row.comentario || "",
+    creadoPor: row.creado_por || "",
+    creadoEn: row.creado_en,
+    actualizadoEn: row.actualizado_en
+  };
+}
+
+function leadALaFilaSupabaseV104(l) {
+  return {
+    id: l.id,
+    nombre: l.nombre || null,
+    telefono: l.telefono || null,
+    email: l.email || null,
+    asesor_id: (l.asesorAsignado && typeof ASESOR_ID_MAP_V94 !== "undefined") ? (ASESOR_ID_MAP_V94[l.asesorAsignado] || null) : null,
+    origen: l.origen || null,
+    ciudad: l.ciudad || null,
+    departamento: l.departamento || null,
+    valor_potencial: Number(l.valorPotencial || 0),
+    estado: l.estado || "Nuevo",
+    comentario: l.comentario || null,
+    creado_por: l.creadoPor || null,
+    actualizado_en: new Date().toISOString()
+  };
+}
+
+async function cargarLeadsDesdeSupabaseV104() {
+  if (typeof supabaseClientV94 === "undefined") return false;
+  try {
+    const { data, error } = await supabaseClientV94.from("leads").select("*").range(0, 4999);
+    if (error) {
+      // Tabla probablemente no existe todavía: seguimos con el respaldo local sin interrumpir la app.
+      console.warn("[Radar-Leads] No se pudo leer la tabla 'leads' de Supabase (¿falta crearla? ver crear_tabla_leads.sql):", error.message);
+      leadsSupabaseDisponibleV104 = false;
+      return false;
+    }
+    leadsSupabaseDisponibleV104 = true;
+    DATA.leads = (data || []).map(filaSupabaseALeadV104);
+    guardarLeadsLocalV104();
+    return true;
+  } catch (e) {
+    console.warn("[Radar-Leads] Fallo de conexión cargando leads:", e);
+    leadsSupabaseDisponibleV104 = false;
+    return false;
+  }
+}
+
+let syncLeadsEnCursoV104 = false;
+let syncLeadsPendienteV104 = false;
+async function sincronizarLeadsV104() {
+  if (leadsSupabaseDisponibleV104 === false) return; // ya sabemos que la tabla no existe; no reintentar en cada guardado
+  if (typeof supabaseClientV94 === "undefined") return;
+  if (syncLeadsEnCursoV104) { syncLeadsPendienteV104 = true; return; }
+  syncLeadsEnCursoV104 = true;
+  try {
+    const filas = (DATA.leads || []).map(leadALaFilaSupabaseV104);
+    if (filas.length) {
+      const { error } = await supabaseClientV94.from("leads").upsert(filas, { onConflict: "id" });
+      if (error) {
+        console.warn("[Radar-Leads] No se pudo guardar en Supabase (¿falta crear la tabla 'leads'? ver crear_tabla_leads.sql):", error.message);
+        leadsSupabaseDisponibleV104 = false;
+      } else {
+        leadsSupabaseDisponibleV104 = true;
+      }
+    }
+  } catch (e) {
+    console.warn("[Radar-Leads] Fallo de conexión guardando leads:", e);
+  } finally {
+    syncLeadsEnCursoV104 = false;
+    if (syncLeadsPendienteV104) { syncLeadsPendienteV104 = false; sincronizarLeadsV104(); }
+  }
+}
+
+// Al arrancar, intentamos traer los leads compartidos desde Supabase
+// (si la tabla ya existe). No bloquea el resto de la carga de la app.
+document.addEventListener("DOMContentLoaded", () => {
+  cargarLeadsDesdeSupabaseV104().then(ok => {
+    if (ok) {
+      const pv = $("prospeccionView");
+      if (pv && !pv.classList.contains("hidden-view")) renderLeadsV104();
+    }
+  });
+});
+
+function showProspeccionViewV104() {
+  if (typeof hideAllPrimaryViewsV93 === "function") hideAllPrimaryViewsV93();
+  const lv = $("logView"); if (lv) lv.classList.add("hidden-view");
+  const sv = $("seguimientoView"); if (sv) sv.classList.add("hidden-view");
+  const cv = $("clientsManagementView"); if (cv) cv.classList.add("hidden-view");
+  const av = $("advisorsManagementView"); if (av) av.classList.add("hidden-view");
+  const pv = $("prospeccionView"); if (pv) pv.classList.remove("hidden-view");
+  if ($("navProspeccion")) $("navProspeccion").classList.add("active");
+  renderLeadsV104();
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   if ($("navLog")) $("navLog").addEventListener("click", showLogViewV98);
@@ -1387,4 +1734,21 @@ document.addEventListener("DOMContentLoaded", () => {
       checarVisibilidadLog();
     };
   }
+
+  if ($("navProspeccion")) $("navProspeccion").addEventListener("click", showProspeccionViewV104);
+  if ($("leadNuevoBtn")) $("leadNuevoBtn").addEventListener("click", () => openLeadModalV104(null));
+  if ($("leadModalCloseBtn")) $("leadModalCloseBtn").addEventListener("click", closeLeadModalV104);
+  if ($("leadModalCancelBtn")) $("leadModalCancelBtn").addEventListener("click", closeLeadModalV104);
+  if ($("leadGuardarBtn")) $("leadGuardarBtn").addEventListener("click", guardarLeadV104);
+  if ($("leadEliminarBtn")) $("leadEliminarBtn").addEventListener("click", eliminarLeadV104);
+  if ($("leadDepartamentoInput")) $("leadDepartamentoInput").addEventListener("change", e => fillCitySelectGenV103("leadCiudadInput", e.target.value, ""));
+  if ($("leadsSearch")) $("leadsSearch").addEventListener("input", e => { leadsStateV104.search = e.target.value; renderLeadsV104(); });
+  if ($("leadsEstadoFilter")) $("leadsEstadoFilter").addEventListener("change", e => { leadsStateV104.estado = e.target.value; renderLeadsV104(); });
+  if ($("leadsAsesorFilter")) $("leadsAsesorFilter").addEventListener("change", e => { leadsStateV104.asesor = e.target.value; renderLeadsV104(); });
+
+  document.addEventListener("click", e => {
+    if (e.target && e.target.dataset && e.target.dataset.editLeadId) {
+      openLeadModalV104(e.target.dataset.editLeadId);
+    }
+  });
 });

@@ -59,7 +59,7 @@
         <div class="brand-icon">R</div>
         <div><h1>Radar Comercial Industria</h1><small>ConAccion · V9.8</small></div>
       </div>
-      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
+      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navProspeccion">Prospección</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
         <button class="btn ghost" id="refreshDataBtn" style="width:100%;margin-bottom:10px">↻ Actualizar datos</button>
         <small id="sessionRoleLabel"></small>
@@ -432,6 +432,7 @@
               <option value="pasada">Semana pasada</option>
               <option value="actual" selected>Semana actual</option>
               <option value="siguiente">Semana siguiente</option>
+              <option value="todas">Todas (3 semanas)</option>
             </select>
           </label>
           <label id="seguimientoAsesorFilterWrap" style="display:none">Asesor
@@ -536,6 +537,85 @@
           <article><h3>Leyenda práctica</h3><p><strong>Activos:</strong> más susceptibles de comprar en el corto plazo.</p><p><strong>PB:</strong> alerta temprana de pérdida comercial.</p><p><strong>Baja:</strong> recuperación más difícil.</p><p><strong>Nuevos:</strong> señal de crecimiento futuro.</p><p><strong>Reingresos:</strong> recuperación comercial lograda.</p></article>
         </section>
       </section>
+
+      <section class="clients-mgmt-view hidden-view" id="prospeccionView">
+        <div class="dashboard-title">
+          <div><h2>Prospección</h2><p>Registro y gestión de leads comerciales. Administrador ve todos los leads; cada asesor ve solo los suyos.</p></div>
+          <div class="dashboard-actions">
+            <button class="btn" id="leadNuevoBtn">+ Nuevo lead</button>
+          </div>
+        </div>
+
+        <section class="mgmt-toolbar">
+          <input type="search" id="leadsSearch" placeholder="Buscar por nombre, empresa o contacto"/>
+          <select id="leadsEstadoFilter">
+            <option value="todos">Todos los estados</option>
+            <option value="Nuevo">Nuevo</option>
+            <option value="Contactado">Contactado</option>
+            <option value="Calificado">Calificado</option>
+            <option value="Convertido">Convertido</option>
+            <option value="Descartado">Descartado</option>
+          </select>
+          <label id="leadsAsesorFilterWrap" style="display:none">Asesor
+            <select id="leadsAsesorFilter"><option value="todos">Todos</option></select>
+          </label>
+        </section>
+
+        <section class="mgmt-table-card">
+          <div class="table-header"><h3>Leads</h3><span id="leadsCount">0 leads</span></div>
+          <div class="table-scroll">
+            <table class="mgmt-table">
+              <thead><tr><th>Nombre / Empresa</th><th>Contacto</th><th>Origen</th><th>Ciudad</th><th>Asesor</th><th>Valor potencial</th><th>Estado</th><th>Acción</th></tr></thead>
+              <tbody id="leadsBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <div class="modal-overlay" id="leadModal">
+        <div class="modal-card small-modal">
+          <div class="modal-header">
+            <div><h3 id="leadModalTitle">Nuevo lead</h3><p>Registro de prospecto comercial</p></div>
+            <button class="modal-close" id="leadModalCloseBtn">×</button>
+          </div>
+          <div class="modal-form">
+            <input type="hidden" id="leadIdInput"/>
+            <label>Nombre / Empresa <span style="color:#dc2626">*</span><input type="text" id="leadNombreInput" placeholder="Ej: Textiles del Valle S.A.S"/></label>
+            <label>Teléfono<input type="tel" id="leadTelefonoInput" placeholder="3001234567"/></label>
+            <label>Email<input type="email" id="leadEmailInput" placeholder="contacto@empresa.com"/></label>
+            <label>Asesor asignado <span style="color:#dc2626">*</span><select id="leadAsesorInput"></select></label>
+            <label>Origen
+              <select id="leadOrigenInput">
+                <option value="">Seleccionar</option>
+                <option>Referido</option>
+                <option>Feria</option>
+                <option>Web</option>
+                <option>Llamada fría</option>
+                <option>Redes sociales</option>
+                <option>Otro</option>
+              </select>
+            </label>
+            <label>Departamento<select id="leadDepartamentoInput"></select></label>
+            <label>Ciudad / municipio<select id="leadCiudadInput"></select></label>
+            <label>Valor potencial estimado ($ MM)<input type="number" id="leadValorInput" placeholder="0" min="0"/></label>
+            <label>Estado
+              <select id="leadEstadoInput">
+                <option>Nuevo</option>
+                <option>Contactado</option>
+                <option>Calificado</option>
+                <option>Convertido</option>
+                <option>Descartado</option>
+              </select>
+            </label>
+            <label>Comentario<textarea id="leadComentarioInput" rows="3" placeholder="Notas de la gestión"></textarea></label>
+            <div class="actions">
+              <button class="btn" id="leadGuardarBtn">Guardar lead</button>
+              <button class="btn ghost" id="leadEliminarBtn" style="display:none">Eliminar</button>
+              <button class="btn ghost" id="leadModalCancelBtn">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <section class="clients-mgmt-view hidden-view" id="clientsManagementView">
         <div class="dashboard-title">
