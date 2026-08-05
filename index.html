@@ -4,25 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Radar Comercial ConAccion Industria</title>
-  <!-- Favicon navegador -->
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
-
-  <!-- iPhone / iPad - Agregar a inicio -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
-  <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">
-  <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Radar Industria">
-
-  <!-- Android / PWA -->
-  <link rel="manifest" href="/site.webmanifest">
-  <meta name="theme-color" content="#01153F">
-
+  <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
   <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
@@ -119,7 +101,7 @@
         </div>
       </section>
 
-
+      
       <section class="admin-panel" id="usageAdminPanel">
         <div class="panel-header">
           <div>
@@ -242,7 +224,7 @@
           </table>
         </div>
       </section>
-
+    
       <section class="director-dashboard hidden-view" id="directorDashboardView">
         <div class="dashboard-title">
           <div>
@@ -269,7 +251,7 @@
         </section>
 
         <section class="chart-grid"><article class="chart-card wide"><div class="chart-header"><h3>Clientes facturando y orden promedio mensual</h3><p>Permite ver si el crecimiento viene por más clientes comprando o por mayor valor promedio por cliente.</p></div><canvas id="monthlyCustomersChart"></canvas></article></section>
-
+        
         <section class="sop-panel" id="sopPanel">
           <div class="chart-header"><h3>Meta S&amp;OP del mes</h3><p>Objetivo oficial mensual por línea para medir cumplimiento y Gap S&amp;OP.</p></div>
           <div class="sop-grid">
@@ -284,7 +266,7 @@
             <article><span>Venta real mes</span><strong id="sopRealSale">$0</strong><small>Mes seleccionado</small></article>
           </section>
         </section>
-
+        
         <section class="commercial-segment-section" id="commercialSegmentSection">
           <div class="chart-header">
             <h3>Segmentos Comerciales</h3>
@@ -415,9 +397,34 @@
         <section class="insight-card"><h3>Lectura estratégica sugerida</h3><ul id="directorInsights"></ul></section>
       </section>
 
-
+    
       <section class="log-view hidden-view" id="seguimientoView">
         <div class="dashboard-title"><div><h2>Seguimiento diario</h2><p>Próximas acciones ordenadas cronológicamente, con la fecha actual como referencia: <strong id="seguimientoHoyLabel">—</strong>.</p></div></div>
+
+        <section class="table-card" id="metaDiariaPanel">
+          <div class="table-header">
+            <h3>Venta diaria y semanal requerida para cumplir la meta del mes</h3>
+            <span id="metaDiariaSubtitle" style="color:var(--muted);font-weight:600"></span>
+          </div>
+          <p class="field-help">Cuota dinámica: se recalcula cada día sobre el faltante real y los días hábiles (lunes a viernes) que quedan en el mes. Si un asesor se atrasa, su cuota diaria sube; si se adelanta, baja.</p>
+          <div class="table-scroll">
+            <table class="mgmt-table" id="metaDiariaTable">
+              <thead>
+                <tr>
+                  <th>Asesor</th>
+                  <th>Meta del mes</th>
+                  <th>Venta actual</th>
+                  <th>Cumplimiento</th>
+                  <th>Faltante</th>
+                  <th>Venta diaria requerida</th>
+                  <th>Venta semanal requerida</th>
+                </tr>
+              </thead>
+              <tbody id="metaDiariaBody"></tbody>
+            </table>
+          </div>
+        </section>
+
         <div class="log-toolbar">
           <label>Rango
             <select id="seguimientoRangoSelect">

@@ -952,6 +952,111 @@ function renderSeguimientoView() {
   });
 }
 
+// ------------------------------------------------------------
+// Venta diaria/semanal requerida para cumplir la meta del mes
+// ------------------------------------------------------------
+// Cuota dinámica: (meta - venta actual) / días hábiles restantes.
+// Día hábil = lunes a viernes. No se descuentan festivos (no hay
+// calendario de festivos colombianos cargado en la app).
+function diasHabilesEntreV101(desde, hasta) {
+  // Cuenta días L-V en el rango [desde, hasta], ambos inclusive (por día calendario).
+  let count = 0;
+  const cursor = inicioDelDiaV100(desde);
+  const fin = inicioDelDiaV100(hasta);
+  while (cursor.getTime() <= fin.getTime()) {
+    const dia = cursor.getDay(); // 0=domingo..6=sábado
+    if (dia !== 0 && dia !== 6) count++;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return count;
+}
+function diasHabilesRestantesMesV101() {
+  const hoy = new Date();
+  const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0); // último día del mes actual
+  return Math.max(diasHabilesEntreV101(hoy, finMes), 0);
+}
+// Días hábiles en una semana completa (L-V). Se usa como factor fijo
+// para proyectar la cuota semanal a partir de la cuota diaria: si el
+// asesor sostiene la venta diaria requerida, esto es lo que acumula
+// en una semana estándar de 5 días hábiles.
+const DIAS_HABILES_SEMANA_V101 = 5;
+
+function clientesPorAsesorV101(nombreAsesor) {
+  return (DATA.clientes || []).filter(c => {
+    if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return false;
+    return c.asesorAsignado === nombreAsesor;
+  });
+}
+
+function resumenMetaAsesorV101(nombreAsesor) {
+  const clientes = clientesPorAsesorV101(nombreAsesor);
+  const metaMes = clientes.reduce((s, c) => s + (typeof goal === "function" ? goal(c) : 0), 0);
+  const ventaActual = clientes.reduce((s, c) => s + (typeof saleCurrent === "function" ? saleCurrent(c) : 0), 0);
+  const faltante = Math.max(metaMes - ventaActual, 0);
+  return { asesor: nombreAsesor, metaMes, ventaActual, faltante };
+}
+
+function renderMetaDiariaSeguimientoV101() {
+  const panel = $("metaDiariaPanel");
+  const body = $("metaDiariaBody");
+  if (!panel || !body) return;
+
+  const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
+  const diasHabilesMes = diasHabilesRestantesMesV101();
+  const diasHabilesSemana = DIAS_HABILES_SEMANA_V101;
+
+  if ($("metaDiariaSubtitle")) {
+    $("metaDiariaSubtitle").textContent = diasHabilesMes > 0
+      ? `${diasHabilesMes} día(s) hábil(es) restantes en el mes`
+      : "No quedan días hábiles en el mes";
+  }
+
+  const filaHtml = (r) => {
+    const cumplimiento = r.metaMes ? (r.ventaActual / r.metaMes) * 100 : 0;
+    const diaria = diasHabilesMes > 0 ? r.faltante / diasHabilesMes : 0;
+    const semanal = diaria * diasHabilesSemana;
+    return `<tr>
+      <td>${esc(r.asesor)}</td>
+      <td>${money(r.metaMes)}</td>
+      <td>${money(r.ventaActual)}</td>
+      <td>${pct(cumplimiento)}</td>
+      <td>${money(r.faltante)}</td>
+      <td>${money(diaria)}</td>
+      <td>${money(semanal)}</td>
+    </tr>`;
+  };
+
+  if (esAdmin) {
+    const asesores = (DATA.meta && DATA.meta.asesores) || [];
+    const resumenes = asesores.map(a => resumenMetaAsesorV101(a));
+    const total = resumenes.reduce((acc, r) => ({
+      asesor: "TOTAL ORGANIZACIÓN",
+      metaMes: acc.metaMes + r.metaMes,
+      ventaActual: acc.ventaActual + r.ventaActual,
+      faltante: acc.faltante + r.faltante
+    }), { asesor: "TOTAL ORGANIZACIÓN", metaMes: 0, ventaActual: 0, faltante: 0 });
+
+    let html = `<tr style="font-weight:800;background:var(--panel-alt,#f4f6fb)">` +
+      `<td>${esc(total.asesor)}</td>` +
+      `<td>${money(total.metaMes)}</td>` +
+      `<td>${money(total.ventaActual)}</td>` +
+      `<td>${pct(total.metaMes ? (total.ventaActual / total.metaMes) * 100 : 0)}</td>` +
+      `<td>${money(total.faltante)}</td>` +
+      `<td>${money(diasHabilesMes > 0 ? total.faltante / diasHabilesMes : 0)}</td>` +
+      `<td>${money((diasHabilesMes > 0 ? total.faltante / diasHabilesMes : 0) * diasHabilesSemana)}</td>` +
+      `</tr>`;
+    html += resumenes.map(filaHtml).join("");
+    body.innerHTML = html;
+  } else {
+    if (typeof currentUserV84 === "undefined" || !currentUserV84 || !currentUserV84.advisor) {
+      body.innerHTML = '<tr><td colspan="7" style="color:var(--muted)">Sin asesor asociado a esta sesión.</td></tr>';
+      return;
+    }
+    const r = resumenMetaAsesorV101(currentUserV84.advisor);
+    body.innerHTML = filaHtml(r);
+  }
+}
+
 function poblarAsesorFilterSeguimientoV100() {
   const sel = $("seguimientoAsesorSelect");
   const wrap = $("seguimientoAsesorFilterWrap");
@@ -974,6 +1079,7 @@ function showSeguimientoViewV100() {
   if ($("seguimientoHoyLabel")) $("seguimientoHoyLabel").textContent = new Date().toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   poblarAsesorFilterSeguimientoV100();
   renderSeguimientoView();
+  renderMetaDiariaSeguimientoV101();
 }
 
 // Si cambia la fecha de seguimiento o la próxima acción de un
