@@ -1073,6 +1073,10 @@ function showSeguimientoViewV100() {
   if (typeof hideAllPrimaryViewsV93 === "function") hideAllPrimaryViewsV93();
   const sv = $("seguimientoView");
   if (sv) sv.classList.remove("hidden-view");
+  // hideAllPrimaryViewsV93() oculta TODAS las .table-card de la app por
+  // selector genérico (incluida la nuestra, aunque esté anidada dentro
+  // de #seguimientoView), así que hay que volver a mostrarla aquí.
+  const mdp = $("metaDiariaPanel"); if (mdp) mdp.classList.remove("hidden-view");
   const cv = $("clientsManagementView"); if (cv) cv.classList.add("hidden-view");
   const av = $("advisorsManagementView"); if (av) av.classList.add("hidden-view");
   if ($("navSeguimiento")) $("navSeguimiento").classList.add("active");
