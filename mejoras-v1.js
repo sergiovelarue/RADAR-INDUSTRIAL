@@ -870,38 +870,77 @@ function rangoSemanaV100(offsetSemanas) {
   return { inicio, fin };
 }
 
-// Genera el enlace "Agregar a Google Calendar" para una acción de
-// seguimiento. Se usa evento de todo el día (la app no maneja hora),
-// con el tipo de acción y el cliente en el título para reconocerlo
-// fácil dentro del calendario.
-function urlGoogleCalendarV103(c, fecha) {
-  // La app no captura hora, así que se asume un horario genérico
-  // (9:00–10:00am, hora Colombia) para que la acción quede como una
-  // cita real y no como evento de todo el día; el asesor la reubica
-  // en su calendario si necesita otro horario.
-  const HORA_INICIO_V103 = 9; // 9:00am
+// Genera y descarga un archivo .ics para una acción de seguimiento.
+// El .ics es el formato universal de evento de calendario: en
+// celular (iPhone/Android) el sistema lo reconoce al descargarlo y
+// ofrece agregarlo directo al calendario nativo (Apple Calendar,
+// Google Calendar, Samsung Calendar, etc.), sin depender de qué app
+// tenga instalada el asesor ni de abrir el navegador. También
+// funciona en Outlook/escritorio.
+//
+// La app no captura hora, así que se asume un horario genérico
+// (9:00–10:00am, hora Colombia = UTC-5 fijo, sin horario de verano)
+// para que la acción quede como una cita real y no de todo el día;
+// el asesor la reubica en su calendario si necesita otro horario.
+function icsEscapeV103(s) {
+  return String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+}
+
+function descargarICSAccionV103(c, fecha) {
+  const HORA_INICIO_V103 = 9; // 9:00am hora Colombia
   const DURACION_HORAS_V103 = 1;
+  const OFFSET_COLOMBIA_V103 = 5; // Colombia es UTC-5 todo el año (no aplica horario de verano)
   const pad = n => String(n).padStart(2, "0");
-  const fmtLocal = (d, h) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(h)}0000`;
-  const inicioStr = fmtLocal(fecha, HORA_INICIO_V103);
-  const finStr = fmtLocal(fecha, HORA_INICIO_V103 + DURACION_HORAS_V103);
-  const titulo = `${c.proximaAccion || "Seguimiento"} · ${c.cliente || "Cliente sin nombre"}`;
+
+  // Convierte "fecha (día) + hora local Colombia" a UTC, restando el offset,
+  // y lo formatea como YYYYMMDDTHHMMSSZ (formato .ics en UTC).
+  const aUtcIcsV103 = (d, horaLocal) => {
+    const utcMs = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), horaLocal + OFFSET_COLOMBIA_V103, 0, 0);
+    const u = new Date(utcMs);
+    return `${u.getUTCFullYear()}${pad(u.getUTCMonth() + 1)}${pad(u.getUTCDate())}T${pad(u.getUTCHours())}${pad(u.getUTCMinutes())}00Z`;
+  };
+
+  const dtStart = aUtcIcsV103(fecha, HORA_INICIO_V103);
+  const dtEnd = aUtcIcsV103(fecha, HORA_INICIO_V103 + DURACION_HORAS_V103);
+  const dtStamp = `${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`;
+  const uid = `radar-${cleanNit(c.nit)}-${dtStart}@radarcomercial`;
+
+  const titulo = `${c.proximaAccion || "Seguimiento"} - ${c.cliente || "Cliente sin nombre"}`;
   const detalles = [
     `Cliente: ${c.cliente || "—"} (NIT ${c.nit || "—"})`,
     `Asesor: ${c.asesorAsignado || "SIN ASIGNACION"}`,
     c.comentario ? `Comentario: ${c.comentario}` : null,
     "",
-    "Hora sugerida automáticamente (9:00–10:00am). Ajusta el horario según tu disponibilidad real.",
+    "Hora sugerida automáticamente (9:00-10:00am). Ajusta el horario según tu disponibilidad real.",
     "Generado desde Radar Comercial Industria."
   ].filter(Boolean).join("\n");
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: titulo,
-    dates: `${inicioStr}/${finStr}`,
-    details: detalles,
-    ctz: "America/Bogota"
-  });
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Radar Comercial Industria//ConAccion//ES",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${dtStamp}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${icsEscapeV103(titulo)}`,
+    `DESCRIPTION:${icsEscapeV103(detalles)}`,
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ].join("\r\n");
+
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `seguimiento-${cleanNit(c.nit)}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function seguimientosVisiblesV100() {
@@ -973,7 +1012,7 @@ function renderSeguimientoView() {
         <div class="seg-meta">${esc(c.proximaAccion || "Sin tipo de acción")}${esAdmin ? " · " + esc(c.asesorAsignado || "SIN ASIGNACION") : ""}</div>
         ${c.comentario ? `<div class="seg-meta">"${esc(c.comentario)}"</div>` : ""}
       </div>
-      <a class="btn ghost small-btn" href="${urlGoogleCalendarV103(c, fecha)}" target="_blank" rel="noopener" title="Agregar a Google Calendar">📅 Calendario</a>
+      <button type="button" class="btn ghost small-btn" data-cal-nit="${esc(c.nit)}" data-cal-fecha="${fecha.toISOString()}" title="Descargar cita para el calendario del celular (iPhone/Android) o de escritorio">📅 Agregar a calendario</button>
     </div>`;
   });
   feed.innerHTML = html;
@@ -986,6 +1025,15 @@ function renderSeguimientoView() {
       logEventoV98("dato", c.nit, c.cliente, chk.checked ? "Pendiente" : "Ejecutado", chk.checked ? "Ejecutado" : "Pendiente");
       saveDataV93();
       renderSeguimientoView();
+    });
+  });
+
+  feed.querySelectorAll("[data-cal-nit]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const c = DATA.clientes.find(x => cleanNit(x.nit) === cleanNit(btn.dataset.calNit));
+      if (!c) return;
+      const fecha = new Date(btn.dataset.calFecha);
+      descargarICSAccionV103(c, fecha);
     });
   });
 }
