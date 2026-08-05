@@ -1127,6 +1127,11 @@ function tieneSeguimientoFuturoPendienteV102(c) {
 function candidatosRecomendadosV102(nombreAsesor) {
   return (DATA.clientes || []).filter(c => {
     if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return false;
+    // Un cliente sin asesor asignado no puede sugerirse como acción de
+    // ningún asesor ni del admin: la asignación es la base de la
+    // trazabilidad comercial (ver Gestión de Clientes) y no debe
+    // saltarse por una recomendación automática.
+    if (!c.asesorAsignado || c.asesorAsignado === "SIN ASIGNACION") return false;
     if (c.estado === "Baja") return false; // recuperación de cartera es un flujo aparte, no compite por cierre de meta
     if (nombreAsesor && c.asesorAsignado !== nombreAsesor) return false;
     if (typeof missing === "function" && missing(c) <= 0) return false; // ya cumplió su meta
@@ -1162,6 +1167,20 @@ function calcularScoresV102(clientes) {
 
 const recomendadasStateV102 = { page: 1, pageSize: 10 };
 
+// Clientes sin asesor asignado que, si tuvieran dueño, competirían por
+// aparecer en recomendadas (tienen faltante pendiente y no están en
+// Baja/bloqueados). Se usa solo para el aviso al admin, no participan
+// del ranking de ningún asesor.
+function clientesSinAsignarConFaltanteV102() {
+  return (DATA.clientes || []).filter(c => {
+    if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return false;
+    if (c.estado === "Baja") return false;
+    if (c.asesorAsignado && c.asesorAsignado !== "SIN ASIGNACION") return false;
+    if (typeof missing === "function" && missing(c) <= 0) return false;
+    return true;
+  });
+}
+
 function renderAccionesRecomendadasV102() {
   const body = $("recomendadasBody");
   if (!body) return;
@@ -1170,6 +1189,21 @@ function renderAccionesRecomendadasV102() {
   const pesosPanel = $("pesosScorePanel");
   if (pesosPanel) pesosPanel.style.display = esAdmin ? "" : "none";
   if (esAdmin) setPesosScoreInputsV102();
+
+  const avisoBox = $("sinAsignarAvisoBox");
+  if (avisoBox) {
+    const sinAsignar = esAdmin ? clientesSinAsignarConFaltanteV102() : [];
+    if (esAdmin && sinAsignar.length > 0) {
+      avisoBox.style.display = "";
+      const n = sinAsignar.length;
+      if ($("sinAsignarAvisoTexto")) {
+        $("sinAsignarAvisoTexto").textContent =
+          `${n} cliente${n === 1 ? "" : "s"} sin asesor asignado ${n === 1 ? "tiene" : "tienen"} venta pendiente por cumplir.`;
+      }
+    } else {
+      avisoBox.style.display = "none";
+    }
+  }
 
   let nombreAsesor = null;
   if (!esAdmin) {
@@ -1335,6 +1369,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   if ($("seguimientoOcultarEjecutadas")) $("seguimientoOcultarEjecutadas").addEventListener("change", renderSeguimientoView);
   if ($("aplicarPesosScoreBtn")) $("aplicarPesosScoreBtn").addEventListener("click", aplicarPesosScoreV102);
+  if ($("irAsignarClientesBtn")) $("irAsignarClientesBtn").addEventListener("click", () => {
+    if (typeof showClientsManagementV93 === "function") showClientsManagementV93();
+    if (typeof setClientsFilterV93 === "function") setClientsFilterV93("sinAsignacion");
+  });
 
   // Solo administradores ven la pestaña de Log de cambios.
   const checarVisibilidadLog = () => {
