@@ -1,0 +1,35 @@
+{
+  "name": "Radar Comercial B2B",
+  "short_name": "Radar B2B",
+  "description": "Radar Comercial B2B - Gestión y seguimiento comercial",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#01153F",
+  "theme_color": "#01153F",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
