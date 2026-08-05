@@ -443,6 +443,52 @@
           <span id="seguimientoCount" style="margin-left:auto;color:var(--muted);font-weight:800"></span>
         </div>
         <div class="log-feed" id="seguimientoFeed"><p style="color:var(--muted)">Cargando…</p></div>
+
+        <section class="table-card" id="accionesRecomendadasPanel">
+          <div class="table-header">
+            <h3>Acciones recomendadas</h3>
+            <span id="recomendadasCount" style="color:var(--muted);font-weight:800"></span>
+          </div>
+          <p class="field-help">Clientes sugeridos según probabilidad de éxito para ayudarte a cumplir tu presupuesto diario y semanal. Ábrelos, define una acción y una fecha, y pasan a tus acciones planeadas arriba.</p>
+
+          <div class="admin-panel" id="pesosScorePanel" style="display:none">
+            <div class="panel-header">
+              <div>
+                <h3>Ponderación del score de recomendación</h3>
+                <p>Solo administrador. Ajusta el peso de cada factor (deben sumar 100).</p>
+              </div>
+            </div>
+            <div class="growth-grid">
+              <label>Faltante <input type="number" id="pesoFaltante" value="25" min="0" max="100"/>%</label>
+              <label>Clasificación <input type="number" id="pesoClasificacion" value="25" min="0" max="100"/>%</label>
+              <label>Continuidad <input type="number" id="pesoContinuidad" value="25" min="0" max="100"/>%</label>
+              <label>Urgencia (días sin gestión) <input type="number" id="pesoUrgencia" value="25" min="0" max="100"/>%</label>
+            </div>
+            <div class="actions">
+              <button class="btn" id="aplicarPesosScoreBtn">Aplicar ponderación</button>
+              <span id="pesosScoreSumaWarn" style="color:#b45309;font-weight:700"></span>
+            </div>
+          </div>
+
+          <div class="table-scroll">
+            <table class="mgmt-table" id="recomendadasTable">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Asesor</th>
+                  <th>Clasificación</th>
+                  <th>Estado</th>
+                  <th>Faltante</th>
+                  <th>Días sin gestión</th>
+                  <th>Score</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="recomendadasBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="recomendadasPagination"></div>
+        </section>
       </section>
 
       <section class="log-view hidden-view" id="logView">

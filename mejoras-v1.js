@@ -1057,6 +1057,183 @@ function renderMetaDiariaSeguimientoV101() {
   }
 }
 
+// ------------------------------------------------------------
+// Acciones recomendadas: score de probabilidad de éxito por
+// cliente, para sugerir a quién contactar y ayudar a cumplir el
+// presupuesto diario/semanal. El asesor decide y planea la acción
+// (fecha + tipo); solo al hacerlo el cliente pasa a "planeadas".
+// ------------------------------------------------------------
+const PESOS_SCORE_DEFAULT_V102 = { faltante: 25, clasificacion: 25, continuidad: 25, urgencia: 25 };
+
+function getPesosScoreV102() {
+  const saved = localStorage.getItem("radarPesosScoreV102");
+  if (saved) {
+    try { return { ...PESOS_SCORE_DEFAULT_V102, ...JSON.parse(saved) }; } catch (e) {}
+  }
+  return { ...PESOS_SCORE_DEFAULT_V102 };
+}
+
+function setPesosScoreInputsV102() {
+  const p = getPesosScoreV102();
+  if ($("pesoFaltante")) $("pesoFaltante").value = p.faltante;
+  if ($("pesoClasificacion")) $("pesoClasificacion").value = p.clasificacion;
+  if ($("pesoContinuidad")) $("pesoContinuidad").value = p.continuidad;
+  if ($("pesoUrgencia")) $("pesoUrgencia").value = p.urgencia;
+}
+
+function aplicarPesosScoreV102() {
+  const p = {
+    faltante: Number($("pesoFaltante")?.value || 0),
+    clasificacion: Number($("pesoClasificacion")?.value || 0),
+    continuidad: Number($("pesoContinuidad")?.value || 0),
+    urgencia: Number($("pesoUrgencia")?.value || 0)
+  };
+  const suma = p.faltante + p.clasificacion + p.continuidad + p.urgencia;
+  const warn = $("pesosScoreSumaWarn");
+  if (suma !== 100) {
+    if (warn) warn.textContent = `La suma actual es ${suma}%. Debe ser 100% para guardar.`;
+    return;
+  }
+  if (warn) warn.textContent = "";
+  localStorage.setItem("radarPesosScoreV102", JSON.stringify(p));
+  recomendadasStateV102.page = 1;
+  renderAccionesRecomendadasV102();
+}
+
+// Puntaje 0-100 por clasificación A-B-C-E-N (alto valor pesa más que
+// alta consecutividad, siguiendo el glosario comercial de la app).
+const SCORE_CLASIFICACION_V102 = { A: 100, E: 75, B: 60, C: 35, N: 20 };
+// Puntaje 0-100 por estado comercial del cliente.
+const SCORE_ESTADO_V102 = { Activo: 100, Reingreso: 85, "Posible Baja": 50, Inactivo: 35, Nuevo: 25, Baja: 10 };
+
+function diasSinGestionV102(c) {
+  // Días desde el último seguimiento marcado como ejecutado (fechaSeguimiento
+  // cuando seguimientoEjecutado=true). Si nunca se ha gestionado, se trata
+  // como "máxima urgencia" dentro del grupo (se normaliza más abajo).
+  if (!c.seguimientoEjecutado || !c.fechaSeguimiento) return null;
+  const f = parseFechaLocalV100(c.fechaSeguimiento);
+  if (!f) return null;
+  const hoy = inicioDelDiaV100(new Date());
+  return Math.max(Math.round((hoy - f) / 86400000), 0);
+}
+
+function tieneSeguimientoFuturoPendienteV102(c) {
+  if (!c.fechaSeguimiento || c.seguimientoEjecutado) return false;
+  const f = parseFechaLocalV100(c.fechaSeguimiento);
+  if (!f) return false;
+  return f.getTime() >= inicioDelDiaV100(new Date()).getTime();
+}
+
+function candidatosRecomendadosV102(nombreAsesor) {
+  return (DATA.clientes || []).filter(c => {
+    if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return false;
+    if (c.estado === "Baja") return false; // recuperación de cartera es un flujo aparte, no compite por cierre de meta
+    if (nombreAsesor && c.asesorAsignado !== nombreAsesor) return false;
+    if (typeof missing === "function" && missing(c) <= 0) return false; // ya cumplió su meta
+    if (tieneSeguimientoFuturoPendienteV102(c)) return false; // ya tiene acción planeada vigente
+    return true;
+  });
+}
+
+function calcularScoresV102(clientes) {
+  const p = getPesosScoreV102();
+  const faltantes = clientes.map(c => (typeof missing === "function" ? missing(c) : 0));
+  const maxFaltante = Math.max(...faltantes, 0);
+
+  const dias = clientes.map(diasSinGestionV102);
+  const diasValidos = dias.filter(d => d !== null);
+  const maxDias = diasValidos.length ? Math.max(...diasValidos) : 0;
+
+  return clientes.map((c, i) => {
+    const faltanteNorm = maxFaltante > 0 ? (faltantes[i] / maxFaltante) * 100 : 0;
+    const clasifNorm = SCORE_CLASIFICACION_V102[c.clasificacion] ?? 20;
+    const estadoNorm = SCORE_ESTADO_V102[c.estado] ?? 35;
+    const consecutividad = Math.min(Number(c.mesesCompraAnioActual || c.mesesCompraAnioAnterior || c.mesesCompra2025 || 0), 12) / 12 * 100;
+    const continuidadNorm = estadoNorm * 0.7 + consecutividad * 0.3;
+    // Sin historial de gestión = trato como máxima urgencia (100); si hay
+    // fecha, entre más días sin gestión, más urgente (normalizado contra el peor caso del grupo).
+    const urgenciaNorm = dias[i] === null ? 100 : (maxDias > 0 ? (dias[i] / maxDias) * 100 : 0);
+
+    const score = (faltanteNorm * p.faltante + clasifNorm * p.clasificacion + continuidadNorm * p.continuidad + urgenciaNorm * p.urgencia) / 100;
+
+    return { c, score, faltante: faltantes[i], dias: dias[i] };
+  }).sort((a, b) => b.score - a.score);
+}
+
+const recomendadasStateV102 = { page: 1, pageSize: 10 };
+
+function renderAccionesRecomendadasV102() {
+  const body = $("recomendadasBody");
+  if (!body) return;
+
+  const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
+  const pesosPanel = $("pesosScorePanel");
+  if (pesosPanel) pesosPanel.style.display = esAdmin ? "" : "none";
+  if (esAdmin) setPesosScoreInputsV102();
+
+  let nombreAsesor = null;
+  if (!esAdmin) {
+    if (typeof currentUserV84 === "undefined" || !currentUserV84 || !currentUserV84.advisor) {
+      body.innerHTML = '<tr><td colspan="8" style="color:var(--muted)">Sin asesor asociado a esta sesión.</td></tr>';
+      if ($("recomendadasCount")) $("recomendadasCount").textContent = "";
+      if ($("recomendadasPagination")) $("recomendadasPagination").innerHTML = "";
+      return;
+    }
+    nombreAsesor = currentUserV84.advisor;
+  } else {
+    const asesorSel = $("seguimientoAsesorSelect")?.value || "todos";
+    if (asesorSel !== "todos") nombreAsesor = asesorSel;
+  }
+
+  const candidatos = candidatosRecomendadosV102(nombreAsesor);
+  const scored = calcularScoresV102(candidatos);
+
+  if ($("recomendadasCount")) $("recomendadasCount").textContent = `${scored.length} cliente(s) sugerido(s)`;
+
+  if (!scored.length) {
+    body.innerHTML = '<tr><td colspan="8" style="color:var(--muted)">No hay clientes sugeridos en este momento.</td></tr>';
+    if ($("recomendadasPagination")) $("recomendadasPagination").innerHTML = "";
+    return;
+  }
+
+  const pageSize = recomendadasStateV102.pageSize;
+  const totalPages = Math.max(Math.ceil(scored.length / pageSize), 1);
+  if (recomendadasStateV102.page > totalPages) recomendadasStateV102.page = totalPages;
+  if (recomendadasStateV102.page < 1) recomendadasStateV102.page = 1;
+  const start = (recomendadasStateV102.page - 1) * pageSize;
+  const pageItems = scored.slice(start, start + pageSize);
+
+  body.innerHTML = pageItems.map(({ c, score, faltante, dias }) => `<tr>
+    <td>${esc(c.cliente || "Cliente sin nombre")} <span style="color:var(--muted);font-weight:400">· NIT ${esc(c.nit)}</span></td>
+    <td>${esc(c.asesorAsignado || "SIN ASIGNACION")}</td>
+    <td>${esc(c.clasificacion || "—")}</td>
+    <td>${esc(c.estado || "—")}</td>
+    <td>${money(faltante)}</td>
+    <td>${dias === null ? "Sin gestión previa" : dias + " día(s)"}</td>
+    <td><strong>${Math.round(score)}</strong>/100</td>
+    <td><button class="btn ghost small-btn" data-detail-nit="${esc(c.nit)}" type="button">Definir acción</button></td>
+  </tr>`).join("");
+
+  const pagWrap = $("recomendadasPagination");
+  if (pagWrap) {
+    pagWrap.innerHTML = "";
+    const prev = document.createElement("button");
+    prev.className = "btn ghost small-btn";
+    prev.textContent = "Anterior";
+    prev.disabled = recomendadasStateV102.page <= 1;
+    prev.addEventListener("click", () => { recomendadasStateV102.page--; renderAccionesRecomendadasV102(); });
+    const info = document.createElement("span");
+    info.className = "pagination-info";
+    info.textContent = `Página ${recomendadasStateV102.page} de ${totalPages}`;
+    const next = document.createElement("button");
+    next.className = "btn ghost small-btn";
+    next.textContent = "Siguiente";
+    next.disabled = recomendadasStateV102.page >= totalPages;
+    next.addEventListener("click", () => { recomendadasStateV102.page++; renderAccionesRecomendadasV102(); });
+    pagWrap.appendChild(prev); pagWrap.appendChild(info); pagWrap.appendChild(next);
+  }
+}
+
 function poblarAsesorFilterSeguimientoV100() {
   const sel = $("seguimientoAsesorSelect");
   const wrap = $("seguimientoAsesorFilterWrap");
@@ -1077,6 +1254,7 @@ function showSeguimientoViewV100() {
   // selector genérico (incluida la nuestra, aunque esté anidada dentro
   // de #seguimientoView), así que hay que volver a mostrarla aquí.
   const mdp = $("metaDiariaPanel"); if (mdp) mdp.classList.remove("hidden-view");
+  const arp = $("accionesRecomendadasPanel"); if (arp) arp.classList.remove("hidden-view");
   const cv = $("clientsManagementView"); if (cv) cv.classList.add("hidden-view");
   const av = $("advisorsManagementView"); if (av) av.classList.add("hidden-view");
   if ($("navSeguimiento")) $("navSeguimiento").classList.add("active");
@@ -1084,6 +1262,8 @@ function showSeguimientoViewV100() {
   poblarAsesorFilterSeguimientoV100();
   renderSeguimientoView();
   renderMetaDiariaSeguimientoV101();
+  recomendadasStateV102.page = 1;
+  renderAccionesRecomendadasV102();
 }
 
 // Si cambia la fecha de seguimiento o la próxima acción de un
@@ -1098,6 +1278,19 @@ saveClientDetailV81 = function () {
   _saveClientDetailOriginalV100();
   if (c && ((c.fechaSeguimiento || "") !== fechaAntes || (c.proximaAccion || "") !== accionAntes)) {
     c.seguimientoEjecutado = false;
+  }
+  // Si el cliente editado acaba de recibir fecha+acción, sale de
+  // "recomendadas" (ya no cumple el filtro de sin-plan-vigente) y debe
+  // aparecer arriba en "planeadas". Refrescamos ambos paneles si la
+  // vista de Seguimiento diario está abierta.
+  const sv = $("seguimientoView");
+  if (sv && !sv.classList.contains("hidden-view")) {
+    if (typeof renderSeguimientoView === "function") renderSeguimientoView();
+    if (typeof renderMetaDiariaSeguimientoV101 === "function") renderMetaDiariaSeguimientoV101();
+    if (typeof renderAccionesRecomendadasV102 === "function") {
+      recomendadasStateV102.page = 1;
+      renderAccionesRecomendadasV102();
+    }
   }
 };
 
@@ -1135,8 +1328,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if ($("navSeguimiento")) $("navSeguimiento").addEventListener("click", showSeguimientoViewV100);
   if ($("seguimientoRangoSelect")) $("seguimientoRangoSelect").addEventListener("change", renderSeguimientoView);
-  if ($("seguimientoAsesorSelect")) $("seguimientoAsesorSelect").addEventListener("change", renderSeguimientoView);
+  if ($("seguimientoAsesorSelect")) $("seguimientoAsesorSelect").addEventListener("change", () => {
+    renderSeguimientoView();
+    recomendadasStateV102.page = 1;
+    renderAccionesRecomendadasV102();
+  });
   if ($("seguimientoOcultarEjecutadas")) $("seguimientoOcultarEjecutadas").addEventListener("change", renderSeguimientoView);
+  if ($("aplicarPesosScoreBtn")) $("aplicarPesosScoreBtn").addEventListener("click", aplicarPesosScoreV102);
 
   // Solo administradores ven la pestaña de Log de cambios.
   const checarVisibilidadLog = () => {
