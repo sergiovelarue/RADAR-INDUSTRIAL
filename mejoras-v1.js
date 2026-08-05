@@ -1737,6 +1737,197 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// ------------------------------------------------------------
+// Metas y presupuestos: ventas totales/por asesor/por mes de 2025
+// real, 2026 real y planeado (Meta sugerida), proyección del resto
+// de 2026 (promedio real transcurrido ajustado por estacionalidad
+// 2025), y propuesta 2027 (2026 estimado × % de crecimiento por
+// clasificación, tomado de Configuración comercial por clasificación).
+// Reemplaza la antigua Meta S&OP (caso puntual de un solo cliente).
+// ------------------------------------------------------------
+
+// Suma de ambas líneas (Espumas + Colchones) para un cliente/año/mes.
+// Usa las mismas funciones ya existentes en app.js (saleMonthV812),
+// sin depender del filtro de línea del Dashboard (directorLineV813).
+function ventaMesClienteV106(c, year, mes) {
+  return typeof saleMonthV812 === "function" ? saleMonthV812(c, year, mes) : 0;
+}
+
+// Proyecta cada mes que falta de 2026 para UN cliente:
+// proyección(mes) = promedio real 2026 transcurrido × factor de
+// estacionalidad de ese mes en 2025 (venta 2025 del mes ÷ promedio
+// 2025 de los mismos meses ya transcurridos en 2026).
+function proyeccionRestoAnioClienteV106(c) {
+  const meses = monthsV812();
+  const transcurridos = typeof availableMonthsV812 === "function" ? availableMonthsV812() : meses;
+  const restantes = meses.filter(m => !transcurridos.includes(m));
+
+  const real2026Transcurrido = transcurridos.reduce((s, m) => s + ventaMesClienteV106(c, 2026, m), 0);
+  const promedioReal2026 = transcurridos.length ? real2026Transcurrido / transcurridos.length : 0;
+
+  const promedio2025Transcurrido = transcurridos.length
+    ? transcurridos.reduce((s, m) => s + ventaMesClienteV106(c, 2025, m), 0) / transcurridos.length
+    : 0;
+
+  let proyeccionResto = 0;
+  restantes.forEach(m => {
+    const venta2025Mes = ventaMesClienteV106(c, 2025, m);
+    const factorEstacional = promedio2025Transcurrido > 0 ? (venta2025Mes / promedio2025Transcurrido) : 1;
+    proyeccionResto += promedioReal2026 * factorEstacional;
+  });
+
+  return { real2026Transcurrido, proyeccionResto, total2026Estimado: real2026Transcurrido + proyeccionResto };
+}
+
+// Resumen de metas por asesor (o total si nombreAsesor es null).
+function resumenMetasAsesorV106(nombreAsesor) {
+  const clientes = (DATA.clientes || []).filter(c => {
+    if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return false;
+    if (nombreAsesor && c.asesorAsignado !== nombreAsesor) return false;
+    return true;
+  });
+
+  const cfg = typeof growthConfigV810 === "function" ? growthConfigV810() : { A: 12, B: 10, C: 5, E: 15, N: 0 };
+
+  let real2025 = 0, real2026 = 0, planeado2026 = 0, proyectado2026 = 0, propuesto2027 = 0;
+  const meses = monthsV812();
+
+  clientes.forEach(c => {
+    real2025 += meses.reduce((s, m) => s + ventaMesClienteV106(c, 2025, m), 0);
+    const { real2026Transcurrido, total2026Estimado } = proyeccionRestoAnioClienteV106(c);
+    real2026 += real2026Transcurrido;
+    proyectado2026 += total2026Estimado;
+
+    // 2026 planeado: Meta sugerida ya existente, sumada mes a mes
+    // sobre los mismos meses transcurridos (consistente con "real").
+    const transcurridos = typeof availableMonthsV812 === "function" ? availableMonthsV812() : meses;
+    const mesActualGuardado = state.month;
+    transcurridos.forEach(m => {
+      state.month = m;
+      planeado2026 += (typeof goal === "function") ? goal(c) : 0;
+    });
+    state.month = mesActualGuardado;
+
+    const g = Number(cfg[c.clasificacion] ?? 0);
+    propuesto2027 += total2026Estimado * (1 + g / 100);
+  });
+
+  return { asesor: nombreAsesor || "TOTAL ORGANIZACIÓN", real2025, real2026, planeado2026, proyectado2026, propuesto2027 };
+}
+
+function renderMetasViewV106() {
+  const body = $("metasBody");
+  if (!body) return;
+
+  const meses = monthsV812();
+  const transcurridos = typeof availableMonthsV812 === "function" ? availableMonthsV812() : meses;
+  if ($("metasMesesTranscurridos")) {
+    $("metasMesesTranscurridos").value = transcurridos.length
+      ? `${transcurridos[0]} a ${transcurridos[transcurridos.length - 1]} (${transcurridos.length} de 12 meses)`
+      : "Sin datos operativos cargados";
+  }
+
+  const asesores = (DATA.meta && DATA.meta.asesores) || [];
+  const resumenes = asesores.map(a => resumenMetasAsesorV106(a));
+  const total = resumenes.reduce((acc, r) => ({
+    asesor: "TOTAL ORGANIZACIÓN",
+    real2025: acc.real2025 + r.real2025,
+    real2026: acc.real2026 + r.real2026,
+    planeado2026: acc.planeado2026 + r.planeado2026,
+    proyectado2026: acc.proyectado2026 + r.proyectado2026,
+    propuesto2027: acc.propuesto2027 + r.propuesto2027
+  }), { real2025: 0, real2026: 0, planeado2026: 0, proyectado2026: 0, propuesto2027: 0 });
+
+  if ($("metasCount")) $("metasCount").textContent = `${resumenes.length} asesor(es)`;
+
+  const filaHtmlV106 = (r, resaltar) => {
+    const cumplProyectado = r.planeado2026 ? (r.proyectado2026 / r.planeado2026) * 100 : 0;
+    const estilo = resaltar ? ' style="font-weight:800;background:var(--panel-alt,#f4f6fb)"' : "";
+    return `<tr${estilo}>
+      <td data-label="Asesor">${esc(r.asesor)}</td>
+      <td data-label="2025 real">${money(r.real2025)}</td>
+      <td data-label="2026 real">${money(r.real2026)}</td>
+      <td data-label="2026 planeado">${money(r.planeado2026)}</td>
+      <td data-label="2026 proyectado">${money(r.proyectado2026)}</td>
+      <td data-label="Cumplimiento proyectado">${pct(cumplProyectado)}</td>
+      <td data-label="2027 propuesto">${money(r.propuesto2027)}</td>
+    </tr>`;
+  };
+
+  body.innerHTML = filaHtmlV106(total, true) + resumenes.map(r => filaHtmlV106(r, false)).join("");
+
+  if (typeof chartV812 === "function") {
+    chartV812("metasChart", {
+      type: "bar",
+      data: {
+        labels: asesores,
+        datasets: [
+          { label: "2025 real", data: resumenes.map(r => r.real2025) },
+          { label: "2026 proyectado", data: resumenes.map(r => r.proyectado2026) },
+          { label: "2027 propuesto", data: resumenes.map(r => r.propuesto2027) }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true } } }
+    });
+  }
+}
+
+function exportarMetasCSVV106() {
+  const asesores = (DATA.meta && DATA.meta.asesores) || [];
+  const resumenes = asesores.map(a => resumenMetasAsesorV106(a));
+  const total = resumenes.reduce((acc, r) => ({
+    real2025: acc.real2025 + r.real2025, real2026: acc.real2026 + r.real2026,
+    planeado2026: acc.planeado2026 + r.planeado2026, proyectado2026: acc.proyectado2026 + r.proyectado2026,
+    propuesto2027: acc.propuesto2027 + r.propuesto2027
+  }), { real2025: 0, real2026: 0, planeado2026: 0, proyectado2026: 0, propuesto2027: 0 });
+
+  const rows = [["Asesor", "2025 real (MM)", "2026 real (MM)", "2026 planeado (MM)", "2026 proyectado (MM)", "2027 propuesto (MM)"]];
+  rows.push(["TOTAL ORGANIZACIÓN", total.real2025.toFixed(1), total.real2026.toFixed(1), total.planeado2026.toFixed(1), total.proyectado2026.toFixed(1), total.propuesto2027.toFixed(1)]);
+  resumenes.forEach(r => rows.push([r.asesor, r.real2025.toFixed(1), r.real2026.toFixed(1), r.planeado2026.toFixed(1), r.proyectado2026.toFixed(1), r.propuesto2027.toFixed(1)]));
+
+  if (typeof downloadCsvV86 === "function") {
+    downloadCsvV86(rows, "radar_metas_presupuestos.csv");
+  }
+}
+
+function showMetasViewV106() {
+  if (typeof isAdminV86 === "function" && !isAdminV86()) return;
+  if (typeof hideAllPrimaryViewsV93 === "function") hideAllPrimaryViewsV93();
+  const lv = $("logView"); if (lv) lv.classList.add("hidden-view");
+  const sv = $("seguimientoView"); if (sv) sv.classList.add("hidden-view");
+  const cv = $("clientsManagementView"); if (cv) cv.classList.add("hidden-view");
+  const av = $("advisorsManagementView"); if (av) av.classList.add("hidden-view");
+  const pv = $("prospeccionView"); if (pv) pv.classList.add("hidden-view");
+  const mv = $("metasView"); if (mv) mv.classList.remove("hidden-view");
+  if ($("navMetas")) $("navMetas").classList.add("active");
+  renderMetasViewV106();
+}
+
+// Solo administradores ven la pestaña "Metas y presupuestos".
+document.addEventListener("DOMContentLoaded", () => {
+  const checarVisibilidadMetas = () => {
+    const el = $("navMetas");
+    if (el) el.style.display = (typeof isAdminV86 === "function" && isAdminV86()) ? "" : "none";
+  };
+  checarVisibilidadMetas();
+  const _applyUserProfileOriginalV106 = applyUserProfileV84;
+  if (typeof _applyUserProfileOriginalV106 === "function") {
+    applyUserProfileV84 = function () {
+      _applyUserProfileOriginalV106();
+      checarVisibilidadMetas();
+    };
+  }
+});
+
+// navMetas también debe ocultarse (dejar de estar activo visualmente)
+// al salir hacia otras vistas, y metasView debe ocultarse desde ellas.
+["navRoute", "navUpdate", "navDashboard", "navSeguimiento", "navProspeccion", "navClients", "navAdvisors", "navGlossary"].forEach(id => {
+  const el = $(id);
+  if (el) el.addEventListener("click", () => {
+    const mv = $("metasView"); if (mv) mv.classList.add("hidden-view");
+  });
+});
+
 function showProspeccionViewV104() {
   if (typeof hideAllPrimaryViewsV93 === "function") hideAllPrimaryViewsV93();
   const lv = $("logView"); if (lv) lv.classList.add("hidden-view");
@@ -1799,4 +1990,7 @@ document.addEventListener("DOMContentLoaded", () => {
       openLeadModalV104(e.target.dataset.editLeadId);
     }
   });
+
+  if ($("navMetas")) $("navMetas").addEventListener("click", showMetasViewV106);
+  if ($("metasExportBtn")) $("metasExportBtn").addEventListener("click", exportarMetasCSVV106);
 });

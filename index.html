@@ -59,7 +59,7 @@
         <div class="brand-icon">R</div>
         <div><h1>Radar Comercial Industria</h1><small>ConAccion · V9.8</small></div>
       </div>
-      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navProspeccion">Prospección</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
+      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navProspeccion">Prospección</a><a id="navMetas">Metas y presupuestos</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
         <button class="btn ghost" id="refreshDataBtn" style="width:100%;margin-bottom:10px">↻ Actualizar datos</button>
         <small id="sessionRoleLabel"></small>
@@ -251,22 +251,6 @@
         </section>
 
         <section class="chart-grid"><article class="chart-card wide"><div class="chart-header"><h3>Clientes facturando y orden promedio mensual</h3><p>Permite ver si el crecimiento viene por más clientes comprando o por mayor valor promedio por cliente.</p></div><canvas id="monthlyCustomersChart"></canvas></article></section>
-        
-        <section class="sop-panel" id="sopPanel">
-          <div class="chart-header"><h3>Meta S&amp;OP del mes</h3><p>Objetivo oficial mensual por línea para medir cumplimiento y Gap S&amp;OP.</p></div>
-          <div class="sop-grid">
-            <label>Mes<select id="sopMonthSelect"></select></label>
-            <label>Meta S&amp;OP Espumas<input type="number" id="sopMetaEspumas" placeholder="0"/></label>
-            <button class="btn" id="saveSopGoalsBtn">Guardar Meta S&amp;OP</button>
-          </div>
-          <section class="director-kpi-grid compact sop-kpis">
-            <article><span>Cumplimiento S&amp;OP</span><strong id="sopCompliance">0%</strong><small>Venta real / Meta S&amp;OP</small></article>
-            <article><span>Gap S&amp;OP</span><strong id="sopGap">$0</strong><small>Meta S&amp;OP - Venta real</small></article>
-            <article><span>Meta S&amp;OP</span><strong id="sopGoalShown">$0</strong><small>Línea seleccionada</small></article>
-            <article><span>Venta real mes</span><strong id="sopRealSale">$0</strong><small>Mes seleccionado</small></article>
-          </section>
-        </section>
-        
         <section class="commercial-segment-section" id="commercialSegmentSection">
           <div class="chart-header">
             <h3>Segmentos Comerciales</h3>
@@ -616,6 +600,44 @@
           </div>
         </div>
       </div>
+
+      <section class="clients-mgmt-view hidden-view" id="metasView">
+        <div class="dashboard-title">
+          <div><h2>Metas y presupuestos</h2><p>Ventas totales, por asesor y por mes: 2025 real, 2026 real y planeado, proyección del resto de 2026, y propuesta 2027. Solo Administrador.</p></div>
+          <div class="dashboard-actions">
+            <button class="btn ghost" id="metasExportBtn">Exportar CSV</button>
+          </div>
+        </div>
+
+        <section class="admin-panel" id="metasConfigPanel">
+          <div class="panel-header">
+            <div>
+              <h3>Parámetros de proyección</h3>
+              <p>La proyección del resto de 2026 usa el promedio real transcurrido ajustado por la estacionalidad de 2025. La propuesta 2027 aplica el % de crecimiento por clasificación definido en "Configuración comercial por clasificación" (Hoja de ruta).</p>
+            </div>
+          </div>
+          <div class="growth-grid">
+            <label>Meses transcurridos 2026<input type="text" id="metasMesesTranscurridos" disabled/></label>
+          </div>
+        </section>
+
+        <section class="chart-grid">
+          <article class="chart-card wide">
+            <div class="chart-header"><h3>Venta anual comparada</h3><p>2025 real, 2026 real + proyectado, y propuesta 2027, por asesor.</p></div>
+            <canvas id="metasChart"></canvas>
+          </article>
+        </section>
+
+        <section class="mgmt-table-card">
+          <div class="table-header"><h3>Resumen por asesor</h3><span id="metasCount"></span></div>
+          <div class="table-scroll">
+            <table class="mgmt-table">
+              <thead><tr><th>Asesor</th><th>2025 real</th><th>2026 real</th><th>2026 planeado</th><th>2026 proyectado</th><th>Cumplimiento proyectado</th><th>2027 propuesto</th></tr></thead>
+              <tbody id="metasBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
 
       <section class="clients-mgmt-view hidden-view" id="clientsManagementView">
         <div class="dashboard-title">
