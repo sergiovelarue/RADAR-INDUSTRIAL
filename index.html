@@ -59,7 +59,7 @@
         <div class="brand-icon">R</div>
         <div><h1>Radar Comercial Industria</h1><small>ConAccion · V9.8</small></div>
       </div>
-      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navProspeccion">Prospección</a><a id="navMetas">Metas y presupuestos</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
+      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navProspeccion">Prospección</a><a id="navMetas">Metas y presupuestos</a><a id="navAlarmas">Panel de alarmas</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
         <button class="btn ghost" id="refreshDataBtn" style="width:100%;margin-bottom:10px">↻ Actualizar datos</button>
         <small id="sessionRoleLabel"></small>
@@ -643,6 +643,66 @@
         </section>
       </section>
 
+      <section class="clients-mgmt-view hidden-view" id="alarmasView">
+        <div class="dashboard-title">
+          <div>
+            <h2>Panel de alarmas — Motor EWS</h2>
+            <p>Alertas tempranas de ritmo, cartera, ticket, clientes activos, venta y concentración. Administrador: vista consolidada por asesor. Asesor: su propio panel.</p>
+          </div>
+          <div class="dashboard-actions">
+            <select id="alarmasAsesorSelect" style="display:none"></select>
+            <button class="btn ghost" id="alarmasRefreshBtn">Actualizar</button>
+          </div>
+        </div>
+
+        <section class="alerts-bar" id="alarmasResumenBar"></section>
+
+        <section class="mgmt-table-card" id="alarmasAdminTableWrap" style="display:none">
+          <div class="table-header"><h3>Alarmas por asesor</h3><span id="alarmasAdminCount"></span></div>
+          <div class="table-scroll">
+            <table class="mgmt-table">
+              <thead><tr><th>Asesor</th><th>Alarmas altas</th><th>Alarmas medias</th><th>Alarmas bajas</th><th>Total</th></tr></thead>
+              <tbody id="alarmasAdminBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="mgmt-table-card">
+          <div class="table-header"><h3 id="alarmasDetalleTitulo">Detalle de alarmas</h3><span id="alarmasDetalleCount"></span></div>
+          <div class="table-scroll">
+            <table class="mgmt-table">
+              <thead><tr><th>Severidad</th><th>Categoría</th><th>Detalle</th></tr></thead>
+              <tbody id="alarmasDetalleBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="mgmt-table-card">
+          <div class="table-header">
+            <h3>Probabilidad de cumplimiento de meta — Motor RTE</h3>
+            <span id="rteConfianzaBadge"></span>
+          </div>
+          <div class="table-scroll">
+            <table class="mgmt-table">
+              <thead><tr><th>Asesor</th><th>Probabilidad</th><th>Confianza</th><th>Clientes evaluados</th><th>Clientes excluidos</th></tr></thead>
+              <tbody id="rteBody"></tbody>
+            </table>
+          </div>
+          <p class="ews-nota" id="rteNota"></p>
+        </section>
+      </section>
+
+      <style>
+        .ews-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;color:#fff}
+        .ews-badge.alta{background:#B3261E}
+        .ews-badge.media{background:#C06A00}
+        .ews-badge.baja{background:#6B6B6B}
+        .ews-badge.ok{background:#1B7A43}
+        .ews-nota{font-size:13px;color:#6B6B6B;margin-top:8px;padding:0 4px}
+        .ews-resumen-item{display:flex;flex-direction:column;gap:2px;padding:10px 16px;border-radius:8px;background:#f5f5f7;min-width:140px}
+        .ews-resumen-item strong{font-size:20px}
+      </style>
+
       <section class="clients-mgmt-view hidden-view" id="clientsManagementView">
         <div class="dashboard-title">
           <div><h2>Gestión de Clientes</h2><p>Asignación de asesor por cliente, historial de asesor y datos maestros. Solo Administrador y Super Administrador.</p></div>
@@ -961,6 +1021,11 @@
   <script src="app.js"></script>
   <script src="supabase-sync.js"></script>
   <script src="mejoras-v1.js"></script>
+  <script src="modulo_01_calendario.js"></script>
+  <script src="modulo_02_motor_RED.js"></script>
+  <script src="modulo_03_motor_EWS.js"></script>
+  <script src="modulo_04_motor_RTE.js"></script>
+  <script src="modulo_05_ui_motores.js"></script>
   <script>
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();

@@ -1,0 +1,76 @@
+<!--
+============================================================
+FRAGMENTO 2 — Vista "alarmasView"
+Pegar completo en index.html, justo después del cierre de
+</section> de "metasView" (línea 639 del index.html original)
+y antes de <section class="clients-mgmt-view hidden-view"
+id="clientsManagementView">.
+
+Reutiliza EXCLUSIVAMENTE clases ya existentes en styles.css
+(clients-mgmt-view, dashboard-title, dashboard-actions, chart-grid,
+mgmt-table-card, mgmt-table, table-header, alerts-bar) para no
+introducir estilos huérfanos. Las únicas clases nuevas (prefijo
+"ews-") se definen en el <style> embebido al final de este mismo
+fragmento — deliberadamente con nombres que no colisionan con nada
+del proyecto actual.
+============================================================
+-->
+<section class="clients-mgmt-view hidden-view" id="alarmasView">
+  <div class="dashboard-title">
+    <div>
+      <h2>Panel de alarmas — Motor EWS</h2>
+      <p>Alertas tempranas de ritmo, cartera, ticket, clientes activos, venta y concentración. Administrador: vista consolidada por asesor. Asesor: su propio panel.</p>
+    </div>
+    <div class="dashboard-actions">
+      <select id="alarmasAsesorSelect" style="display:none"></select>
+      <button class="btn ghost" id="alarmasRefreshBtn">Actualizar</button>
+    </div>
+  </div>
+
+  <section class="alerts-bar" id="alarmasResumenBar"></section>
+
+  <section class="mgmt-table-card" id="alarmasAdminTableWrap" style="display:none">
+    <div class="table-header"><h3>Alarmas por asesor</h3><span id="alarmasAdminCount"></span></div>
+    <div class="table-scroll">
+      <table class="mgmt-table">
+        <thead><tr><th>Asesor</th><th>Alarmas altas</th><th>Alarmas medias</th><th>Alarmas bajas</th><th>Total</th></tr></thead>
+        <tbody id="alarmasAdminBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mgmt-table-card">
+    <div class="table-header"><h3 id="alarmasDetalleTitulo">Detalle de alarmas</h3><span id="alarmasDetalleCount"></span></div>
+    <div class="table-scroll">
+      <table class="mgmt-table">
+        <thead><tr><th>Severidad</th><th>Categoría</th><th>Detalle</th></tr></thead>
+        <tbody id="alarmasDetalleBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mgmt-table-card">
+    <div class="table-header">
+      <h3>Probabilidad de cumplimiento de meta — Motor RTE</h3>
+      <span id="rteConfianzaBadge"></span>
+    </div>
+    <div class="table-scroll">
+      <table class="mgmt-table">
+        <thead><tr><th>Asesor</th><th>Probabilidad</th><th>Confianza</th><th>Clientes evaluados</th><th>Clientes excluidos</th></tr></thead>
+        <tbody id="rteBody"></tbody>
+      </table>
+    </div>
+    <p class="ews-nota" id="rteNota"></p>
+  </section>
+</section>
+
+<style>
+  .ews-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;color:#fff}
+  .ews-badge.alta{background:#B3261E}
+  .ews-badge.media{background:#C06A00}
+  .ews-badge.baja{background:#6B6B6B}
+  .ews-badge.ok{background:#1B7A43}
+  .ews-nota{font-size:13px;color:#6B6B6B;margin-top:8px;padding:0 4px}
+  .ews-resumen-item{display:flex;flex-direction:column;gap:2px;padding:10px 16px;border-radius:8px;background:#f5f5f7;min-width:140px}
+  .ews-resumen-item strong{font-size:20px}
+</style>
