@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Radar Comercial Industria — Cuéntanos de tu empresa</title>
+<meta name="description" content="Regístrate en 30 segundos y un asesor comercial de ConAccion te contactará."/>
+<!--
+  ============================================================
+  LANDING PÚBLICA DE PROSPECCIÓN — V107
+  ------------------------------------------------------------
+  Página independiente, SIN LOGIN, pensada para compartirse por
+  QR / WhatsApp / redes / correo. Inserta directo en la tabla
+  "leads" de Supabase (crear_tabla_leads.sql, ya existente en el
+  repo — RLS insert ya está abierta: "Permitir escritura a todos").
+
+  Asignación de asesor: SOLO por link individual (?asesor=NOMBRE,
+  ver modulo_07_qr_prospeccion.js). El QR/link de cada asesor trae
+  su nombre embebido; si el lead llega por ahí, se asigna directo
+  a ese asesor. Si llega por el link general (sin ?asesor=), entra
+  "Nuevo" sin asesor_id y queda en la bandeja de Prospección para
+  que el director comercial lo asigne o reasigne manualmente —
+  decisión explícita de Sergio: los canales (Industria/KAM, B2B,
+  etc.) tienen cobertura nacional superpuesta en los mismos
+  municipios, así que municipio/zona no determina el asesor.
+
+  No requiere build ni bundler. Un solo archivo, mismo criterio
+  que el resto del proyecto. Se sube junto a index.html en la
+  raíz del repo (o en /landing/index.html si se prefiere una
+  ruta propia — ver notas de despliegue al final del archivo).
+  ============================================================
+-->
+<style>
+  :root{
+    --azul:#01153F;
+    --azul-claro:#1B4FA8;
+    --verde:#1B7A43;
+    --gris:#6B6B6B;
+    --fondo:#F5F6FA;
+    --borde:#E1E4EC;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--fondo);
+    color:var(--azul);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 16px;
+  }
+  .card{
+    width:100%;
+    max-width:480px;
+    background:#fff;
+    border-radius:16px;
+    box-shadow:0 10px 40px rgba(1,21,63,0.12);
+    overflow:hidden;
+  }
+  .card-header{
+    background:var(--azul);
+    color:#fff;
+    padding:28px 24px 22px;
+    text-align:center;
+  }
+  .brand-icon{
+    width:48px;height:48px;border-radius:12px;
+    background:#fff;color:var(--azul);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:22px;margin:0 auto 12px;
+  }
+  .card-header h1{margin:0;font-size:20px;font-weight:700}
+  .card-header p{margin:6px 0 0;font-size:13px;opacity:0.85}
+  .card-body{padding:24px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--azul)}
+  .field .req{color:#B3261E}
+  .field input, .field select, .field textarea{
+    width:100%;padding:11px 12px;border:1.5px solid var(--borde);border-radius:8px;
+    font-size:15px;font-family:inherit;color:var(--azul);background:#fff;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--azul-claro)}
+  .field small{display:block;margin-top:4px;font-size:12px;color:var(--gris)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn-submit{
+    width:100%;padding:14px;border:none;border-radius:8px;
+    background:var(--azul);color:#fff;font-size:16px;font-weight:700;
+    cursor:pointer;margin-top:8px;
+  }
+  .btn-submit:disabled{opacity:0.6;cursor:default}
+  .btn-submit:hover:not(:disabled){background:var(--azul-claro)}
+  .msg{margin-top:14px;padding:12px 14px;border-radius:8px;font-size:14px;display:none}
+  .msg.ok{display:block;background:#EAF6EE;color:var(--verde);border:1px solid #BFE6CB}
+  .msg.error{display:block;background:#FBEAEA;color:#B3261E;border:1px solid #F2C4C4}
+  .footer-note{text-align:center;font-size:12px;color:var(--gris);padding:16px 24px 22px}
+  .success-view{display:none;text-align:center;padding:40px 24px}
+  .success-view .check{
+    width:64px;height:64px;border-radius:50%;background:#EAF6EE;color:var(--verde);
+    display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px;
+  }
+  .success-view h2{margin:0 0 8px;font-size:19px;color:var(--azul)}
+  .success-view p{margin:0;font-size:14px;color:var(--gris);line-height:1.5}
+  @media (max-width:420px){ .row2{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+  <div class="card" id="formCard">
+    <div class="card-header">
+      <div class="brand-icon">R</div>
+      <h1>Cuéntanos de tu empresa</h1>
+      <p>ConAccion · Radar Comercial Industria — 30 segundos, sin compromiso</p>
+    </div>
+
+    <div class="card-body" id="formBody">
+      <form id="leadForm" novalidate>
+        <div class="field">
+          <label>Nombre / razón social <span class="req">*</span></label>
+          <input type="text" id="fNombre" required maxlength="150" autocomplete="name"/>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>Teléfono / WhatsApp <span class="req">*</span></label>
+            <input type="tel" id="fTelefono" required maxlength="20" autocomplete="tel" placeholder="3001234567"/>
+          </div>
+          <div class="field">
+            <label>Correo</label>
+            <input type="email" id="fEmail" maxlength="150" autocomplete="email"/>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>Municipio / ciudad</label>
+            <input type="text" id="fCiudad" maxlength="100" autocomplete="address-level2"/>
+          </div>
+          <div class="field">
+            <label>Departamento</label>
+            <input type="text" id="fDepartamento" maxlength="100" autocomplete="address-level1"/>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>¿Qué necesitas?</label>
+          <textarea id="fComentario" rows="3" maxlength="500" placeholder="Cuéntanos brevemente qué producto o servicio te interesa"></textarea>
+        </div>
+
+        <input type="hidden" id="fOrigen"/>
+
+        <button type="submit" class="btn-submit" id="btnSubmit">Enviar</button>
+        <div class="msg error" id="msgError"></div>
+      </form>
+    </div>
+
+    <div class="success-view" id="successView">
+      <div class="check">✓</div>
+      <h2>¡Listo, recibimos tus datos!</h2>
+      <p>Un asesor comercial de ConAccion se pondrá en contacto contigo muy pronto.</p>
+    </div>
+
+    <p class="footer-note">Tus datos se usan únicamente para contactarte por parte del equipo comercial de ConAccion.</p>
+  </div>
+
+  <!-- ============================================================
+       Configuración de conexión a Supabase — MISMO proyecto que
+       usa la app principal (ljztqfzykvuvopgqgxxf.supabase.co, ver
+       supabase-sync.js). La clave pública (anon key) es segura de
+       exponer en el cliente: la protección real está en las
+       políticas RLS de la tabla "leads", ya definidas como
+       insert-abierto en crear_tabla_leads.sql.
+
+       Anon key ya cargada (proyecto ljztqfzykvuvopgqgxxf) — no
+       requiere ningún ajuste adicional antes de publicar.
+     ============================================================ -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL_LANDING = "https://ljztqfzykvuvopgqgxxf.supabase.co";
+    const SUPABASE_ANON_KEY_LANDING = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxqenRxZnp5a3Z1dm9wZ3FneHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MDkwMTAsImV4cCI6MjEwMDI4NTAxMH0.THnp5ZOdSMO1qN2qfvWzpScDTpr6Mg7jjHGISOdZXbU";
+    const supabaseLanding = window.supabase.createClient(SUPABASE_URL_LANDING, SUPABASE_ANON_KEY_LANDING);
+
+    // Captura de querystring: permite que el QR/link de un asesor
+    // específico venga con ?origen=whatsapp&asesor=NOMBRE, o que una
+    // campaña en redes traiga ?origen=instagram, etc. Ver módulo
+    // "Generar QR + link compartible" (modulo_07_qr_prospeccion.js).
+    const params = new URLSearchParams(window.location.search);
+    const origenParam = params.get("origen") || "Web";
+    const asesorParam = params.get("asesor") || ""; // nombre del asesor si el QR es individual
+    document.getElementById("fOrigen").value = origenParam;
+
+    // ------------------------------------------------------------
+    // Asignación de asesor — SOLO por link individual. Sin zona,
+    // sin municipio: decisión explícita de Sergio, porque los
+    // canales de cobertura nacional (Industria/KAM, etc.) operan
+    // en los mismos municipios que canales regionales (B2B), así
+    // que el municipio del lead no permite inferir el asesor
+    // correcto. Si el link no trae ?asesor=NOMBRE, el lead entra
+    // sin asesor_id y lo asigna el director comercial desde la
+    // bandeja de Prospección (ya existe esa función en la app).
+    // ------------------------------------------------------------
+    async function resolverAsesorIdV107() {
+      if (!asesorParam) return null;
+      try {
+        const { data: asesorDirecto } = await supabaseLanding
+          .from("asesores")
+          .select("id")
+          .ilike("nombre", asesorParam.trim())
+          .maybeSingle();
+        return (asesorDirecto && asesorDirecto.id) ? asesorDirecto.id : null;
+      } catch (e) {
+        console.warn("[Radar-Landing] No se pudo resolver el asesor del link:", e.message);
+        return null; // el lead entra sin asignar, nunca se bloquea el registro por esto
+      }
+    }
+
+    function validarTelefonoV107(v) {
+      const limpio = v.replace(/[\s\-()]/g, "");
+      return /^\+?\d{7,15}$/.test(limpio);
+    }
+
+    function validarEmailV107(v) {
+      if (!v) return true; // email es opcional
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    }
+
+    document.getElementById("leadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("btnSubmit");
+      const errBox = document.getElementById("msgError");
+      errBox.style.display = "none";
+
+      const nombre = document.getElementById("fNombre").value.trim();
+      const telefono = document.getElementById("fTelefono").value.trim();
+      const email = document.getElementById("fEmail").value.trim();
+      const ciudad = document.getElementById("fCiudad").value.trim();
+      const departamento = document.getElementById("fDepartamento").value.trim();
+      const comentario = document.getElementById("fComentario").value.trim();
+
+      if (!nombre || !telefono) {
+        errBox.textContent = "Nombre y teléfono son obligatorios.";
+        errBox.style.display = "block";
+        return;
+      }
+      const ciudadFinal = ciudad || null;
+      if (!validarTelefonoV107(telefono)) {
+        errBox.textContent = "Revisa el número de teléfono (solo dígitos, mínimo 7).";
+        errBox.style.display = "block";
+        return;
+      }
+      if (!validarEmailV107(email)) {
+        errBox.textContent = "Revisa el formato del correo.";
+        errBox.style.display = "block";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Enviando…";
+
+      const asesorId = await resolverAsesorIdV107();
+
+      const { error } = await supabaseLanding.from("leads").insert([{
+        nombre,
+        telefono,
+        email: email || null,
+        ciudad: ciudadFinal,
+        departamento: departamento || null,
+        origen: origenParam,
+        asesor_id: asesorId,
+        estado: "Nuevo",
+        comentario: comentario || null,
+        creado_por: "landing-publica",
+      }]);
+
+      if (error) {
+        btn.disabled = false;
+        btn.textContent = "Enviar";
+        errBox.textContent = "No se pudo enviar el formulario. Intenta de nuevo en unos segundos.";
+        errBox.style.display = "block";
+        console.error("[Radar-Landing] Error insertando lead:", error.message);
+        return;
+      }
+
+      document.getElementById("formBody").style.display = "none";
+      document.querySelector(".footer-note").style.display = "none";
+      document.getElementById("successView").style.display = "block";
+    });
+  </script>
+
+  <!--
+    ============================================================
+    NOTAS DE DESPLIEGUE (no forman parte de la página, solo
+    documentación embebida para quien la publique):
+
+    1. Anon key ya cargada — listo, no requiere ajuste.
+    2. Subir este archivo a la raíz del repo Netlify como
+       landing.html, o crear carpeta /prospeccion/index.html si
+       se prefiere una URL más corta y memorable, ej.:
+       https://radar-com-conaccion-ind242f09.netlify.app/prospeccion
+    3. El QR/link general (sin ?asesor=) entra siempre sin asignar
+       a la bandeja de Prospección — el director comercial decide.
+       El QR/link individual de cada asesor (?asesor=NOMBRE) sí
+       asigna directo. No se necesita ninguna tabla de zonas ni
+       mapeo de municipios para esto.
+    4. El QR se genera dentro de la app principal (ver
+       modulo_07_qr_prospeccion.js) apuntando a esta URL.
+    ============================================================
+  -->
+</body>
+</html>

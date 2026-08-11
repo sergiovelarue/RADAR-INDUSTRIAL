@@ -59,7 +59,7 @@
         <div class="brand-icon">R</div>
         <div><h1>Radar Comercial Industria</h1><small>ConAccion · V9.8</small></div>
       </div>
-      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navProspeccion">Prospección</a><a id="navMetas">Metas y presupuestos</a><a id="navAlarmas">Panel de alarmas</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
+      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navProspeccion">Prospección</a><a id="navMetas">Metas y presupuestos</a><a id="navAlarmas">Panel de alarmas</a><a id="navRanking">Ranking</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
         <button class="btn ghost" id="refreshDataBtn" style="width:100%;margin-bottom:10px">↻ Actualizar datos</button>
         <small id="sessionRoleLabel"></small>
@@ -526,9 +526,43 @@
         <div class="dashboard-title">
           <div><h2>Prospección</h2><p>Registro y gestión de leads comerciales. Administrador ve todos los leads; cada asesor ve solo los suyos.</p></div>
           <div class="dashboard-actions">
+            <button class="btn ghost" id="leadShareBtn">Compartir / QR</button>
             <button class="btn" id="leadNuevoBtn">+ Nuevo lead</button>
           </div>
         </div>
+
+        <section class="mgmt-table-card hidden-view" id="qrProspeccionPanel">
+          <div class="table-header">
+            <h3>Compartir formulario de registro</h3>
+            <button class="modal-close" id="qrPanelCloseBtn" type="button">×</button>
+          </div>
+          <p class="field-help">Comparte este link o código QR en redes sociales, WhatsApp o correo. El interesado llena sus datos y entra automáticamente como lead nuevo en esta bandeja.</p>
+          <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;margin-top:12px">
+            <div id="qrProspeccionCanvas" style="flex:0 0 auto"></div>
+            <div style="flex:1;min-width:240px">
+              <label>Origen del link
+                <select id="qrOrigenSelect">
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="Instagram">Instagram</option>
+                  <option value="Facebook">Facebook</option>
+                  <option value="Correo">Correo</option>
+                  <option value="Feria">Feria / evento</option>
+                  <option value="Web">Web / otro</option>
+                </select>
+              </label>
+              <label id="qrAsesorSelectWrap" style="display:none;margin-top:10px">Asesor (link individual)
+                <select id="qrAsesorSelect"></select>
+              </label>
+              <label style="margin-top:10px">Link para copiar y pegar
+                <input type="text" id="qrLinkOutput" readonly style="width:100%"/>
+              </label>
+              <div class="actions" style="margin-top:12px">
+                <button class="btn" id="qrCopiarBtn" type="button">Copiar link</button>
+                <button class="btn ghost" id="qrDescargarBtn" type="button">Descargar QR</button>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <section class="mgmt-toolbar">
           <input type="search" id="leadsSearch" placeholder="Buscar por nombre, empresa o contacto"/>
@@ -702,6 +736,46 @@
         .ews-resumen-item{display:flex;flex-direction:column;gap:2px;padding:10px 16px;border-radius:8px;background:#f5f5f7;min-width:140px}
         .ews-resumen-item strong{font-size:20px}
       </style>
+
+      <section class="clients-mgmt-view hidden-view" id="rankingView">
+        <div class="dashboard-title">
+          <div>
+            <h2>Ranking — Motor RAC</h2>
+            <p>Rendimiento · Actividad · Cumplimiento. Puntaje = 70% cumplimiento de meta + 30% actividad comercial. Ranking semanal (resetea cada lunes) y acumulado mensual.</p>
+          </div>
+          <div class="dashboard-actions" id="rankingCerrarSemanaWrap" style="display:none">
+            <button class="btn ghost" id="rankingCerrarSemanaBtn">Cerrar semana</button>
+            <button class="btn ghost" id="rankingRefreshBtn">Actualizar</button>
+          </div>
+        </div>
+
+        <section class="mgmt-table-card" id="rankingPerfilCard">
+          <label id="rankingAsesorSelectWrap" style="display:block;margin-bottom:10px">
+            <select id="rankingAsesorSelect" style="display:none"></select>
+          </label>
+          Cargando…
+        </section>
+
+        <section class="mgmt-table-card">
+          <div class="table-header"><h3>Ranking semanal</h3></div>
+          <div class="table-scroll">
+            <table class="mgmt-table">
+              <thead><tr><th>#</th><th>Asesor</th><th>Puntos</th><th>Cumplimiento</th><th>Actividad</th><th>Meta superada</th></tr></thead>
+              <tbody id="rankingSemanalBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="mgmt-table-card">
+          <div class="table-header"><h3>Ranking mensual acumulado</h3></div>
+          <div class="table-scroll">
+            <table class="mgmt-table">
+              <thead><tr><th>#</th><th>Asesor</th><th>Puntos</th><th>Cumplimiento</th><th>Actividad</th><th>Meta superada</th></tr></thead>
+              <tbody id="rankingMensualBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
 
       <section class="clients-mgmt-view hidden-view" id="clientsManagementView">
         <div class="dashboard-title">
@@ -1026,6 +1100,10 @@
   <script src="modulo_03_motor_EWS.js"></script>
   <script src="modulo_04_motor_RTE.js"></script>
   <script src="modulo_05_ui_motores.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="modulo_06_motor_RAC.js"></script>
+  <script src="modulo_07_qr_prospeccion.js"></script>
+  <script src="modulo_08_ui_ranking.js"></script>
   <script>
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();
