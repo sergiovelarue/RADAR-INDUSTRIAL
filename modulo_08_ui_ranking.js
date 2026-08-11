@@ -9,42 +9,31 @@
 
 function $V107c(id) { return document.getElementById(id); }
 
+// FIX mismo bug de modulo_05_ui_motores.js: se oculta explícitamente
+// el set completo de vistas hermanas (no solo hideAllPrimaryViewsV93,
+// que no cubre prospeccionView/metasView/logView/seguimientoView), y
+// se envuelven TODAS las funciones show* reales (antes solo 3 de 8).
 function showRankingViewV107() {
   if (typeof hideAllPrimaryViewsV93 === "function") hideAllPrimaryViewsV93();
+  if (typeof ocultarVistasHermanasV107 === "function") ocultarVistasHermanasV107();
+  const av = $V107c("alarmasView"); if (av) av.classList.add("hidden-view");
   const view = $V107c("rankingView");
   if (view) view.classList.remove("hidden-view");
   if ($V107c("navRanking")) $V107c("navRanking").classList.add("active");
   renderRankingViewV107();
 }
 
-if (typeof showViewV812 !== "undefined") {
-  const previousShowViewV107b = showViewV812;
-  showViewV812 = function (view) {
-    const rv = $V107c("rankingView"); if (rv) rv.classList.add("hidden-view");
-    previousShowViewV107b(view);
-  };
-}
-if (typeof showAlarmasViewV107 === "function") {
-  const previousShowAlarmasV107b = showAlarmasViewV107;
-  showAlarmasViewV107 = function () {
-    const rv = $V107c("rankingView"); if (rv) rv.classList.add("hidden-view");
-    previousShowAlarmasV107b();
-  };
-}
-if (typeof showClientsManagementV93 === "function") {
-  const previousShowClientsV107b = showClientsManagementV93;
-  showClientsManagementV93 = function () {
-    const rv = $V107c("rankingView"); if (rv) rv.classList.add("hidden-view");
-    previousShowClientsV107b();
-  };
-}
-if (typeof showAdvisorsManagementV93 === "function") {
-  const previousShowAdvisorsV107b = showAdvisorsManagementV93;
-  showAdvisorsManagementV93 = function () {
-    const rv = $V107c("rankingView"); if (rv) rv.classList.add("hidden-view");
-    previousShowAdvisorsV107b();
-  };
-}
+["showViewV812", "showGlossaryV814", "showClientsManagementV93",
+ "showAdvisorsManagementV93", "showLogViewV98", "showSeguimientoViewV100",
+ "showMetasViewV106", "showProspeccionViewV104", "showAlarmasViewV107"].forEach(nombreFn => {
+  if (typeof window[nombreFn] === "function") {
+    const original = window[nombreFn];
+    window[nombreFn] = function (...args) {
+      const rv = $V107c("rankingView"); if (rv) rv.classList.add("hidden-view");
+      return original.apply(this, args);
+    };
+  }
+});
 
 const RAC_MEDALLAS_V107 = ["🥇", "🥈", "🥉"];
 

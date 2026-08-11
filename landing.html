@@ -117,8 +117,25 @@
     <div class="card-body" id="formBody">
       <form id="leadForm" novalidate>
         <div class="field">
-          <label>Nombre / razón social <span class="req">*</span></label>
-          <input type="text" id="fNombre" required maxlength="150" autocomplete="name"/>
+          <label>Nombre / razón social de la empresa <span class="req">*</span></label>
+          <input type="text" id="fNombre" required maxlength="150" autocomplete="organization"/>
+        </div>
+
+        <div class="field">
+          <label>NIT <small style="font-weight:400">(opcional)</small></label>
+          <input type="text" id="fNit" maxlength="30" placeholder="900123456-7"/>
+          <small>Si ya eres cliente, esto nos ayuda a atenderte más rápido.</small>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>Nombre de contacto <span class="req">*</span></label>
+            <input type="text" id="fContacto" required maxlength="150" autocomplete="name"/>
+          </div>
+          <div class="field">
+            <label>Cargo</label>
+            <input type="text" id="fCargo" maxlength="100" placeholder="Ej: Gerente de compras"/>
+          </div>
         </div>
 
         <div class="row2">
@@ -130,6 +147,11 @@
             <label>Correo</label>
             <input type="email" id="fEmail" maxlength="150" autocomplete="email"/>
           </div>
+        </div>
+
+        <div class="field">
+          <label>Sector / actividad económica</label>
+          <input type="text" id="fSector" maxlength="100" placeholder="Ej: Textil, Construcción, Alimentos"/>
         </div>
 
         <div class="row2">
@@ -191,16 +213,50 @@
     document.getElementById("fOrigen").value = origenParam;
 
     // ------------------------------------------------------------
-    // Asignación de asesor — SOLO por link individual. Sin zona,
-    // sin municipio: decisión explícita de Sergio, porque los
-    // canales de cobertura nacional (Industria/KAM, etc.) operan
-    // en los mismos municipios que canales regionales (B2B), así
-    // que el municipio del lead no permite inferir el asesor
-    // correcto. Si el link no trae ?asesor=NOMBRE, el lead entra
-    // sin asesor_id y lo asigna el director comercial desde la
-    // bandeja de Prospección (ya existe esa función en la app).
+    // Asignación de asesor — dos rutas, en este orden de prioridad:
+    //
+    // 1) NIT ya es cliente: se asigna al MISMO asesor que ya lo
+    //    atiende (ver verificarNitClienteV107 abajo). Evita que un
+    //    cliente existente sea contactado por dos asesores distintos.
+    // 2) Si el NIT no coincide con ningún cliente, se usa el link
+    //    individual (?asesor=NOMBRE, ver modulo_07_qr_prospeccion.js).
+    //
+    // Si ninguna de las dos aplica, el lead entra sin asesor_id y
+    // queda en la bandeja de Prospección para que el director
+    // comercial lo asigne manualmente — comportamiento base sin
+    // cambios (decisión de Sergio: municipio/zona no determina el
+    // asesor porque los canales tienen cobertura nacional superpuesta).
+    //
+    // IMPORTANTE — requiere que la tabla "clientes" tenga una
+    // política RLS de SELECT pública (USING (true)) para que esta
+    // página sin login pueda leerla. Si no la tiene, este paso
+    // simplemente no encuentra coincidencia (falla en silencio,
+    // nunca bloquea el registro) y cae al paso 2. Verificar con:
+    //   SELECT * FROM pg_policies WHERE tablename = 'clientes';
     // ------------------------------------------------------------
-    async function resolverAsesorIdV107() {
+    async function resolverAsesorPorNitV107(nit) {
+      if (!nit || nit.trim().length < 3) return null;
+      try {
+        const { data: cliente } = await supabaseLanding
+          .from("clientes")
+          .select("asesorAsignado")
+          .eq("nit", nit.trim())
+          .maybeSingle();
+        if (!cliente || !cliente.asesorAsignado) return null;
+
+        const { data: asesor } = await supabaseLanding
+          .from("asesores")
+          .select("id")
+          .ilike("nombre", cliente.asesorAsignado.trim())
+          .maybeSingle();
+        return (asesor && asesor.id) ? asesor.id : null;
+      } catch (e) {
+        console.warn("[Radar-Landing] No se pudo verificar el NIT contra clientes existentes:", e.message);
+        return null;
+      }
+    }
+
+    async function resolverAsesorPorLinkV107() {
       if (!asesorParam) return null;
       try {
         const { data: asesorDirecto } = await supabaseLanding
@@ -213,6 +269,12 @@
         console.warn("[Radar-Landing] No se pudo resolver el asesor del link:", e.message);
         return null; // el lead entra sin asignar, nunca se bloquea el registro por esto
       }
+    }
+
+    async function resolverAsesorIdV107(nit) {
+      const porNit = await resolverAsesorPorNitV107(nit);
+      if (porNit) return porNit;
+      return resolverAsesorPorLinkV107();
     }
 
     function validarTelefonoV107(v) {
@@ -232,14 +294,18 @@
       errBox.style.display = "none";
 
       const nombre = document.getElementById("fNombre").value.trim();
+      const nit = document.getElementById("fNit").value.trim();
+      const contacto = document.getElementById("fContacto").value.trim();
+      const cargo = document.getElementById("fCargo").value.trim();
+      const sector = document.getElementById("fSector").value.trim();
       const telefono = document.getElementById("fTelefono").value.trim();
       const email = document.getElementById("fEmail").value.trim();
       const ciudad = document.getElementById("fCiudad").value.trim();
       const departamento = document.getElementById("fDepartamento").value.trim();
       const comentario = document.getElementById("fComentario").value.trim();
 
-      if (!nombre || !telefono) {
-        errBox.textContent = "Nombre y teléfono son obligatorios.";
+      if (!nombre || !contacto || !telefono) {
+        errBox.textContent = "Nombre de la empresa, contacto y teléfono son obligatorios.";
         errBox.style.display = "block";
         return;
       }
@@ -258,7 +324,7 @@
       btn.disabled = true;
       btn.textContent = "Enviando…";
 
-      const asesorId = await resolverAsesorIdV107();
+      const asesorId = await resolverAsesorIdV107(nit);
 
       const { error } = await supabaseLanding.from("leads").insert([{
         nombre,
@@ -271,6 +337,7 @@
         estado: "Nuevo",
         comentario: comentario || null,
         creado_por: "landing-publica",
+        detalle: { nit: nit || "", contacto, cargo: cargo || "", sector: sector || "" },
       }]);
 
       if (error) {
@@ -305,6 +372,18 @@
        mapeo de municipios para esto.
     4. El QR se genera dentro de la app principal (ver
        modulo_07_qr_prospeccion.js) apuntando a esta URL.
+    5. NUEVO (11-ago-2026): si el prospecto escribe un NIT que ya
+       existe en la tabla "clientes", el lead se asigna automático
+       al mismo asesor que ya atiende ese cliente (evita duplicar
+       contacto). Esto SOLO funciona si la tabla "clientes" tiene
+       una política RLS de lectura pública. Verificar/crear con:
+         SELECT * FROM pg_policies WHERE tablename = 'clientes';
+         -- si no aparece ninguna con cmd = 'SELECT':
+         CREATE POLICY "Lectura publica clientes"
+           ON public.clientes FOR SELECT USING (true);
+       Si no se habilita, no pasa nada grave: la verificación de
+       NIT simplemente no encuentra coincidencia y el lead sigue
+       el flujo normal (por link individual o sin asignar).
     ============================================================
   -->
 </body>

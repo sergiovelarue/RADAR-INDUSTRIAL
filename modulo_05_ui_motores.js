@@ -14,38 +14,60 @@
 function $V107(id) { return document.getElementById(id); }
 
 // ------------------------------------------------------------
-// Navegación: envuelve hideAllPrimaryViewsV93 y showViewV812 sin
-// tocarlas, exactamente como ya hace mejoras-v1.js con clientsManagementView.
+// Navegación — FIX bug reportado por Sergio (11-ago-2026): al
+// entrar a "Panel de alarmas" se veían mezclados los datos de
+// "Prospección" debajo. Causa raíz: hideAllPrimaryViewsV93() SOLO
+// oculta un set fijo de vistas (clientsManagementView,
+// advisorsManagementView, directorDashboardView, glossaryView) —
+// prospeccionView, metasView, logView y seguimientoView tienen su
+// propia lógica de ocultamiento en cada showXView de mejoras-v1.js,
+// y ninguna de esas funciones sabía que alarmasView/rankingView
+// existían (se escribieron antes). El fix va en las DOS
+// direcciones: (1) mostrarAlarmasV107/mostrarRankingV107 ocultan
+// explícitamente TODAS las vistas hermanas conocidas, y (2) se
+// envuelven TODAS las funciones showXView existentes (no solo 3)
+// para que también oculten alarmasView y rankingView.
 // ------------------------------------------------------------
+
+// Lista completa de IDs de vista "hermana" que deben ocultarse al
+// entrar a Alarmas o Ranking. Incluye las vistas que
+// hideAllPrimaryViewsV93 NO cubre.
+const VISTAS_HERMANAS_V107 = [
+  "prospeccionView", "metasView", "logView", "seguimientoView",
+  "clientsManagementView", "advisorsManagementView", "glossaryView",
+];
+
+function ocultarVistasHermanasV107() {
+  VISTAS_HERMANAS_V107.forEach(id => {
+    const el = $V107(id);
+    if (el) el.classList.add("hidden-view");
+  });
+}
+
 function showAlarmasViewV107() {
   if (typeof hideAllPrimaryViewsV93 === "function") hideAllPrimaryViewsV93();
+  ocultarVistasHermanasV107();
+  const rv = $V107("rankingView"); if (rv) rv.classList.add("hidden-view");
   const view = $V107("alarmasView");
   if (view) view.classList.remove("hidden-view");
   if ($V107("navAlarmas")) $V107("navAlarmas").classList.add("active");
   renderAlarmasViewV107();
 }
 
-if (typeof showViewV812 !== "undefined") {
-  const previousShowViewV107 = showViewV812;
-  showViewV812 = function (view) {
-    const av = $V107("alarmasView"); if (av) av.classList.add("hidden-view");
-    previousShowViewV107(view);
-  };
-}
-if (typeof showClientsManagementV93 === "function") {
-  const previousShowClientsV107 = showClientsManagementV93;
-  showClientsManagementV93 = function () {
-    const av = $V107("alarmasView"); if (av) av.classList.add("hidden-view");
-    previousShowClientsV107();
-  };
-}
-if (typeof showAdvisorsManagementV93 === "function") {
-  const previousShowAdvisorsV107 = showAdvisorsManagementV93;
-  showAdvisorsManagementV93 = function () {
-    const av = $V107("alarmasView"); if (av) av.classList.add("hidden-view");
-    previousShowAdvisorsV107();
-  };
-}
+// Envuelve TODAS las funciones show* reales del proyecto (no solo
+// showViewV812/showClientsManagementV93/showAdvisorsManagementV93
+// como antes) para que cada una, al activarse, oculte alarmasView.
+["showViewV812", "showGlossaryV814", "showClientsManagementV93",
+ "showAdvisorsManagementV93", "showLogViewV98", "showSeguimientoViewV100",
+ "showMetasViewV106", "showProspeccionViewV104"].forEach(nombreFn => {
+  if (typeof window[nombreFn] === "function") {
+    const original = window[nombreFn];
+    window[nombreFn] = function (...args) {
+      const av = $V107("alarmasView"); if (av) av.classList.add("hidden-view");
+      return original.apply(this, args);
+    };
+  }
+});
 
 // ------------------------------------------------------------
 // Render del panel EWS (síncrono — no depende de Supabase).

@@ -583,7 +583,7 @@
           <div class="table-header"><h3>Leads</h3><span id="leadsCount">0 leads</span></div>
           <div class="table-scroll">
             <table class="mgmt-table">
-              <thead><tr><th>Nombre / Empresa</th><th>Contacto</th><th>Origen</th><th>Ciudad</th><th>Asesor</th><th>Valor potencial</th><th>Estado</th><th>Acción</th></tr></thead>
+              <thead><tr><th>Nombre / Empresa</th><th>NIT</th><th>Contacto</th><th>Origen</th><th>Ciudad</th><th>Asesor</th><th>Valor potencial</th><th>Estado</th><th>Acción</th></tr></thead>
               <tbody id="leadsBody"></tbody>
             </table>
           </div>
@@ -599,6 +599,11 @@
           <div class="modal-form">
             <input type="hidden" id="leadIdInput"/>
             <label>Nombre / Empresa <span style="color:#dc2626">*</span><input type="text" id="leadNombreInput" placeholder="Ej: Textiles del Valle S.A.S"/></label>
+            <label>NIT <small style="color:#6B6B6B">(opcional — para verificar si ya es cliente)</small><input type="text" id="leadNitInput" placeholder="900123456-7"/></label>
+            <div class="update-result" id="leadNitClienteAviso" style="display:none"></div>
+            <label>Persona de contacto<input type="text" id="leadContactoInput" placeholder="Nombre de quien atiende"/></label>
+            <label>Cargo del contacto<input type="text" id="leadCargoInput" placeholder="Ej: Gerente de compras"/></label>
+            <label>Sector / actividad económica<input type="text" id="leadSectorInput" placeholder="Ej: Textil, Construcción, Alimentos"/></label>
             <label>Teléfono<input type="tel" id="leadTelefonoInput" placeholder="3001234567"/></label>
             <label>Email<input type="email" id="leadEmailInput" placeholder="contacto@empresa.com"/></label>
             <label>Asesor asignado <span style="color:#dc2626">*</span><select id="leadAsesorInput"></select></label>
@@ -1104,6 +1109,7 @@
   <script src="modulo_06_motor_RAC.js"></script>
   <script src="modulo_07_qr_prospeccion.js"></script>
   <script src="modulo_08_ui_ranking.js"></script>
+  <script src="modulo_09_leads_extendido.js"></script>
   <script>
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();
