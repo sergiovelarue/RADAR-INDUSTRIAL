@@ -83,6 +83,8 @@
   }
   .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--azul-claro)}
   .field small{display:block;margin-top:4px;font-size:12px;color:var(--gris)}
+  .field-check label{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:13px;color:var(--gris);cursor:pointer}
+  .field-check input[type="checkbox"]{width:auto;flex:0 0 auto;margin-top:2px;accent-color:var(--azul)}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .btn-submit{
     width:100%;padding:14px;border:none;border-radius:8px;
@@ -171,6 +173,13 @@
         </div>
 
         <input type="hidden" id="fOrigen"/>
+
+        <div class="field field-check">
+          <label>
+            <input type="checkbox" id="fAceptoDatos" required/>
+            Autorizo el tratamiento de mis datos personales por parte de <strong>ConAccion BPS</strong> y/o <strong>Sergio Velásquez</strong>, conforme a la Ley 1581 de 2012 (Colombia), para fines de contacto y gestión comercial. <span class="req">*</span>
+          </label>
+        </div>
 
         <button type="submit" class="btn-submit" id="btnSubmit">Enviar</button>
         <div class="msg error" id="msgError"></div>
@@ -304,6 +313,8 @@
       const departamento = document.getElementById("fDepartamento").value.trim();
       const comentario = document.getElementById("fComentario").value.trim();
 
+      const aceptoDatos = document.getElementById("fAceptoDatos").checked;
+
       if (!nombre || !contacto || !telefono) {
         errBox.textContent = "Nombre de la empresa, contacto y teléfono son obligatorios.";
         errBox.style.display = "block";
@@ -320,11 +331,22 @@
         errBox.style.display = "block";
         return;
       }
+      if (!aceptoDatos) {
+        errBox.textContent = "Debes autorizar el tratamiento de datos personales para continuar.";
+        errBox.style.display = "block";
+        return;
+      }
 
       btn.disabled = true;
       btn.textContent = "Enviando…";
 
       const asesorId = await resolverAsesorIdV107(nit);
+
+      // ⚠️ Texto legal genérico — ver nota de personalización al
+      // final de este archivo y en modulo_10_datos_personales.js.
+      const textoConsentimiento =
+        "Autorizo el tratamiento de mis datos personales por parte de ConAccion BPS y/o Sergio Velásquez, " +
+        "conforme a la Ley 1581 de 2012 (Colombia), para fines de contacto y gestión comercial.";
 
       const { error } = await supabaseLanding.from("leads").insert([{
         nombre,
@@ -337,8 +359,28 @@
         estado: "Nuevo",
         comentario: comentario || null,
         creado_por: "landing-publica",
-        detalle: { nit: nit || "", contacto, cargo: cargo || "", sector: sector || "" },
+        detalle: {
+          nit: nit || "", contacto, cargo: cargo || "", sector: sector || "",
+          aceptoTratamientoDatos: true, textoConsentimiento,
+        },
       }]);
+
+      // Registro centralizado del consentimiento (misma tabla que
+      // usa el login de la app — ver 05_consentimientos_datos.sql).
+      // Falla en silencio si la tabla no existe todavía: nunca debe
+      // bloquear el registro del lead por esto.
+      try {
+        await supabaseLanding.from("consentimientos_datos").insert([{
+          email: email || null,
+          telefono,
+          nombre: contacto,
+          rol: "prospecto",
+          texto_aceptado: textoConsentimiento,
+          origen: "landing-publica",
+        }]);
+      } catch (e) {
+        console.warn("[Radar-Landing] No se pudo registrar el consentimiento centralizado:", e.message);
+      }
 
       if (error) {
         btn.disabled = false;
@@ -384,6 +426,18 @@
        Si no se habilita, no pasa nada grave: la verificación de
        NIT simplemente no encuentra coincidencia y el lead sigue
        el flujo normal (por link individual o sin asignar).
+    6. NUEVO (12-ago-2026): checkbox obligatorio de autorización
+       de tratamiento de datos personales (#fAceptoDatos). Requiere
+       ejecutar 05_consentimientos_datos.sql en Supabase antes de
+       publicar — si no existe la tabla, el lead se sigue guardando
+       normal (el registro de consentimiento centralizado falla en
+       silencio), pero se pierde el respaldo auditable de esa
+       aceptación específica, así que sí conviene crearla.
+       ⚠️ TEXTO LEGAL GENÉRICO: el texto mostrado junto al checkbox
+       (ver constante "textoConsentimiento" en el <script> de este
+       archivo) debe ser revisado por un abogado y personalizado
+       según el negocio real que use este software antes de
+       producción — no es asesoría legal válida tal como está.
     ============================================================
   -->
 </body>

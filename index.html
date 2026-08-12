@@ -40,6 +40,14 @@
           <select id="loginAdvisorSelect"></select>
         </div>
 
+        <div id="loginDatosPersonalesWrapper" style="display:none">
+          <label class="remember-row">
+            <input type="checkbox" id="loginAceptoDatos"/>
+            Autorizo el tratamiento de mis datos personales por parte de <strong>ConAccion BPS</strong> y/o <strong>Sergio Velásquez</strong>, conforme a la Ley 1581 de 2012 (Colombia), para fines de gestión comercial, administración de la plataforma y contacto relacionado con mi actividad como usuario de Radar Comercial Industria.
+          </label>
+          <small class="field-help">Solo se pide una vez, al registrar tu correo por primera vez.</small>
+        </div>
+
         <label class="remember-row">
           <input type="checkbox" id="rememberSession" checked/>
           Recordar sesión en este equipo
@@ -1110,6 +1118,7 @@
   <script src="modulo_07_qr_prospeccion.js"></script>
   <script src="modulo_08_ui_ranking.js"></script>
   <script src="modulo_09_leads_extendido.js"></script>
+  <script src="modulo_10_datos_personales.js"></script>
   <script>
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();
