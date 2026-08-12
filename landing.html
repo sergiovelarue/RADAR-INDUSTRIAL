@@ -40,17 +40,28 @@
     --borde:#E1E4EC;
   }
   *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   body{
     margin:0;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:var(--fondo);
     color:var(--azul);
     min-height:100vh;
+    min-height:100dvh;
     display:flex;
     align-items:center;
     justify-content:center;
     padding:24px 16px;
+    line-height:1.4;
   }
+
+  /* ------------------------------------------------------------
+     Tarjeta del formulario. Mobile-first: por defecto ocupa todo
+     el ancho disponible (con el padding del body como margen).
+     En pantallas medianas/grandes se limita el ancho y se le da
+     algo más de aire, para que no se vea como un formulario móvil
+     estirado dentro de una pantalla de escritorio.
+     ------------------------------------------------------------ */
   .card{
     width:100%;
     max-width:480px;
@@ -59,6 +70,10 @@
     box-shadow:0 10px 40px rgba(1,21,63,0.12);
     overflow:hidden;
   }
+  @media (min-width:640px){
+    .card{ max-width:560px; }
+  }
+
   .card-header{
     background:var(--azul);
     color:#fff;
@@ -73,30 +88,88 @@
   }
   .card-header h1{margin:0;font-size:20px;font-weight:700}
   .card-header p{margin:6px 0 0;font-size:13px;opacity:0.85}
+
   .card-body{padding:24px}
+  @media (min-width:640px){
+    .card-body{padding:32px}
+  }
+
   .field{margin-bottom:16px}
   .field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--azul)}
   .field .req{color:#B3261E}
+
+  /* font-size:16px en inputs evita el zoom automático que Safari/
+     Chrome en iOS aplican cuando un campo tiene menos de 16px —
+     ese zoom es lo que suele hacer que un formulario "se sienta
+     roto" al usarlo desde el celular. */
   .field input, .field select, .field textarea{
-    width:100%;padding:11px 12px;border:1.5px solid var(--borde);border-radius:8px;
-    font-size:15px;font-family:inherit;color:var(--azul);background:#fff;
+    width:100%;padding:12px 12px;border:1.5px solid var(--borde);border-radius:8px;
+    font-size:16px;font-family:inherit;color:var(--azul);background:#fff;
   }
   .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--azul-claro)}
-  .field small{display:block;margin-top:4px;font-size:12px;color:var(--gris)}
-  .field-check label{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:13px;color:var(--gris);cursor:pointer}
-  .field-check input[type="checkbox"]{width:auto;flex:0 0 auto;margin-top:2px;accent-color:var(--azul)}
+  .field small{display:block;margin-top:4px;font-size:12px;color:var(--gris);line-height:1.4}
+
+  /* ------------------------------------------------------------
+     Checkbox de autorización de datos — bloque propio con fondo,
+     para que sea imposible pasarlo por alto (es un requisito legal,
+     no un campo más del formulario). Touch target del checkbox
+     ampliado a 22px con padding real de toque de 44px mínimo,
+     siguiendo el estándar de accesibilidad táctil de iOS/Android.
+     ------------------------------------------------------------ */
+  .field-check{
+    background:var(--fondo);
+    border:1.5px solid var(--borde);
+    border-radius:10px;
+    padding:14px;
+    margin-bottom:18px;
+  }
+  .field-check label{
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+    font-weight:400;
+    font-size:13.5px;
+    line-height:1.5;
+    color:var(--azul);
+    cursor:pointer;
+    margin:0;
+  }
+  .field-check input[type="checkbox"]{
+    width:22px;height:22px;
+    min-width:22px;
+    flex:0 0 auto;
+    margin:0;
+    accent-color:var(--azul);
+    cursor:pointer;
+    /* Área de toque real ampliada más allá del tamaño visual del
+       check, sin desalinear el texto — clave en pantallas táctiles. */
+    padding:11px;
+    margin:-11px 0 -11px -11px;
+  }
+  .field-check strong{font-weight:700}
+  @media (min-width:640px){
+    .field-check label{font-size:14px}
+  }
+
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:420px){ .row2{grid-template-columns:1fr} }
+
   .btn-submit{
-    width:100%;padding:14px;border:none;border-radius:8px;
+    width:100%;padding:15px;border:none;border-radius:8px;
     background:var(--azul);color:#fff;font-size:16px;font-weight:700;
     cursor:pointer;margin-top:8px;
+    /* Alto mínimo de 48px: estándar de touch target cómodo en móvil. */
+    min-height:48px;
   }
   .btn-submit:disabled{opacity:0.6;cursor:default}
   .btn-submit:hover:not(:disabled){background:var(--azul-claro)}
-  .msg{margin-top:14px;padding:12px 14px;border-radius:8px;font-size:14px;display:none}
+
+  .msg{margin-top:14px;padding:12px 14px;border-radius:8px;font-size:14px;line-height:1.4;display:none}
   .msg.ok{display:block;background:#EAF6EE;color:var(--verde);border:1px solid #BFE6CB}
   .msg.error{display:block;background:#FBEAEA;color:#B3261E;border:1px solid #F2C4C4}
-  .footer-note{text-align:center;font-size:12px;color:var(--gris);padding:16px 24px 22px}
+
+  .footer-note{text-align:center;font-size:12px;color:var(--gris);padding:16px 24px 22px;line-height:1.4}
+
   .success-view{display:none;text-align:center;padding:40px 24px}
   .success-view .check{
     width:64px;height:64px;border-radius:50%;background:#EAF6EE;color:var(--verde);
@@ -104,7 +177,24 @@
   }
   .success-view h2{margin:0 0 8px;font-size:19px;color:var(--azul)}
   .success-view p{margin:0;font-size:14px;color:var(--gris);line-height:1.5}
-  @media (max-width:420px){ .row2{grid-template-columns:1fr} }
+
+  /* Pantallas muy angostas (celulares pequeños, ~320-360px de
+     ancho): reduce el padding exterior para no desperdiciar el
+     poco espacio horizontal disponible. */
+  @media (max-width:360px){
+    body{padding:12px 8px}
+    .card-body{padding:18px}
+    .card-header{padding:22px 18px 18px}
+  }
+
+  /* Escritorio grande: el formulario no debe quedar como una
+     franja angosta perdida en medio de la pantalla — se limita el
+     ancho máximo del contenedor exterior con algo de contexto
+     visual adicional (ya cubierto por --fondo de body), sin
+     estirar el formulario más allá de un ancho legible. */
+  @media (min-width:1024px){
+    .card{ max-width:600px; }
+  }
 </style>
 </head>
 <body>
