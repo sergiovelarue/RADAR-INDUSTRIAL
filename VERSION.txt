@@ -1,0 +1,33 @@
+RADAR-COMERCIAL-DEPLOY — v2 (2026-08-18)
+==========================================
+
+Esta es la ÚLTIMA versión completa y autosuficiente del sitio.
+Contiene TODOS los archivos necesarios para desplegar en Netlify
+(arrastrar esta carpeta completa al panel de deploys) — no requiere
+combinarla con ninguna carpeta anterior.
+
+Incluye:
+  - Base real de la app (Ago 5): app.js, styles.css, supabase-sync.js,
+    mejoras-v1.js, data.js, favicons, manifest.
+  - Módulos comerciales (Ago 12): modulo_01 a modulo_10
+    (calendario, motores RED/EWS/RTE, alarmas, RAC, prospección QR,
+    ranking, leads extendido, datos personales) + index.html con el
+    menú completo (Prospección, Metas y presupuestos, Panel de
+    alarmas, Ranking, Gestión de clientes/asesores, Log de cambios).
+  - Canal de soporte (Ago 18): soporte-v1.js, soporte-v1.css
+    (botón de soporte, modal de 3 pasos, panel admin de reportes).
+  - Pestaña Ajustes (Ago 18, v2): ajustes-v1.js, ajustes-v1.css
+    (agrupa Actualización diaria, Estadísticas de uso, Soporte y
+    Sincronización de datos en una sola pestaña para Administradores).
+
+Historial de versiones (carpetas/ZIPs anteriores — YA NO USAR):
+  v1 — PARA-SUBIR-COMPLETO-Ago18       (deploy base + módulos + soporte)
+  v1 — PARA-SUBIR-ETAPA1-AJUSTES-Ago18 (solo los 3 archivos de Ajustes,
+                                          para aplicar sobre v1)
+  (anteriores) PARA-SUBIR-SOPORTE-Ago18, deploy-6a733b659f6ebb00081f0613,
+               implementacion_motores_v107 — ya incorporados en v2.
+
+Regla de aquí en adelante: cada vez que se generen archivos nuevos
+para subir, se entregará como carpeta/ZIP "RADAR-COMERCIAL-DEPLOY-v{N}"
+con este mismo VERSION.txt actualizado, listando qué cambió respecto
+a la versión anterior. Usa siempre el número más alto.

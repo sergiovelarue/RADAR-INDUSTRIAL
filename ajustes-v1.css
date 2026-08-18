@@ -1,0 +1,9 @@
+
+/* ===============================
+   V1 Ajustes — contenedor de paneles reubicados
+   =============================== */
+.ajustes-panels{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
