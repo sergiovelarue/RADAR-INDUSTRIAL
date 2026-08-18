@@ -1,7 +1,7 @@
 {
-  "name": "Radar Comercial Industria",
-  "short_name": "Radar Industria",
-  "description": "Radar Comercial Industria - ConAccion - Gestión y seguimiento comercial",
+  "name": "Radar Comercial B2B",
+  "short_name": "Radar B2B",
+  "description": "Radar Comercial B2B - Gestión y seguimiento comercial",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#01153F",
