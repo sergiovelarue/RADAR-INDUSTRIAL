@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="styles.css"/>
   <link rel="stylesheet" href="soporte-v1.css"/>
   <link rel="stylesheet" href="ajustes-v1.css"/>
+  <link rel="stylesheet" href="sistema-v1.css"/>
   <style>
     /* ============================================================
        V107 — Checkbox de autorización de datos personales (login).
@@ -159,9 +160,8 @@
         <label>Tipo de acceso</label>
         <select id="loginRoleSelect">
           <option value="asesor">Asesor</option>
-          <option value="administrador">Administrador</option>
         </select>
-        <small class="field-help">Solo la primera vez que ingresas con este correo. Si ya ingresaste antes, se recuerda automáticamente.</small>
+        <small class="field-help">Solo la primera vez que ingresas con este correo, para registrarte como Asesor. Las cuentas Administrador las crea el Super Administrador desde la pestaña Sistema. Si ya ingresaste antes, se recuerda automáticamente.</small>
 
         <div id="loginAdvisorWrapper">
           <label>Asesor</label>
@@ -582,7 +582,7 @@
             <div class="panel-header">
               <div>
                 <h3>Ponderación del score de recomendación</h3>
-                <p>Solo administrador. Ajusta el peso de cada factor (deben sumar 100).</p>
+                <p>Solo Super Administrador. Ajusta el peso de cada factor (deben sumar 100).</p>
               </div>
             </div>
             <div class="growth-grid">
@@ -1249,6 +1249,7 @@
   <script src="modulo_10_datos_personales.js"></script>
   <script src="soporte-v1.js"></script>
   <script src="ajustes-v1.js"></script>
+  <script src="sistema-v1.js"></script>
   <script>
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();

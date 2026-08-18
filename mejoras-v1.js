@@ -67,13 +67,16 @@ if (typeof sincronizarConfiguracionV97 === "function") {
 function logEventoV98(tipo, nit, nombre, detalleAnterior, detalleNuevo) {
   const usuario = (typeof currentUserLabelV86 === "function") ? currentUserLabelV86() : "usuario";
   if (typeof supabaseClientV94 === "undefined") return;
-  supabaseClientV94.from("historial_cambios").insert({
-    cliente_nit: nit || "",
-    cliente_nombre: nombre || "",
-    campo: tipo,
-    valor_anterior: String(detalleAnterior ?? ""),
-    valor_nuevo: String(detalleNuevo ?? ""),
-    usuario_email: usuario
+  // V1 Sistema (2026-08-18): el RLS de historial_cambios quedó cerrado;
+  // el insert directo ya no funciona con la anon key. Se registra vía
+  // la función SECURITY DEFINER registrar_evento_historial_v1.
+  supabaseClientV94.rpc("registrar_evento_historial_v1", {
+    p_cliente_nit: nit || "",
+    p_cliente_nombre: nombre || "",
+    p_campo: tipo,
+    p_valor_anterior: String(detalleAnterior ?? ""),
+    p_valor_nuevo: String(detalleNuevo ?? ""),
+    p_usuario_email: usuario
   }).then(({ error }) => {
     if (error) console.error("[Radar-Log] Error registrando evento:", error);
   });
@@ -771,31 +774,30 @@ async function cargarLogEventosV98() {
     if (feed) feed.innerHTML = '<p style="color:var(--muted)">Supabase no está disponible en este momento.</p>';
     return;
   }
-  const colFecha = await detectarColumnaFechaV98();
-  let data, error, avisoSinFecha = false;
-  if (colFecha) {
-    ({ data, error } = await supabaseClientV94
-      .from("historial_cambios")
-      .select("*")
-      .gte(colFecha, desde.toISOString())
-      .order(colFecha, { ascending: false })
-      .limit(1000));
-  } else {
-    avisoSinFecha = true;
-    ({ data, error } = await supabaseClientV94
-      .from("historial_cambios")
-      .select("*")
-      .limit(1000));
+  // V1 Sistema (2026-08-18): el RLS de historial_cambios quedó cerrado y
+  // el "Log de cambios" pasó a ser exclusivo de Administrador/Super Admin
+  // (antes era visible para todos los roles). Se consulta vía la función
+  // SECURITY DEFINER listar_historial_cambios_v1, que ya valida el rol.
+  const u = (typeof currentUserV84 !== "undefined") ? currentUserV84 : null;
+  if (!u || !(typeof isAdminV86 === "function" && isAdminV86())) {
+    if (feed) feed.innerHTML = '<p style="color:var(--muted)">Solo Administrador y Super Administrador pueden ver el log de cambios.</p>';
+    return;
   }
+  const { data, error } = await supabaseClientV94.rpc("listar_historial_cambios_v1", {
+    p_admin_email: u.email || "",
+    p_admin_telefono: u.phone || null,
+    p_desde: desde.toISOString(),
+    p_limite: 1000
+  });
   if (error) {
-    if (feed) feed.innerHTML = `<p style="color:#dc2626">Error cargando el log: ${esc(error.message)}</p><p style="color:var(--muted);font-size:12px">Columna de fecha usada: ${esc(colFecha || "ninguna detectada")}. Revisa el nombre real de la columna en Supabase (tabla historial_cambios) y avísame para ajustarlo.</p>`;
+    if (feed) feed.innerHTML = `<p style="color:#dc2626">Error cargando el log: ${esc(error.message)}</p>`;
     return;
   }
   let rows = data || [];
-  rows = rows.map(r => ({ ...r, _tipo: clasificarEventoV98(r), _fecha: colFecha ? r[colFecha] : null }));
+  rows = rows.map(r => ({ ...r, _tipo: clasificarEventoV98(r), _fecha: r.creado_en || null }));
   if (tipoSel !== "todos") rows = rows.filter(r => r._tipo === tipoSel);
   window._logRowsV98 = rows;
-  if ($("logCount")) $("logCount").textContent = `${rows.length} eventos` + (avisoSinFecha ? " · sin columna de fecha detectada, mostrando los más recientes disponibles sin filtrar por rango" : "");
+  if ($("logCount")) $("logCount").textContent = `${rows.length} eventos`;
   if (!feed) return;
   if (!rows.length) { feed.innerHTML = '<p style="color:var(--muted)">Sin eventos en el rango seleccionado.</p>'; return; }
   feed.innerHTML = rows.map(r => {
@@ -1272,9 +1274,13 @@ function renderAccionesRecomendadasV102() {
   if (!body) return;
 
   const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
+  // V1 Sistema (2026-08-18): Ponderación del score se mueve a la pestaña
+  // Sistema y pasa a ser exclusiva de Super Administrador (antes era
+  // visible para cualquier Administrador). El panel suelto que vivía aquí
+  // ya no se muestra desde este flujo: sistema-v1.js lo reubica y controla
+  // su visibilidad.
   const pesosPanel = $("pesosScorePanel");
-  if (pesosPanel) pesosPanel.style.display = esAdmin ? "" : "none";
-  if (esAdmin) setPesosScoreInputsV102();
+  if (pesosPanel) pesosPanel.style.display = "none";
 
   const avisoBox = $("sinAsignarAvisoBox");
   if (avisoBox) {

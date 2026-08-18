@@ -204,13 +204,16 @@ const _logMasterChangeOriginalV94 = logMasterChangeV86;
 logMasterChangeV86 = function (nit, cliente, field, oldValue, newValue) {
   _logMasterChangeOriginalV94(nit, cliente, field, oldValue, newValue);
   if (String(oldValue ?? "") === String(newValue ?? "")) return;
-  supabaseClientV94.from('historial_cambios').insert({
-    cliente_nit: nit,
-    cliente_nombre: cliente,
-    campo: field,
-    valor_anterior: String(oldValue ?? ""),
-    valor_nuevo: String(newValue ?? ""),
-    usuario_email: (typeof currentUserLabelV86 === "function") ? currentUserLabelV86() : "usuario"
+  // V1 Sistema (2026-08-18): el RLS de historial_cambios quedó cerrado;
+  // el insert directo ya no funciona con la anon key. Se registra vía
+  // la función SECURITY DEFINER registrar_evento_historial_v1.
+  supabaseClientV94.rpc('registrar_evento_historial_v1', {
+    p_cliente_nit: nit,
+    p_cliente_nombre: cliente,
+    p_campo: field,
+    p_valor_anterior: String(oldValue ?? ""),
+    p_valor_nuevo: String(newValue ?? ""),
+    p_usuario_email: (typeof currentUserLabelV86 === "function") ? currentUserLabelV86() : "usuario"
   }).then(({ error }) => {
     if (error) console.error('[Radar-Supabase] Error guardando historial:', error);
   });

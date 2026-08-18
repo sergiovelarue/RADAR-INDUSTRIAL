@@ -1,4 +1,4 @@
-RADAR-COMERCIAL-DEPLOY — v2 (2026-08-18)
+RADAR-COMERCIAL-DEPLOY — v3 (2026-08-18)
 ==========================================
 
 Esta es la ÚLTIMA versión completa y autosuficiente del sitio.
@@ -19,8 +19,51 @@ Incluye:
   - Pestaña Ajustes (Ago 18, v2): ajustes-v1.js, ajustes-v1.css
     (agrupa Actualización diaria, Estadísticas de uso, Soporte y
     Sincronización de datos en una sola pestaña para Administradores).
+  - Pestaña Sistema + seguridad Supabase (Ago 18, v3): sistema-v1.js,
+    sistema-v1.css, más cambios en app.js, mejoras-v1.js, supabase-sync.js
+    e index.html. Ver detalle abajo.
+
+NOVEDADES v3 — IMPORTANTE, cambia comportamiento actual:
+  1. Se cerró el acceso público abierto en Supabase sobre las tablas
+     historial_cambios y usuarios (antes cualquiera con la anon key
+     podía leer/escribir/borrar libremente). Ahora solo funciones
+     protegidas (SECURITY DEFINER) que validan el usuario contra la
+     tabla usuarios pueden operar sobre esos datos.
+  2. Login: ya NO se puede auto-declarar "Administrador" al ingresar
+     por primera vez (se quitó esa opción del formulario). Cualquier
+     correo nuevo solo puede registrarse como Asesor. Las cuentas
+     Administrador y Super Administrador las crea/otorga exclusivamente
+     un Super Administrador desde la nueva pestaña "Sistema".
+  3. "Log de cambios" (antes visible para todos los roles, incluidos
+     asesores) ahora es exclusivo de Administrador y Super Administrador.
+  4. Nueva pestaña "Sistema" (exclusiva Super Administrador, invisible
+     para cualquier otro rol):
+       - Configuración comercial por clasificación (reubicada, sin
+         cambios de comportamiento).
+       - Ponderación del score de recomendación (reubicada; antes la
+         veía cualquier Administrador, ahora exclusiva Super Admin).
+       - Panel de Administradores: listar, crear/editar, revocar
+         cuentas Administrador; otorgar o revocar el rol Super
+         Administrador.
+       - Log de eventos: contador de eventos registrados y botón para
+         resetear (vaciar) el historial completo, con doble
+         confirmación por ser una acción irreversible.
+
+PENDIENTE DE VERIFICAR EN PRODUCCIÓN (no se pudo probar en este entorno):
+  El entorno de trabajo donde se construyó esta versión no tiene salida
+  de red hacia Supabase ni hacia el CDN de supabase-js, así que el
+  flujo de login conectado a Supabase y las funciones nuevas de la
+  pestaña Sistema NO se pudieron probar de extremo a extremo con el
+  navegador real. Sí se verificó exhaustivamente del lado de la base
+  de datos (funciones probadas una por una con datos de prueba reales,
+  incluyendo los rechazos de seguridad esperados) y se revisó que el
+  código no tenga errores de sintaxis ni archivos faltantes. Recomendado:
+  al subir esta versión a Netlify, probar primero con un usuario de
+  prueba antes de avisar al equipo, especialmente el login y la
+  pestaña Sistema.
 
 Historial de versiones (carpetas/ZIPs anteriores — YA NO USAR):
+  v2 — RADAR-COMERCIAL-DEPLOY-v2 (deploy base + módulos + soporte + Ajustes)
   v1 — PARA-SUBIR-COMPLETO-Ago18       (deploy base + módulos + soporte)
   v1 — PARA-SUBIR-ETAPA1-AJUSTES-Ago18 (solo los 3 archivos de Ajustes,
                                           para aplicar sobre v1)

@@ -1,0 +1,88 @@
+
+/* ===============================
+   V1 Sistema — contenedor de paneles reubicados y nuevos
+   =============================== */
+.sistema-panels{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+.btn.danger{
+  background:#dc2626;
+}
+.btn.danger:hover{
+  background:#b91c1c;
+}
+
+.sistema-admin-form{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:12px;
+  align-items:end;
+  margin-bottom:16px;
+}
+.sistema-admin-form label{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  font-weight:900;
+  margin-bottom:6px;
+}
+.sistema-admin-form input{
+  width:100%;
+  border:1px solid #d1d5db;
+  border-radius:12px;
+  padding:10px;
+  background:white;
+}
+.sistema-admin-form .actions{
+  margin-top:0;
+}
+
+.sistema-admin-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:8px;
+}
+.sistema-admin-table th,
+.sistema-admin-table td{
+  padding:10px 8px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+  font-size:13px;
+}
+.sistema-admin-table th{
+  background:#f9fafb;
+  color:#475569;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.sistema-admin-acciones{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+.sistema-msg{
+  margin-top:10px;
+  font-size:13px;
+  font-weight:700;
+}
+.sistema-msg-ok{
+  color:#15803d;
+}
+.sistema-msg-error{
+  color:#dc2626;
+}
+
+.sistema-tag{
+  display:inline-block;
+  padding:4px 9px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:900;
+  background:#f3f4f6;
+  color:#6b7280;
+}
