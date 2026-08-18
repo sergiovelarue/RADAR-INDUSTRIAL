@@ -1,0 +1,72 @@
+
+/* ===============================
+   V1 Soporte — botón flotante, modal de 3 pasos, panel admin
+   =============================== */
+.soporte-fab{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  width:56px;
+  height:56px;
+  border-radius:999px;
+  background:var(--dark);
+  color:white;
+  border:none;
+  font-size:24px;
+  box-shadow:0 12px 30px rgba(15,23,42,.35);
+  cursor:pointer;
+  z-index:1500;
+  display:none;
+}
+.soporte-fab:hover{background:#1e293b}
+
+.soporte-modal-card{width:min(520px,100%)}
+
+.soporte-selector-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+.soporte-opcion{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+  text-align:left;
+  background:#f9fafb;
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:14px 16px;
+  cursor:pointer;
+  font-family:inherit;
+}
+.soporte-opcion:hover{background:#f3f4f6;border-color:#cbd5e1}
+.soporte-opcion-icono{font-size:22px}
+.soporte-opcion-titulo{font-weight:900;color:var(--ink)}
+.soporte-opcion-desc{color:var(--muted);font-size:12px}
+
+.soporte-estrellas{display:flex;gap:6px;margin:4px 0 6px}
+.soporte-estrella{
+  background:none;
+  border:none;
+  font-size:32px;
+  line-height:1;
+  color:#d1d5db;
+  cursor:pointer;
+  padding:0;
+}
+.soporte-estrella.activa{color:#f59e0b}
+
+.soporte-error{color:#dc2626;font-weight:800;min-height:18px;margin:6px 0 0}
+
+.soporte-confirmacion{
+  text-align:center;
+  padding:20px 10px 6px;
+}
+.soporte-confirmacion-icono{font-size:40px;display:block;margin-bottom:10px}
+.soporte-confirmacion h4{margin:0 0 6px;font-size:20px}
+.soporte-confirmacion p{color:var(--muted);margin:0 0 18px}
+
+@media(max-width:760px){
+  .soporte-fab{right:14px;bottom:14px}
+}

@@ -6,132 +6,7 @@
   <title>Radar Comercial ConAccion Industria</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
   <link rel="stylesheet" href="styles.css"/>
-  <style>
-    /* ============================================================
-       V107 — Checkbox de autorización de datos personales (login).
-       Estilos embebidos deliberadamente (no se agregan a styles.css,
-       que no forma parte de los archivos entregados en este paquete)
-       para que el bloque se vea bien en móvil y escritorio sin
-       depender de que styles.css ya contemple este caso — que no lo
-       contempla, porque el campo es nuevo.
-       ============================================================ */
-    .v107-datos-personales{
-      background:#F5F6FA;
-      border:1.5px solid #E1E4EC;
-      border-radius:10px;
-      padding:14px;
-      margin:14px 0;
-    }
-    .v107-datos-personales label{
-      display:flex;
-      gap:12px;
-      align-items:flex-start;
-      font-weight:400;
-      font-size:13.5px;
-      line-height:1.5;
-      color:#01153F;
-      cursor:pointer;
-      margin:0;
-    }
-    .v107-datos-personales input[type="checkbox"]{
-      width:22px;height:22px;
-      min-width:22px;
-      flex:0 0 auto;
-      margin:0;
-      accent-color:#01153F;
-      cursor:pointer;
-      /* Área de toque ampliada sin desalinear el texto — importante
-         en pantallas táctiles (tablets/celulares que también pueden
-         usarse para administrar la app). */
-      padding:11px;
-      margin:-11px 0 -11px -11px;
-    }
-    .v107-datos-personales strong{font-weight:700}
-    .v107-datos-personales .field-help{margin-top:8px;display:block}
-    @media (min-width:640px){
-      .v107-datos-personales label{font-size:14px}
-    }
-    @media (max-width:360px){
-      .v107-datos-personales{padding:10px}
-    }
-
-    /* ============================================================
-       V107 — Corrección responsive del pie de la barra lateral
-       (botón "Actualizar datos", nombre del asesor/rol y "Cerrar
-       sesión") en pantallas de celular.
-       ------------------------------------------------------------
-       Pedido de Sergio (12-ago-2026): en vista de asesor desde el
-       celular, esos tres elementos se salen de la pantalla. Como
-       styles.css no forma parte de los archivos entregados en este
-       paquete y no se puede editar, se fuerza aquí (con !important
-       donde es necesario) un comportamiento seguro en móvil: el
-       botón de actualizar se hace más compacto, el nombre del
-       asesor se ajusta con salto de línea/tamaño reducido en vez de
-       desbordar, y "Cerrar sesión" queda siempre visible dentro del
-       ancho de pantalla. No se toca la vista de escritorio (los
-       cambios están dentro de @media max-width:780px).
-       ============================================================ */
-    @media (max-width:780px){
-      .sidebar{
-        max-width:100vw;
-        box-sizing:border-box;
-        overflow-x:hidden;
-      }
-      .sidebar-footer{
-        box-sizing:border-box;
-        width:100%;
-        max-width:100%;
-        padding-left:10px;
-        padding-right:10px;
-        overflow:hidden;
-      }
-      /* Botón "↻ Actualizar datos": más compacto para dejar espacio
-         al nombre del asesor y al link de cerrar sesión. */
-      .sidebar-footer #refreshDataBtn{
-        width:100% !important;
-        font-size:12.5px !important;
-        padding:8px 6px !important;
-        min-height:36px;
-        box-sizing:border-box;
-        white-space:normal;
-        line-height:1.25;
-      }
-      /* Nombre del asesor / rol de sesión: en vez de desbordar en
-         una sola línea, se ajusta al ancho disponible. */
-      .sidebar-footer #sessionRoleLabel{
-        display:block;
-        width:100%;
-        max-width:100%;
-        box-sizing:border-box;
-        white-space:normal;
-        overflow-wrap:break-word;
-        word-break:break-word;
-        font-size:12px;
-        line-height:1.3;
-        margin:6px 0;
-      }
-      /* "Cerrar sesión": queda como bloque propio, con área de toque
-         cómoda, sin depender de que el texto anterior le deje espacio. */
-      .sidebar-footer #logoutBtn{
-        display:inline-block;
-        width:100%;
-        box-sizing:border-box;
-        text-align:center;
-        white-space:nowrap;
-        overflow:hidden;
-        text-overflow:ellipsis;
-        font-size:13px;
-        padding:8px 4px;
-        min-height:36px;
-        line-height:1.3;
-      }
-    }
-    @media (max-width:360px){
-      .sidebar-footer #refreshDataBtn{font-size:11.5px !important; padding:7px 4px !important}
-      .sidebar-footer #sessionRoleLabel{font-size:11px}
-      .sidebar-footer #logoutBtn{font-size:12px}
-    }
-  </style>
+  <link rel="stylesheet" href="soporte-v1.css"/>
 </head>
 <body>
 
@@ -166,14 +41,6 @@
           <select id="loginAdvisorSelect"></select>
         </div>
 
-        <div id="loginDatosPersonalesWrapper" class="v107-datos-personales" style="display:none">
-          <label>
-            <input type="checkbox" id="loginAceptoDatos"/>
-            <span>Autorizo el tratamiento de mis datos personales por parte de <strong>ConAccion BPS</strong> y/o <strong>Sergio Velásquez</strong>, conforme a la Ley 1581 de 2012 (Colombia), para fines de gestión comercial, administración de la plataforma y contacto relacionado con mi actividad como usuario de Radar Comercial Industria.</span>
-          </label>
-          <small class="field-help">Solo se pide una vez, al registrar tu correo por primera vez.</small>
-        </div>
-
         <label class="remember-row">
           <input type="checkbox" id="rememberSession" checked/>
           Recordar sesión en este equipo
@@ -193,7 +60,7 @@
         <div class="brand-icon">R</div>
         <div><h1>Radar Comercial Industria</h1><small>ConAccion · V9.8</small></div>
       </div>
-      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navProspeccion">Prospección</a><a id="navMetas">Metas y presupuestos</a><a id="navAlarmas">Panel de alarmas</a><a id="navRanking">Ranking</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
+      <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
         <button class="btn ghost" id="refreshDataBtn" style="width:100%;margin-bottom:10px">↻ Actualizar datos</button>
         <small id="sessionRoleLabel"></small>
@@ -235,7 +102,7 @@
         </div>
       </section>
 
-      
+
       <section class="admin-panel" id="usageAdminPanel">
         <div class="panel-header">
           <div>
@@ -358,7 +225,7 @@
           </table>
         </div>
       </section>
-    
+
       <section class="director-dashboard hidden-view" id="directorDashboardView">
         <div class="dashboard-title">
           <div>
@@ -385,6 +252,22 @@
         </section>
 
         <section class="chart-grid"><article class="chart-card wide"><div class="chart-header"><h3>Clientes facturando y orden promedio mensual</h3><p>Permite ver si el crecimiento viene por más clientes comprando o por mayor valor promedio por cliente.</p></div><canvas id="monthlyCustomersChart"></canvas></article></section>
+
+        <section class="sop-panel" id="sopPanel">
+          <div class="chart-header"><h3>Meta S&amp;OP del mes</h3><p>Objetivo oficial mensual por línea para medir cumplimiento y Gap S&amp;OP.</p></div>
+          <div class="sop-grid">
+            <label>Mes<select id="sopMonthSelect"></select></label>
+            <label>Meta S&amp;OP Espumas<input type="number" id="sopMetaEspumas" placeholder="0"/></label>
+            <button class="btn" id="saveSopGoalsBtn">Guardar Meta S&amp;OP</button>
+          </div>
+          <section class="director-kpi-grid compact sop-kpis">
+            <article><span>Cumplimiento S&amp;OP</span><strong id="sopCompliance">0%</strong><small>Venta real / Meta S&amp;OP</small></article>
+            <article><span>Gap S&amp;OP</span><strong id="sopGap">$0</strong><small>Meta S&amp;OP - Venta real</small></article>
+            <article><span>Meta S&amp;OP</span><strong id="sopGoalShown">$0</strong><small>Línea seleccionada</small></article>
+            <article><span>Venta real mes</span><strong id="sopRealSale">$0</strong><small>Mes seleccionado</small></article>
+          </section>
+        </section>
+
         <section class="commercial-segment-section" id="commercialSegmentSection">
           <div class="chart-header">
             <h3>Segmentos Comerciales</h3>
@@ -515,34 +398,9 @@
         <section class="insight-card"><h3>Lectura estratégica sugerida</h3><ul id="directorInsights"></ul></section>
       </section>
 
-    
+
       <section class="log-view hidden-view" id="seguimientoView">
         <div class="dashboard-title"><div><h2>Seguimiento diario</h2><p>Próximas acciones ordenadas cronológicamente, con la fecha actual como referencia: <strong id="seguimientoHoyLabel">—</strong>.</p></div></div>
-
-        <section class="table-card" id="metaDiariaPanel">
-          <div class="table-header">
-            <h3>Venta diaria y semanal requerida para cumplir la meta del mes</h3>
-            <span id="metaDiariaSubtitle" style="color:var(--muted);font-weight:600"></span>
-          </div>
-          <p class="field-help">Cuota dinámica: se recalcula cada día sobre el faltante real y los días hábiles (lunes a viernes) que quedan en el mes. Si un asesor se atrasa, su cuota diaria sube; si se adelanta, baja.</p>
-          <div class="table-scroll">
-            <table class="mgmt-table" id="metaDiariaTable">
-              <thead>
-                <tr>
-                  <th>Asesor</th>
-                  <th>Meta del mes</th>
-                  <th>Venta actual</th>
-                  <th>Cumplimiento</th>
-                  <th>Faltante</th>
-                  <th>Venta diaria requerida</th>
-                  <th>Venta semanal requerida</th>
-                </tr>
-              </thead>
-              <tbody id="metaDiariaBody"></tbody>
-            </table>
-          </div>
-        </section>
-
         <div class="log-toolbar">
           <label>Rango
             <select id="seguimientoRangoSelect">
@@ -550,7 +408,6 @@
               <option value="pasada">Semana pasada</option>
               <option value="actual" selected>Semana actual</option>
               <option value="siguiente">Semana siguiente</option>
-              <option value="todas">Todas (3 semanas)</option>
             </select>
           </label>
           <label id="seguimientoAsesorFilterWrap" style="display:none">Asesor
@@ -562,58 +419,6 @@
           <span id="seguimientoCount" style="margin-left:auto;color:var(--muted);font-weight:800"></span>
         </div>
         <div class="log-feed" id="seguimientoFeed"><p style="color:var(--muted)">Cargando…</p></div>
-
-        <section class="table-card" id="accionesRecomendadasPanel">
-          <div class="table-header">
-            <h3>Acciones recomendadas</h3>
-            <span id="recomendadasCount" style="color:var(--muted);font-weight:800"></span>
-          </div>
-          <p class="field-help">Clientes sugeridos según probabilidad de éxito para ayudarte a cumplir tu presupuesto diario y semanal. Ábrelos, define una acción y una fecha, y pasan a tus acciones planeadas arriba.</p>
-
-          <div id="sinAsignarAvisoBox" style="display:none;background:#fff7e6;border:1px solid #f0c36d;border-radius:8px;padding:12px 16px;margin-bottom:16px;">
-            <strong id="sinAsignarAvisoTexto"></strong>
-            <p style="margin:4px 0 8px;color:var(--muted)">Estos clientes no aparecen en las sugerencias porque aún no tienen un asesor responsable. Es normal con clientes nuevos de facturación, pero deben asignarse para que alguien los gestione y para que cuenten en metas y cumplimiento.</p>
-            <button class="btn ghost small-btn" id="irAsignarClientesBtn" type="button">Ir a Gestión de Clientes → Sin asignación</button>
-          </div>
-
-          <div class="admin-panel" id="pesosScorePanel" style="display:none">
-            <div class="panel-header">
-              <div>
-                <h3>Ponderación del score de recomendación</h3>
-                <p>Solo administrador. Ajusta el peso de cada factor (deben sumar 100).</p>
-              </div>
-            </div>
-            <div class="growth-grid">
-              <label>Faltante <input type="number" id="pesoFaltante" value="25" min="0" max="100"/>%</label>
-              <label>Clasificación <input type="number" id="pesoClasificacion" value="25" min="0" max="100"/>%</label>
-              <label>Continuidad <input type="number" id="pesoContinuidad" value="25" min="0" max="100"/>%</label>
-              <label>Urgencia (días sin gestión) <input type="number" id="pesoUrgencia" value="25" min="0" max="100"/>%</label>
-            </div>
-            <div class="actions">
-              <button class="btn" id="aplicarPesosScoreBtn">Aplicar ponderación</button>
-              <span id="pesosScoreSumaWarn" style="color:#b45309;font-weight:700"></span>
-            </div>
-          </div>
-
-          <div class="table-scroll">
-            <table class="mgmt-table" id="recomendadasTable">
-              <thead>
-                <tr>
-                  <th>Cliente</th>
-                  <th>Asesor</th>
-                  <th>Clasificación</th>
-                  <th>Estado</th>
-                  <th>Faltante</th>
-                  <th>Días sin gestión</th>
-                  <th>Score</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="recomendadasBody"></tbody>
-            </table>
-          </div>
-          <div class="pagination" id="recomendadasPagination"></div>
-        </section>
       </section>
 
       <section class="log-view hidden-view" id="logView">
@@ -653,266 +458,6 @@
           <article><h3>KPI principales</h3><p><strong>Cumplimiento:</strong> venta actual / meta.</p><p><strong>Ticket u orden promedio:</strong> venta / clientes con venta.</p><p><strong>Pareto:</strong> clientes que explican cerca del 80% de la venta.</p><p><strong>Meta S&amp;OP:</strong> objetivo oficial mensual definido en el proceso S&amp;OP para medir cumplimiento comercial por línea.</p><p><strong>Gap S&amp;OP:</strong> diferencia entre Meta S&amp;OP y venta real del mes.</p><p><strong>Consecutividad:</strong> meses que compra / meses posibles.</p></article>
           <article><h3>Salud del Portafolio de Clientes</h3><p>Indicador comercial de actividad, recuperación, riesgo y sostenibilidad. No tiene relación con recaudo ni cartera financiera.</p><p><strong>Ventana móvil 12 meses:</strong> los estados y la Salud del Portafolio se calculan solo con clientes con actividad en los últimos 12 meses.</p><p><strong>Portafolio gestionable:</strong> clientes con actividad dentro de esa ventana móvil.</p><p><strong>Índice de actividad:</strong> Activos / (Activos + Nuevos + PB).</p><p><strong>Tasa de recuperación:</strong> recuperados / PB mes anterior.</p><p><strong>Tasa de pérdida:</strong> nuevas bajas / PB mes anterior.</p></article>
           <article><h3>Leyenda práctica</h3><p><strong>Activos:</strong> más susceptibles de comprar en el corto plazo.</p><p><strong>PB:</strong> alerta temprana de pérdida comercial.</p><p><strong>Baja:</strong> recuperación más difícil.</p><p><strong>Nuevos:</strong> señal de crecimiento futuro.</p><p><strong>Reingresos:</strong> recuperación comercial lograda.</p></article>
-        </section>
-      </section>
-
-      <section class="clients-mgmt-view hidden-view" id="prospeccionView">
-        <div class="dashboard-title">
-          <div><h2>Prospección</h2><p>Registro y gestión de leads comerciales. Administrador ve todos los leads; cada asesor ve solo los suyos.</p></div>
-          <div class="dashboard-actions">
-            <button class="btn ghost" id="leadShareBtn">Compartir / QR</button>
-            <button class="btn" id="leadNuevoBtn">+ Nuevo lead</button>
-          </div>
-        </div>
-
-        <section class="mgmt-table-card hidden-view" id="qrProspeccionPanel">
-          <div class="table-header">
-            <h3>Compartir formulario de registro</h3>
-            <button class="modal-close" id="qrPanelCloseBtn" type="button">×</button>
-          </div>
-          <p class="field-help">Comparte este link o código QR en redes sociales, WhatsApp o correo. El interesado llena sus datos y entra automáticamente como lead nuevo en esta bandeja.</p>
-          <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;margin-top:12px">
-            <div id="qrProspeccionCanvas" style="flex:0 0 auto"></div>
-            <div style="flex:1;min-width:240px">
-              <label>Origen del link
-                <select id="qrOrigenSelect">
-                  <option value="WhatsApp">WhatsApp</option>
-                  <option value="Instagram">Instagram</option>
-                  <option value="Facebook">Facebook</option>
-                  <option value="Correo">Correo</option>
-                  <option value="Feria">Feria / evento</option>
-                  <option value="Web">Web / otro</option>
-                </select>
-              </label>
-              <label id="qrAsesorSelectWrap" style="display:none;margin-top:10px">Asesor (link individual)
-                <select id="qrAsesorSelect"></select>
-              </label>
-              <label style="margin-top:10px">Link para copiar y pegar
-                <input type="text" id="qrLinkOutput" readonly style="width:100%"/>
-              </label>
-              <div class="actions" style="margin-top:12px">
-                <button class="btn" id="qrCopiarBtn" type="button">Copiar link</button>
-                <button class="btn ghost" id="qrDescargarBtn" type="button">Descargar QR</button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="mgmt-toolbar">
-          <input type="search" id="leadsSearch" placeholder="Buscar por nombre, empresa o contacto"/>
-          <select id="leadsEstadoFilter">
-            <option value="todos">Todos los estados</option>
-            <option value="Nuevo">Nuevo</option>
-            <option value="Contactado">Contactado</option>
-            <option value="Calificado">Calificado</option>
-            <option value="Convertido">Convertido</option>
-            <option value="Descartado">Descartado</option>
-          </select>
-          <label id="leadsAsesorFilterWrap" style="display:none">Asesor
-            <select id="leadsAsesorFilter"><option value="todos">Todos</option></select>
-          </label>
-        </section>
-
-        <section class="mgmt-table-card">
-          <div class="table-header"><h3>Leads</h3><span id="leadsCount">0 leads</span></div>
-          <div class="table-scroll">
-            <table class="mgmt-table">
-              <thead><tr><th>Nombre / Empresa</th><th>NIT</th><th>Contacto</th><th>Origen</th><th>Ciudad</th><th>Asesor</th><th>Valor potencial</th><th>Estado</th><th>Acción</th></tr></thead>
-              <tbody id="leadsBody"></tbody>
-            </table>
-          </div>
-        </section>
-      </section>
-
-      <div class="modal-overlay" id="leadModal">
-        <div class="modal-card small-modal">
-          <div class="modal-header">
-            <div><h3 id="leadModalTitle">Nuevo lead</h3><p>Registro de prospecto comercial</p></div>
-            <button class="modal-close" id="leadModalCloseBtn">×</button>
-          </div>
-          <div class="modal-form">
-            <input type="hidden" id="leadIdInput"/>
-            <label>Nombre / Empresa <span style="color:#dc2626">*</span><input type="text" id="leadNombreInput" placeholder="Ej: Textiles del Valle S.A.S"/></label>
-            <label>NIT <small style="color:#6B6B6B">(opcional — para verificar si ya es cliente)</small><input type="text" id="leadNitInput" placeholder="900123456-7"/></label>
-            <div class="update-result" id="leadNitClienteAviso" style="display:none"></div>
-            <label>Persona de contacto<input type="text" id="leadContactoInput" placeholder="Nombre de quien atiende"/></label>
-            <label>Cargo del contacto<input type="text" id="leadCargoInput" placeholder="Ej: Gerente de compras"/></label>
-            <label>Sector / actividad económica<input type="text" id="leadSectorInput" placeholder="Ej: Textil, Construcción, Alimentos"/></label>
-            <label>Teléfono<input type="tel" id="leadTelefonoInput" placeholder="3001234567"/></label>
-            <label>Email<input type="email" id="leadEmailInput" placeholder="contacto@empresa.com"/></label>
-            <label>Asesor asignado <span style="color:#dc2626">*</span><select id="leadAsesorInput"></select></label>
-            <label>Origen
-              <select id="leadOrigenInput">
-                <option value="">Seleccionar</option>
-                <option>Referido</option>
-                <option>Feria</option>
-                <option>Web</option>
-                <option>Llamada fría</option>
-                <option>Redes sociales</option>
-                <option>Otro</option>
-              </select>
-            </label>
-            <label>Departamento<select id="leadDepartamentoInput"></select></label>
-            <label>Ciudad / municipio<select id="leadCiudadInput"></select></label>
-            <label>Valor potencial estimado ($ MM)<input type="number" id="leadValorInput" placeholder="0" min="0"/></label>
-            <label>Estado
-              <select id="leadEstadoInput">
-                <option>Nuevo</option>
-                <option>Contactado</option>
-                <option>Calificado</option>
-                <option>Convertido</option>
-                <option>Descartado</option>
-              </select>
-            </label>
-            <label>Comentario<textarea id="leadComentarioInput" rows="3" placeholder="Notas de la gestión"></textarea></label>
-            <div class="actions">
-              <button class="btn" id="leadGuardarBtn">Guardar lead</button>
-              <button class="btn ghost" id="leadEliminarBtn" style="display:none">Eliminar</button>
-              <button class="btn ghost" id="leadModalCancelBtn">Cancelar</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <section class="clients-mgmt-view hidden-view" id="metasView">
-        <div class="dashboard-title">
-          <div><h2>Metas y presupuestos</h2><p>Ventas totales, por asesor y por mes: 2025 real, 2026 real y planeado, proyección del resto de 2026, y propuesta 2027. Solo Administrador.</p></div>
-          <div class="dashboard-actions">
-            <button class="btn ghost" id="metasExportBtn">Exportar CSV</button>
-          </div>
-        </div>
-
-        <section class="admin-panel" id="metasConfigPanel">
-          <div class="panel-header">
-            <div>
-              <h3>Parámetros de proyección</h3>
-              <p>La proyección del resto de 2026 usa el promedio real transcurrido ajustado por la estacionalidad de 2025. La propuesta 2027 aplica el % de crecimiento por clasificación definido en "Configuración comercial por clasificación" (Hoja de ruta).</p>
-            </div>
-          </div>
-          <div class="growth-grid">
-            <label>Meses transcurridos 2026<input type="text" id="metasMesesTranscurridos" disabled/></label>
-          </div>
-        </section>
-
-        <section class="chart-grid">
-          <article class="chart-card wide">
-            <div class="chart-header"><h3>Venta mensual comparada</h3><p>2025 real, 2026 (real hasta el mes actual + proyectado el resto) y 2027 proyectado, mes a mes. Total organización.</p></div>
-            <canvas id="metasMensualChart"></canvas>
-          </article>
-          <article class="chart-card wide">
-            <div class="chart-header"><h3>Venta anual comparada</h3><p>2025 real, 2026 real + proyectado, y propuesta 2027, por asesor.</p></div>
-            <canvas id="metasChart"></canvas>
-          </article>
-        </section>
-
-        <section class="mgmt-table-card">
-          <div class="table-header"><h3>Resumen por asesor</h3><span id="metasCount"></span></div>
-          <div class="table-scroll">
-            <table class="mgmt-table">
-              <thead><tr><th>Asesor</th><th>2025 real</th><th>2026 real</th><th>2026 planeado</th><th>2026 proyectado</th><th>Cumplimiento proyectado</th><th>2027 propuesto</th></tr></thead>
-              <tbody id="metasBody"></tbody>
-            </table>
-          </div>
-        </section>
-      </section>
-
-      <section class="clients-mgmt-view hidden-view" id="alarmasView">
-        <div class="dashboard-title">
-          <div>
-            <h2>Panel de alarmas — Motor EWS</h2>
-            <p>Alertas tempranas de ritmo, cartera, ticket, clientes activos, venta y concentración. Administrador: vista consolidada por asesor. Asesor: su propio panel.</p>
-          </div>
-          <div class="dashboard-actions">
-            <select id="alarmasAsesorSelect" style="display:none"></select>
-            <button class="btn ghost" id="alarmasRefreshBtn">Actualizar</button>
-          </div>
-        </div>
-
-        <section class="alerts-bar" id="alarmasResumenBar"></section>
-
-        <section class="mgmt-table-card" id="alarmasAdminTableWrap" style="display:none">
-          <div class="table-header"><h3>Alarmas por asesor</h3><span id="alarmasAdminCount"></span></div>
-          <div class="table-scroll">
-            <table class="mgmt-table">
-              <thead><tr><th>Asesor</th><th>Alarmas altas</th><th>Alarmas medias</th><th>Alarmas bajas</th><th>Total</th></tr></thead>
-              <tbody id="alarmasAdminBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="mgmt-table-card">
-          <div class="table-header"><h3 id="alarmasDetalleTitulo">Detalle de alarmas</h3><span id="alarmasDetalleCount"></span></div>
-          <div class="table-scroll">
-            <table class="mgmt-table">
-              <thead><tr><th>Severidad</th><th>Categoría</th><th>Detalle</th></tr></thead>
-              <tbody id="alarmasDetalleBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="mgmt-table-card">
-          <div class="table-header">
-            <h3>Probabilidad de cumplimiento de meta — Motor RTE</h3>
-            <span id="rteConfianzaBadge"></span>
-          </div>
-          <div class="table-scroll">
-            <table class="mgmt-table">
-              <thead><tr><th>Asesor</th><th>Probabilidad</th><th>Confianza</th><th>Clientes evaluados</th><th>Clientes excluidos</th></tr></thead>
-              <tbody id="rteBody"></tbody>
-            </table>
-          </div>
-          <p class="ews-nota" id="rteNota"></p>
-        </section>
-      </section>
-
-      <style>
-        .ews-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;color:#fff}
-        .ews-badge.alta{background:#B3261E}
-        .ews-badge.media{background:#C06A00}
-        .ews-badge.baja{background:#6B6B6B}
-        .ews-badge.ok{background:#1B7A43}
-        .ews-nota{font-size:13px;color:#6B6B6B;margin-top:8px;padding:0 4px}
-        .ews-resumen-item{display:flex;flex-direction:column;gap:2px;padding:10px 16px;border-radius:8px;background:#f5f5f7;min-width:140px}
-        .ews-resumen-item strong{font-size:20px}
-      </style>
-
-      <section class="clients-mgmt-view hidden-view" id="rankingView">
-        <div class="dashboard-title">
-          <div>
-            <h2>Ranking — Motor RAC</h2>
-            <p>Rendimiento · Actividad · Cumplimiento. Puntaje = 70% cumplimiento de meta + 30% actividad comercial. Ranking semanal (resetea cada lunes) y acumulado mensual.</p>
-          </div>
-          <div class="dashboard-actions" id="rankingCerrarSemanaWrap" style="display:none">
-            <button class="btn ghost" id="rankingCerrarSemanaBtn">Cerrar semana</button>
-            <button class="btn ghost" id="rankingRefreshBtn">Actualizar</button>
-          </div>
-        </div>
-
-        <section class="mgmt-table-card" id="rankingPerfilCard">
-          <label id="rankingAsesorSelectWrap" style="display:block;margin-bottom:10px">
-            <select id="rankingAsesorSelect" style="display:none"></select>
-          </label>
-          Cargando…
-        </section>
-
-        <section class="mgmt-table-card">
-          <div class="table-header"><h3>Ranking semanal</h3></div>
-          <div class="table-scroll">
-            <table class="mgmt-table">
-              <thead><tr><th>#</th><th>Asesor</th><th>Puntos</th><th>Cumplimiento</th><th>Actividad</th><th>Meta superada</th></tr></thead>
-              <tbody id="rankingSemanalBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="mgmt-table-card">
-          <div class="table-header"><h3>Ranking mensual acumulado</h3></div>
-          <div class="table-scroll">
-            <table class="mgmt-table">
-              <thead><tr><th>#</th><th>Asesor</th><th>Puntos</th><th>Cumplimiento</th><th>Actividad</th><th>Meta superada</th></tr></thead>
-              <tbody id="rankingMensualBody"></tbody>
-            </table>
-          </div>
         </section>
       </section>
 
@@ -1234,17 +779,7 @@
   <script src="app.js"></script>
   <script src="supabase-sync.js"></script>
   <script src="mejoras-v1.js"></script>
-  <script src="modulo_01_calendario.js"></script>
-  <script src="modulo_02_motor_RED.js"></script>
-  <script src="modulo_03_motor_EWS.js"></script>
-  <script src="modulo_04_motor_RTE.js"></script>
-  <script src="modulo_05_ui_motores.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <script src="modulo_06_motor_RAC.js"></script>
-  <script src="modulo_07_qr_prospeccion.js"></script>
-  <script src="modulo_08_ui_ranking.js"></script>
-  <script src="modulo_09_leads_extendido.js"></script>
-  <script src="modulo_10_datos_personales.js"></script>
+  <script src="soporte-v1.js"></script>
   <script>
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();
