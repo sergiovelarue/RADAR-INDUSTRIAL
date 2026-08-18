@@ -219,6 +219,12 @@ function sistemaReubicarPanelesV1() {
 function showSistemaV1() {
   if (!sistemaEsSuperAdminV1()) return;
   if (typeof hideAllPrimaryViewsV93 === "function") hideAllPrimaryViewsV93();
+  // Oculta explícitamente las demás vistas propias/de otras capas (Ajustes,
+  // Usuarios, Log, Seguimiento, Prospección, Alarmas, Ranking, Metas), ya
+  // que hideAllPrimaryViewsV93() (app.js) no las conoce.
+  ["ajustesView", "usuariosView", "logView", "seguimientoView", "prospeccionView", "alarmasView", "rankingView", "metasView"].forEach(id => {
+    const el = $(id); if (el) el.classList.add("hidden-view");
+  });
   sistemaReubicarPanelesV1();
   const view = $("sistemaView");
   if (view) view.classList.remove("hidden-view");

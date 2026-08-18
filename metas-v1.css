@@ -1,0 +1,37 @@
+
+/* ===============================
+   V1 Metas — ajuste de meta por asesor
+   =============================== */
+.metas-ajuste-form{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
+  margin-bottom:16px;
+}
+.metas-ajuste-form label{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  font-weight:900;
+  margin-bottom:6px;
+}
+.metas-ajuste-form select{
+  width:100%;
+  border:1px solid #d1d5db;
+  border-radius:12px;
+  padding:10px;
+  background:white;
+}
+
+#metasAjusteTabla select,
+#metasAjusteTabla input{
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  padding:6px 8px;
+  background:white;
+  width:100%;
+  min-width:120px;
+}
+.metas-ajuste-resultado{
+  font-weight:800;
+}

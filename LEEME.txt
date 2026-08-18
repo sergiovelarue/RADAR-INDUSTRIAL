@@ -1,0 +1,25 @@
+Mejoras_20260818_1747
+======================
+Fecha/hora de creación: 2026-08-18, 17:47 (hora Colombia)
+
+Etapa 5 — Ajuste de meta de ventas por asesor (próximos meses).
+
+Archivos en esta carpeta (subir/reemplazar en GitHub, en la raíz del repo):
+  - metas-v1.js   (NUEVO)
+  - metas-v1.css  (NUEVO)
+  - index.html    (MODIFICADO — agrega los links a metas-v1.js/css)
+
+Base sobre la que aplica: RADAR-COMERCIAL-DEPLOY-v3 + Mejoras_20260818_1734
+(Etapa 3, Usuarios) ya entregados antes. No reemplaza ningún otro archivo
+del repo — solo estos 3.
+
+Qué hace: dentro de "Metas y presupuestos" (Administrador y Super Admin),
+nuevo panel para subir o bajar la meta planeada de un asesor en los
+próximos meses (% o monto fijo), sin editar cliente por cliente. No
+modifica la meta actual de cada cliente — es una capa de planeación
+aparte, con su propia tabla en Supabase.
+
+Después de subir a GitHub, Netlify debe redeployar automáticamente.
+Recomendado: probar como Administrador, abrir "Metas y presupuestos",
+seleccionar un asesor y guardar un ajuste de prueba antes de avisar al
+equipo.
