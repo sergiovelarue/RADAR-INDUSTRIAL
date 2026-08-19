@@ -166,33 +166,56 @@ function metasAjusteRenderTablaV1() {
   const body = $("metasAjusteTablaBody");
   if (!body) return;
 
-  const anio = metasAjusteAnioV1();
-  const mes = $("metasAjusteMesSelect")?.value || metasMesActualV2();
-  if (!mes) { body.innerHTML = '<tr><td colspan="6">No quedan meses disponibles en el año para ajustar.</td></tr>'; return; }
+  try {
+    // Salvaguarda: si por algún motivo el selector de mes quedó sin
+    // opciones (carrera de inicialización, u otra capa reordenó el
+    // panel), se rellena aquí también antes de leer su valor — evita
+    // que la tabla quede sin poder determinar el mes.
+    const selMes = $("metasAjusteMesSelect");
+    if (selMes && !selMes.options.length) metasAjusteLlenarSelectMesV2();
 
-  const asesores = ((DATA.meta && DATA.meta.asesores) || []).slice().sort();
-  if (!asesores.length) { body.innerHTML = '<tr><td colspan="6">No hay asesores registrados.</td></tr>'; return; }
+    const anio = metasAjusteAnioV1();
+    const mes = $("metasAjusteMesSelect")?.value || metasMesActualV2();
+    if (!mes) { body.innerHTML = '<tr><td colspan="6">No quedan meses disponibles en el año para ajustar.</td></tr>'; return; }
 
-  body.innerHTML = asesores.map(asesor => {
-    const metaInicial = metasBaseAsesorV1(asesor);
-    const acumuladoAnio = metasAcumuladoAnioAsesorV2(asesor);
-    const ajuste = metasAjustesCacheV2.find(a => a.asesor === asesor && a.anio === anio && a.mes === mes);
-    const metaVigente = ajuste ? Number(ajuste.meta_ajustada) : metaInicial;
-    return `<tr data-asesor="${esc(asesor)}">
-      <td data-label="Asesor">${esc(asesor)}</td>
-      <td data-label="Meta Inicial (mes)">${money(metaInicial)}</td>
-      <td data-label="Acumulado año"><strong class="metas-acumulado-valor">${money(acumuladoAnio)}</strong></td>
-      <td data-label="Meta vigente del mes">${money(metaVigente)}${ajuste ? ' <span class="metas-badge-ajustada" title="Meta ajustada manualmente">Ajustada</span>' : ""}</td>
-      <td data-label="Nueva meta del mes">
-        <input type="number" class="metas-nueva-meta-input" placeholder="${Number(metaVigente).toFixed(0)}" step="any" min="0"/>
-        <div class="metas-nueva-meta-preview" hidden></div>
-      </td>
-      <td data-label="Acciones">
-        <button class="btn ghost small-btn" data-accion="guardar-meta-asesor" data-asesor="${esc(asesor)}">Guardar</button>
-        ${ajuste ? `<button class="btn ghost small-btn" data-accion="quitar-meta-asesor" data-asesor="${esc(asesor)}">Quitar ajuste</button>` : ""}
-      </td>
-    </tr>`;
-  }).join("");
+    const asesores = ((DATA.meta && DATA.meta.asesores) || []).slice().sort();
+    if (!asesores.length) { body.innerHTML = '<tr><td colspan="6">No hay asesores registrados.</td></tr>'; return; }
+
+    // Cada asesor se renderiza de forma aislada: si un dato puntual de
+    // un asesor causa un error de cálculo, no debe tumbar la tabla
+    // completa (antes, un error dentro del .map() dejaba body.innerHTML
+    // sin asignar y la tabla se veía en blanco sin ningún aviso).
+    const filas = asesores.map(asesor => {
+      try {
+        const metaInicial = metasBaseAsesorV1(asesor);
+        const acumuladoAnio = metasAcumuladoAnioAsesorV2(asesor);
+        const ajuste = metasAjustesCacheV2.find(a => a.asesor === asesor && a.anio === anio && a.mes === mes);
+        const metaVigente = ajuste ? Number(ajuste.meta_ajustada) : metaInicial;
+        return `<tr data-asesor="${esc(asesor)}">
+          <td data-label="Asesor">${esc(asesor)}</td>
+          <td data-label="Meta Inicial (mes)">${money(metaInicial)}</td>
+          <td data-label="Acumulado año"><strong class="metas-acumulado-valor">${money(acumuladoAnio)}</strong></td>
+          <td data-label="Meta vigente del mes">${money(metaVigente)}${ajuste ? ' <span class="metas-badge-ajustada" title="Meta ajustada manualmente">Ajustada</span>' : ""}</td>
+          <td data-label="Nueva meta del mes">
+            <input type="number" class="metas-nueva-meta-input" placeholder="${Number(metaVigente).toFixed(0)}" step="any" min="0"/>
+            <div class="metas-nueva-meta-preview" hidden></div>
+          </td>
+          <td data-label="Acciones">
+            <button class="btn ghost small-btn" data-accion="guardar-meta-asesor" data-asesor="${esc(asesor)}">Guardar</button>
+            ${ajuste ? `<button class="btn ghost small-btn" data-accion="quitar-meta-asesor" data-asesor="${esc(asesor)}">Quitar ajuste</button>` : ""}
+          </td>
+        </tr>`;
+      } catch (eFila) {
+        console.error(`[Radar-Metas] Error calculando la fila de "${asesor}":`, eFila);
+        return `<tr data-asesor="${esc(asesor)}"><td colspan="6">No se pudo calcular la información de ${esc(asesor)} (ver consola).</td></tr>`;
+      }
+    });
+
+    body.innerHTML = filas.join("");
+  } catch (e) {
+    console.error("[Radar-Metas] Error renderizando la tabla de ajuste de metas:", e);
+    body.innerHTML = `<tr><td colspan="6">Ocurrió un error mostrando la tabla. Revisa la consola del navegador (F12) y comparte el mensaje de error para poder corregirlo. Detalle: ${esc(String(e && e.message || e))}</td></tr>`;
+  }
 }
 
 // Vista previa en vivo: mientras el admin escribe en "Nueva meta del

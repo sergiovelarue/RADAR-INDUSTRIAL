@@ -17,4 +17,4 @@
 // Quien continúe el desarrollo debe actualizar RADAR_VERSION cada vez
 // que empaquete un Mejoras_AAAAMMDD_HHMM.zip para subir a producción.
 // ============================================================
-window.RADAR_VERSION = "V11.0 · 2026-08-19";
+window.RADAR_VERSION = "V11.1 · 2026-08-19";
