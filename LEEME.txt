@@ -1,73 +1,81 @@
-RadarComercial B2B — Número de versión visible, actualizable
-Fecha de creación: 2026-08-19 15:07 (hora Colombia)
-Carpeta: Mejoras_20260819_1507
+RadarComercial B2B — Retiro del enlace "Actualización diaria" (menú lateral)
+Fecha de creación: 2026-08-19 15:50 (hora Colombia)
+Carpeta: Mejoras_20260819_1550
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
 Archivos incluidos (reemplazan a los del mismo nombre en GitHub):
 1. index.html
-2. version.js (ARCHIVO NUEVO — no reemplaza nada, se agrega)
+2. app.js
+3. mejoras-v1.js
+4. version.js (actualizado a V10.2 · 2026-08-19, siguiendo la
+   convención de versión visible establecida en la entrega anterior)
 
 ============================================================
 QUÉ CAMBIÓ Y POR QUÉ
 ============================================================
-El texto de versión que se ve en la barra lateral ("ConAccion · V9.8")
-estaba escrito fijo dentro de index.html y nunca se actualizaba — quedó
-congelado en "V9.8" desde hace tiempo, aunque el código real ya había
-avanzado muchas versiones más.
+Diagnóstico confirmado: el enlace "Actualización diaria" en la barra
+lateral no tenía vista propia. Al hacer clic, ejecutaba exactamente
+el mismo código que "Hoja de ruta" (showViewV812("route")) — por eso
+parecía "no llevar a ninguna parte": en realidad llevaba al mismo
+sitio que ya se ve por defecto.
 
-Ahora ese número se lee dinámicamente desde un archivo nuevo,
-`version.js`, que declara una sola variable: `window.RADAR_VERSION`.
-La app la lee al cargar y la escribe en pantalla automáticamente.
+Esto viene de una mejora anterior: el panel real de carga de archivos
+de ventas diarias (formulario para subir el Excel de Espumas del mes)
+se reubicó dentro de la pestaña "Ajustes" (solo administradores), pero
+el enlace del menú "Actualización diaria" quedó huérfano — nadie lo
+volvió a conectar a su función real ni se eliminó.
 
-Versión actual: V10.1 · 2026-08-19
+Se retiró el enlace "Actualización diaria" del menú lateral. El menú
+pasó de 13 a 12 pestañas, quedando más limpio y sin destinos
+duplicados/confusos.
 
 ============================================================
-CÓMO SE ACTUALIZA DE AQUÍ EN ADELANTE
+IMPORTANTE — LO QUE NO SE TOCÓ
 ============================================================
-Cada vez que se entregue un nuevo paquete Mejoras_*.zip con cambios
-de código, se debe actualizar la línea dentro de `version.js`:
+La función de "Actualización diaria de ventas 2026" (cargar el Excel
+de Espumas del mes, validar y procesar) SIGUE existiendo y funcionando
+exactamente igual que antes. Solo cambió de lugar en una mejora previa:
+hoy vive dentro de la pestaña "Ajustes" (visible para Administrador y
+Super Administrador), como el panel "Actualización diaria de ventas
+2026" con los mismos botones ("Validar archivos", "Procesar
+actualización", "Limpiar actualización local").
 
-    window.RADAR_VERSION = "V10.1 · 2026-08-19";
+Nada de esa función se eliminó ni se modificó en esta ronda — solo se
+quitó el enlace del menú que ya no llevaba a ningún lado propio.
 
-Subiendo el número de consecutivo (10.1 → 10.2 → 10.3...) y la fecha
-de esa entrega. Esto se hará automáticamente como parte de cada ronda
-de mejoras futura, sin que el cliente deba pedirlo — es ahora un paso
-estándar del proceso de entrega.
-
-Si en el futuro se hace un cambio estructural grande (una nueva etapa
-importante, no un ajuste puntual), se sube el número mayor (V10 → V11).
+============================================================
+DETALLE TÉCNICO
+============================================================
+- index.html: se eliminó `<a id="navUpdate">Actualización diaria</a>`
+  del menú lateral.
+- app.js: se eliminó el listener de clic sobre "navUpdate" (ya no
+  existe el elemento).
+- mejoras-v1.js: se eliminó "navUpdate" de 3 listas donde aparecía
+  (control de visibilidad para asesores, navegación general, y
+  ocultamiento de la vista de Metas al cambiar de pestaña).
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- `node --check version.js`: sin errores.
-- Parseo de `index.html`: sin errores.
-- Prueba en navegador (Chromium headless): el texto en pantalla
-  ("ConAccion · V10.1 · 2026-08-19") se pinta correctamente al cargar
-  la app, leyendo la variable desde version.js. Sin errores de código
+- `node --check` en app.js y mejoras-v1.js: sin errores.
+- Parseo de index.html: sin errores.
+- Búsqueda de referencias huérfanas a "navUpdate": cero coincidencias
+  funcionales (solo un comentario explicativo que documenta el
+  cambio).
+- Prueba en navegador (Chromium headless): el menú lateral ahora
+  muestra 12 pestañas (antes 13), sin el enlace "Actualización
+  diaria"; el panel real de carga de archivos (dailyUpdatePanel)
+  sigue presente y funcional dentro de Ajustes. Sin errores de código
   nuevos (los únicos errores en consola son los ya conocidos por la
   falta de conexión del entorno de desarrollo hacia Supabase).
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Subir a GitHub el archivo NUEVO `version.js` (en la misma carpeta
-   raíz que index.html, app.js, etc.).
-2. Reemplazar `index.html` con el de este paquete.
-3. Confirmar el commit — Netlify debe re-desplegar automáticamente.
-4. Verificar en el sitio publicado que la barra lateral ahora muestre
-   "ConAccion · V10.1 · 2026-08-19" en vez de "V9.8".
-
-============================================================
-NOTA SOBRE EL AVISO "PELIGROSA" EN LA BARRA DE DIRECCIONES
-============================================================
-Este cambio NO está relacionado con ese aviso. Esa alerta la genera
-Chrome/Google Safe Browsing sobre el subdominio compartido de Netlify
-(*.netlify.app), no sobre el código de la aplicación — se revisó el
-código completo y no hay nada que apunte a dominios sospechosos (solo
-CDNs legítimos: jsdelivr y el proyecto real de Supabase). La
-recomendación para resolverlo de forma definitiva es asignar un
-dominio propio al sitio en Netlify (Site settings → Domain
-management), en vez de depender del subdominio gratuito compartido.
+1. Reemplazar en GitHub los 3 archivos listados arriba.
+2. Confirmar el commit — Netlify debe re-desplegar automáticamente.
+3. Verificar en el sitio publicado que el menú lateral ya no muestre
+   "Actualización diaria", y que la carga de archivos siga
+   funcionando normalmente desde la pestaña "Ajustes".

@@ -638,14 +638,19 @@ directorClientsV813 = function () {
   return base.filter(c => c.asesorAsignado === state.profile);
 };
 
-// El nav de "Actualización diaria", "Gestión de clientes" y
-// "Gestión de asesores" son funciones exclusivas de administrador
-// (ya estaban bloqueadas por código), pero el enlace seguía
-// visible para asesores aunque no llevara a ningún lado. Se oculta
-// para que la barra lateral solo muestre lo que sí pueden usar.
+// El nav de "Gestión de clientes" y "Gestión de asesores" son
+// funciones exclusivas de administrador (ya estaban bloqueadas por
+// código), pero el enlace seguía visible para asesores aunque no
+// llevara a ningún lado. Se oculta para que la barra lateral solo
+// muestre lo que sí pueden usar.
+// Depuración de menú (2026-08-19): se retiró "navUpdate" ("Actualización
+// diaria") de esta lista y del index.html — ese enlace no tenía vista
+// propia, hacía showViewV812("route") (el mismo destino que "Hoja de
+// ruta"). La función real de carga de archivos ya vive dentro de la
+// pestaña "Ajustes" (dailyUpdatePanel, ver ajustes-v1.js).
 function ocultarNavAdminV102() {
   const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
-  ["navUpdate", "navClients", "navAdvisors"].forEach(id => {
+  ["navClients", "navAdvisors"].forEach(id => {
     const el = $(id);
     if (el) el.style.display = esAdmin ? "" : "none";
   });
@@ -1457,7 +1462,6 @@ if (typeof hideAllPrimaryViewsV93 === "function") {
 }
 [
   ["navRoute", () => showViewV812 && showViewV812("route")],
-  ["navUpdate", () => showViewV812 && showViewV812("route")],
   ["navDashboard", () => showViewV812 && showViewV812("dashboard")],
   ["navClients", () => showClientsManagementV93 && showClientsManagementV93()],
   ["navAdvisors", () => showAdvisorsManagementV93 && showAdvisorsManagementV93()],
@@ -2029,7 +2033,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // navMetas también debe ocultarse (dejar de estar activo visualmente)
 // al salir hacia otras vistas, y metasView debe ocultarse desde ellas.
-["navRoute", "navUpdate", "navDashboard", "navSeguimiento", "navProspeccion", "navClients", "navAdvisors", "navGlossary"].forEach(id => {
+["navRoute", "navDashboard", "navSeguimiento", "navProspeccion", "navClients", "navAdvisors", "navGlossary"].forEach(id => {
   const el = $(id);
   if (el) el.addEventListener("click", () => {
     const mv = $("metasView"); if (mv) mv.classList.add("hidden-view");
