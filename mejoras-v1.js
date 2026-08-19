@@ -1844,10 +1844,14 @@ function serieMensualOrganizacionV106() {
   const meses = monthsV812();
   const cfg = typeof growthConfigV810 === "function" ? growthConfigV810() : { A: 12, B: 10, C: 5, E: 15, N: 0 };
   const clientes = (DATA.clientes || []).filter(c => !(typeof isBlockedV87 === "function" && isBlockedV87(c)));
+  const asesores = (DATA.meta && DATA.meta.asesores) || [];
+  const anio = typeof metasAjusteAnioV1 === "function" ? metasAjusteAnioV1() : 2026;
 
   const serie2025 = new Array(12).fill(0);
   const serie2026 = new Array(12).fill(0);
   const serie2027 = new Array(12).fill(0);
+  const serieMetaInicial = new Array(12).fill(0);
+  const serieMetaAjustada = new Array(12).fill(0);
 
   clientes.forEach(c => {
     const g = Number(cfg[c.clasificacion] ?? 0);
@@ -1860,7 +1864,42 @@ function serieMensualOrganizacionV106() {
     });
   });
 
-  return { meses, serie2025, serie2026, serie2027 };
+  // Meta Inicial y Meta Ajustada, mes a mes, sumadas por asesor (los
+  // ajustes de ajustes_meta_asesor se guardan por asesor, no por
+  // cliente individual — igual que en resumenMetasAsesorV106).
+  asesores.forEach(asesor => {
+    const clientesAsesor = clientes.filter(c => c.asesorAsignado === asesor);
+    meses.forEach((m, i) => {
+      const metaInicialMes = metaInicialAsesorMesV2(clientesAsesor, m);
+      serieMetaInicial[i] += metaInicialMes;
+      serieMetaAjustada[i] += metaVigenteAsesorMesV2(asesor, anio, m, metaInicialMes);
+    });
+  });
+
+  return { meses, serie2025, serie2026, serie2027, serieMetaInicial, serieMetaAjustada };
+}
+
+// Meta ajustada vigente de UN asesor en UN mes/año: si hay un ajuste
+// guardado en ajustes_meta_asesor (cache cargada por metas-v1.js en
+// metasAjustesCacheV2) para ese asesor/año/mes, se usa ese valor; si
+// no, se usa la Meta Inicial (planeada) del asesor en ese mes, para
+// que la serie "Meta Ajustada" quede completa mes a mes aunque no
+// todos los meses tengan un ajuste manual.
+function metaVigenteAsesorMesV2(nombreAsesor, anio, mes, metaInicialMes) {
+  const cache = (typeof metasAjustesCacheV2 !== "undefined" && Array.isArray(metasAjustesCacheV2)) ? metasAjustesCacheV2 : [];
+  const ajuste = cache.find(a => a.asesor === nombreAsesor && Number(a.anio) === Number(anio) && a.mes === mes);
+  return ajuste ? Number(ajuste.meta_ajustada) : metaInicialMes;
+}
+
+// Meta Inicial (planeada) de un asesor en un mes específico: suma de
+// goal(c) de sus clientes activos, con state.month puesto en ese mes
+// temporalmente (mismo patrón ya usado en resumenMetasAsesorV106).
+function metaInicialAsesorMesV2(clientes, mes) {
+  const mesActualGuardado = state.month;
+  state.month = mes;
+  const total = clientes.reduce((s, c) => s + ((typeof goal === "function") ? goal(c) : 0), 0);
+  state.month = mesActualGuardado;
+  return total;
 }
 
 // Resumen de metas por asesor (o total si nombreAsesor es null).
@@ -1873,8 +1912,9 @@ function resumenMetasAsesorV106(nombreAsesor) {
 
   const cfg = typeof growthConfigV810 === "function" ? growthConfigV810() : { A: 12, B: 10, C: 5, E: 15, N: 0 };
 
-  let real2025 = 0, real2026 = 0, planeado2026 = 0, proyectado2026 = 0, propuesto2027 = 0;
+  let real2025 = 0, real2026 = 0, planeado2026 = 0, ajustado2026 = 0, proyectado2026 = 0, presupuestoProximoAnio = 0;
   const meses = monthsV812();
+  const anio = typeof metasAjusteAnioV1 === "function" ? metasAjusteAnioV1() : 2026;
 
   clientes.forEach(c => {
     real2025 += meses.reduce((s, m) => s + ventaMesClienteV106(c, 2025, m), 0);
@@ -1882,21 +1922,25 @@ function resumenMetasAsesorV106(nombreAsesor) {
     real2026 += real2026Transcurrido;
     proyectado2026 += total2026Estimado;
 
-    // 2026 planeado: Meta sugerida ya existente, sumada mes a mes
-    // sobre los mismos meses transcurridos (consistente con "real").
-    const transcurridos = typeof availableMonthsV812 === "function" ? availableMonthsV812() : meses;
-    const mesActualGuardado = state.month;
-    transcurridos.forEach(m => {
-      state.month = m;
-      planeado2026 += (typeof goal === "function") ? goal(c) : 0;
-    });
-    state.month = mesActualGuardado;
-
     const g = Number(cfg[c.clasificacion] ?? 0);
-    propuesto2027 += total2026Estimado * (1 + g / 100);
+    presupuestoProximoAnio += total2026Estimado * (1 + g / 100);
   });
 
-  return { asesor: nombreAsesor || "TOTAL ORGANIZACIÓN", real2025, real2026, planeado2026, proyectado2026, propuesto2027 };
+  // 2026 planeado (Meta Inicial) y 2026 ajustado (Meta Ajustada vigente,
+  // que reemplaza mes a mes la Meta Inicial cuando el administrador guardó
+  // un ajuste): ambos se calculan a nivel de asesor completo (no cliente a
+  // cliente), porque los ajustes de ajustes_meta_asesor se guardan por
+  // asesor, no por cliente individual.
+  if (nombreAsesor) {
+    const transcurridos = typeof availableMonthsV812 === "function" ? availableMonthsV812() : meses;
+    transcurridos.forEach(m => {
+      const metaInicialMes = metaInicialAsesorMesV2(clientes, m);
+      planeado2026 += metaInicialMes;
+      ajustado2026 += metaVigenteAsesorMesV2(nombreAsesor, anio, m, metaInicialMes);
+    });
+  }
+
+  return { asesor: nombreAsesor || "TOTAL ORGANIZACIÓN", real2025, real2026, planeado2026, ajustado2026, proyectado2026, presupuestoProximoAnio };
 }
 
 function renderMetasViewV106() {
@@ -1922,23 +1966,26 @@ function renderMetasViewV106() {
     real2025: acc.real2025 + r.real2025,
     real2026: acc.real2026 + r.real2026,
     planeado2026: acc.planeado2026 + r.planeado2026,
+    ajustado2026: acc.ajustado2026 + r.ajustado2026,
     proyectado2026: acc.proyectado2026 + r.proyectado2026,
-    propuesto2027: acc.propuesto2027 + r.propuesto2027
-  }), { real2025: 0, real2026: 0, planeado2026: 0, proyectado2026: 0, propuesto2027: 0 });
+    presupuestoProximoAnio: acc.presupuestoProximoAnio + r.presupuestoProximoAnio
+  }), { real2025: 0, real2026: 0, planeado2026: 0, ajustado2026: 0, proyectado2026: 0, presupuestoProximoAnio: 0 });
 
   if ($("metasCount")) $("metasCount").textContent = `${resumenes.length} asesor(es)`;
 
   const filaHtmlV106 = (r, resaltar) => {
     const cumplProyectado = r.planeado2026 ? (r.proyectado2026 / r.planeado2026) * 100 : 0;
+    const tieneAjuste = Math.round(r.ajustado2026) !== Math.round(r.planeado2026);
     const estilo = resaltar ? ' style="font-weight:800;background:var(--panel-alt,#f4f6fb)"' : "";
     return `<tr${estilo}>
       <td data-label="Asesor">${esc(r.asesor)}</td>
       <td data-label="2025 real">${money(r.real2025)}</td>
       <td data-label="2026 real">${money(r.real2026)}</td>
-      <td data-label="2026 planeado">${money(r.planeado2026)}</td>
+      <td data-label="Meta Inicial 2026">${money(r.planeado2026)}</td>
+      <td data-label="Meta Ajustada 2026">${money(r.ajustado2026)}${tieneAjuste ? ' <span class="metas-badge-ajustada" title="Incluye ajustes manuales guardados">Ajustada</span>' : ""}</td>
       <td data-label="2026 proyectado">${money(r.proyectado2026)}</td>
       <td data-label="Cumplimiento proyectado">${pct(cumplProyectado)}</td>
-      <td data-label="2027 propuesto">${money(r.propuesto2027)}</td>
+      <td data-label="Presupuesto Próximo Año">${money(r.presupuestoProximoAnio)}</td>
     </tr>`;
   };
 
@@ -1951,8 +1998,10 @@ function renderMetasViewV106() {
         labels: asesores,
         datasets: [
           { label: "2025 real", data: resumenes.map(r => r.real2025) },
+          { label: "Meta Inicial 2026", data: resumenes.map(r => r.planeado2026) },
+          { label: "Meta Ajustada 2026", data: resumenes.map(r => r.ajustado2026) },
           { label: "2026 proyectado", data: resumenes.map(r => r.proyectado2026) },
-          { label: "2027 propuesto", data: resumenes.map(r => r.propuesto2027) }
+          { label: "Presupuesto Próximo Año", data: resumenes.map(r => r.presupuestoProximoAnio) }
         ]
       },
       options: { responsive: true, plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true } } }
@@ -1966,6 +2015,8 @@ function renderMetasViewV106() {
         labels: mensual.meses,
         datasets: [
           { label: "2025 real", data: mensual.serie2025, borderColor: "#94a3b8", backgroundColor: "#94a3b8", tension: .25 },
+          { label: "Meta Inicial 2026", data: mensual.serieMetaInicial, borderColor: "#a855f7", backgroundColor: "#a855f7", tension: .25, borderDash: [2, 2] },
+          { label: "Meta Ajustada 2026", data: mensual.serieMetaAjustada, borderColor: "#f59e0b", backgroundColor: "#f59e0b", tension: .25 },
           {
             label: "2026 real + proyectado",
             data: mensual.serie2026,
@@ -1976,7 +2027,7 @@ function renderMetasViewV106() {
               borderDash: ctx => ctx.p0DataIndex >= idxUltimoTranscurrido ? [6, 4] : undefined
             }
           },
-          { label: "2027 proyectado", data: mensual.serie2027, borderColor: "#16a34a", backgroundColor: "#16a34a", tension: .25, borderDash: [3, 3] }
+          { label: "Presupuesto Próximo Año", data: mensual.serie2027, borderColor: "#16a34a", backgroundColor: "#16a34a", tension: .25, borderDash: [3, 3] }
         ]
       },
       options: { responsive: true, plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true } } }
@@ -1989,16 +2040,103 @@ function exportarMetasCSVV106() {
   const resumenes = asesores.map(a => resumenMetasAsesorV106(a));
   const total = resumenes.reduce((acc, r) => ({
     real2025: acc.real2025 + r.real2025, real2026: acc.real2026 + r.real2026,
-    planeado2026: acc.planeado2026 + r.planeado2026, proyectado2026: acc.proyectado2026 + r.proyectado2026,
-    propuesto2027: acc.propuesto2027 + r.propuesto2027
-  }), { real2025: 0, real2026: 0, planeado2026: 0, proyectado2026: 0, propuesto2027: 0 });
+    planeado2026: acc.planeado2026 + r.planeado2026, ajustado2026: acc.ajustado2026 + r.ajustado2026,
+    proyectado2026: acc.proyectado2026 + r.proyectado2026, presupuestoProximoAnio: acc.presupuestoProximoAnio + r.presupuestoProximoAnio
+  }), { real2025: 0, real2026: 0, planeado2026: 0, ajustado2026: 0, proyectado2026: 0, presupuestoProximoAnio: 0 });
 
-  const rows = [["Asesor", "2025 real (MM)", "2026 real (MM)", "2026 planeado (MM)", "2026 proyectado (MM)", "2027 propuesto (MM)"]];
-  rows.push(["TOTAL ORGANIZACIÓN", total.real2025.toFixed(1), total.real2026.toFixed(1), total.planeado2026.toFixed(1), total.proyectado2026.toFixed(1), total.propuesto2027.toFixed(1)]);
-  resumenes.forEach(r => rows.push([r.asesor, r.real2025.toFixed(1), r.real2026.toFixed(1), r.planeado2026.toFixed(1), r.proyectado2026.toFixed(1), r.propuesto2027.toFixed(1)]));
+  const rows = [["Asesor", "2025 real (MM)", "2026 real (MM)", "Meta Inicial 2026 (MM)", "Meta Ajustada 2026 (MM)", "2026 proyectado (MM)", "Presupuesto Próximo Año (MM)"]];
+  rows.push(["TOTAL ORGANIZACIÓN", total.real2025.toFixed(1), total.real2026.toFixed(1), total.planeado2026.toFixed(1), total.ajustado2026.toFixed(1), total.proyectado2026.toFixed(1), total.presupuestoProximoAnio.toFixed(1)]);
+  resumenes.forEach(r => rows.push([r.asesor, r.real2025.toFixed(1), r.real2026.toFixed(1), r.planeado2026.toFixed(1), r.ajustado2026.toFixed(1), r.proyectado2026.toFixed(1), r.presupuestoProximoAnio.toFixed(1)]));
 
   if (typeof downloadCsvV86 === "function") {
     downloadCsvV86(rows, "radar_metas_presupuestos.csv");
+  }
+}
+
+// Exportación a Excel (.xlsx) del "Presupuesto Próximo Año": hoja 1 con
+// la tabla completa (por asesor, mes a mes, más el total del año
+// siguiente); hoja 2 con los mismos datos organizados para graficar
+// fácilmente en Excel (Insertar > Gráfico, con los datos ya listos).
+// NOTA TÉCNICA: la librería usada (SheetJS/XLSX, edición community, ya
+// cargada en index.html) no soporta insertar gráficos nativos ni
+// imágenes dentro del .xlsx — esa función solo existe en su edición de
+// pago (Pro). Por eso el archivo trae los datos de la gráfica en una
+// hoja aparte, listos para seleccionar e insertar un gráfico en Excel
+// en 2 clics, en vez de prometer una gráfica ya incrustada que esta
+// librería no puede generar. Adicionalmente se descarga por separado
+// una imagen PNG de la gráfica tal como se ve en pantalla, capturada
+// directamente del canvas ya renderizado.
+function exportarPresupuestoProximoAnioExcelV1() {
+  if (typeof XLSX === "undefined") {
+    alert("No se pudo cargar la librería de Excel (XLSX). Verifica tu conexión a internet e intenta de nuevo.");
+    return;
+  }
+
+  const asesores = (DATA.meta && DATA.meta.asesores) || [];
+  const meses = monthsV812();
+  const cfg = typeof growthConfigV810 === "function" ? growthConfigV810() : { A: 12, B: 10, C: 5, E: 15, N: 0 };
+  const anioSiguiente = (typeof metasAjusteAnioV1 === "function" ? metasAjusteAnioV1() : 2026) + 1;
+
+  // Tabla 1: por asesor, mes a mes (Presupuesto Próximo Año = serie
+  // 2026 estimada del cliente × su % de crecimiento por clasificación,
+  // igual fórmula que ya usa serieMensualOrganizacionV106/propuesto2027).
+  const encabezado = ["Asesor", ...meses, "Total " + anioSiguiente];
+  const filas = [encabezado];
+
+  asesores.forEach(asesor => {
+    const clientesAsesor = (DATA.clientes || []).filter(c => {
+      if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return false;
+      return c.asesorAsignado === asesor;
+    });
+    const serieMeses = new Array(12).fill(0);
+    clientesAsesor.forEach(c => {
+      const g = Number(cfg[c.clasificacion] ?? 0);
+      const factor = 1 + g / 100;
+      const s2026 = serieMensual2026ClienteV106(c);
+      meses.forEach((m, i) => { serieMeses[i] += s2026[i] * factor; });
+    });
+    const totalAsesor = serieMeses.reduce((s, v) => s + v, 0);
+    filas.push([asesor, ...serieMeses.map(v => Math.round(v)), Math.round(totalAsesor)]);
+  });
+
+  const mensual = serieMensualOrganizacionV106();
+  const totalGeneral = mensual.serie2027.reduce((s, v) => s + v, 0);
+  filas.push(["TOTAL ORGANIZACIÓN", ...mensual.serie2027.map(v => Math.round(v)), Math.round(totalGeneral)]);
+
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.aoa_to_sheet(filas);
+  ws1["!cols"] = [{ wch: 26 }, ...meses.map(() => ({ wch: 12 })), { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, ws1, "Presupuesto " + anioSiguiente);
+
+  // Hoja 2: total mensual de la organización (2025 real, 2026
+  // real+proyectado, Presupuesto Próximo Año), en columnas simples
+  // listas para seleccionar e Insertar > Gráfico en Excel.
+  const filasGrafica = [["Mes", "2025 real", "2026 real + proyectado", "Presupuesto " + anioSiguiente]];
+  meses.forEach((m, i) => {
+    filasGrafica.push([m, Math.round(mensual.serie2025[i]), Math.round(mensual.serie2026[i]), Math.round(mensual.serie2027[i])]);
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(filasGrafica);
+  ws2["!cols"] = [{ wch: 12 }, { wch: 16 }, { wch: 20 }, { wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, ws2, "Datos gráfica " + anioSiguiente);
+
+  XLSX.writeFile(wb, `radar_presupuesto_${anioSiguiente}.xlsx`);
+
+  // Además del Excel, se descarga una imagen PNG de la gráfica mensual
+  // tal como se ve en pantalla (captura directa del canvas ya
+  // renderizado) — esto sí es una gráfica real, a diferencia de la
+  // hoja de datos de Excel de arriba.
+  try {
+    const canvas = $("metasMensualChart");
+    if (canvas && canvas.toDataURL) {
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = `radar_presupuesto_${anioSiguiente}_grafica.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  } catch (eImg) {
+    console.warn("[Radar-Metas] No se pudo generar la imagen PNG de la gráfica:", eImg);
   }
 }
 
@@ -2105,4 +2243,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if ($("navMetas")) $("navMetas").addEventListener("click", showMetasViewV106);
   if ($("metasExportBtn")) $("metasExportBtn").addEventListener("click", exportarMetasCSVV106);
+  if ($("metasExportExcelBtn")) $("metasExportExcelBtn").addEventListener("click", exportarPresupuestoProximoAnioExcelV1);
 });

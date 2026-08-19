@@ -777,9 +777,10 @@
 
       <section class="clients-mgmt-view hidden-view" id="metasView">
         <div class="dashboard-title">
-          <div><h2>Metas y presupuestos</h2><p>Ventas totales, por asesor y por mes: 2025 real, 2026 real y planeado, proyección del resto de 2026, y propuesta 2027. Solo Administrador.</p></div>
+          <div><h2>Metas y presupuestos</h2><p>Ventas totales, por asesor y por mes: 2025 real, 2026 real, Meta Inicial, Meta Ajustada, proyección del resto de 2026, y Presupuesto Próximo Año. Solo Administrador.</p></div>
           <div class="dashboard-actions">
             <button class="btn ghost" id="metasExportBtn">Exportar CSV</button>
+            <button class="btn" id="metasExportExcelBtn">Exportar Presupuesto Próximo Año (Excel)</button>
           </div>
         </div>
 
@@ -787,13 +788,13 @@
           <article class="chart-card wide">
             <div class="chart-header">
               <h3>Venta mensual comparada</h3>
-              <p>2025 real, 2026 (real hasta el mes actual + proyectado el resto) y 2027 proyectado, mes a mes. Total organización.</p>
-              <p class="chart-note">Meses transcurridos 2026: <strong id="metasMesesTranscurridos">—</strong>. La proyección del resto de 2026 usa el promedio real transcurrido ajustado por la estacionalidad de 2025. La propuesta 2027 aplica el % de crecimiento por clasificación definido en "Configuración comercial por clasificación" (pestaña Sistema).</p>
+              <p>2025 real, Meta Inicial, Meta Ajustada, 2026 (real hasta el mes actual + proyectado el resto) y Presupuesto Próximo Año, mes a mes. Total organización.</p>
+              <p class="chart-note">Meses transcurridos 2026: <strong id="metasMesesTranscurridos">—</strong>. La proyección del resto de 2026 usa el promedio real transcurrido ajustado por la estacionalidad de 2025. El Presupuesto Próximo Año aplica el % de crecimiento por clasificación definido en "Configuración comercial por clasificación" (pestaña Sistema). La Meta Ajustada incorpora los ajustes manuales guardados en el panel "Ajuste de metas por asesor" (si un mes no tiene ajuste manual, se usa la Meta Inicial de ese mes).</p>
             </div>
             <canvas id="metasMensualChart"></canvas>
           </article>
           <article class="chart-card wide">
-            <div class="chart-header"><h3>Venta anual comparada</h3><p>2025 real, 2026 real + proyectado, y propuesta 2027, por asesor.</p></div>
+            <div class="chart-header"><h3>Venta anual comparada</h3><p>2025 real, Meta Inicial, Meta Ajustada, 2026 proyectado, y Presupuesto Próximo Año, por asesor.</p></div>
             <canvas id="metasChart"></canvas>
           </article>
         </section>
@@ -802,7 +803,7 @@
           <div class="table-header"><h3>Resumen por asesor</h3><span id="metasCount"></span></div>
           <div class="table-scroll">
             <table class="mgmt-table">
-              <thead><tr><th>Asesor</th><th>2025 real</th><th>2026 real</th><th>2026 planeado</th><th>2026 proyectado</th><th>Cumplimiento proyectado</th><th>2027 propuesto</th></tr></thead>
+              <thead><tr><th>Asesor</th><th>2025 real</th><th>2026 real</th><th>Meta Inicial 2026</th><th>Meta Ajustada 2026</th><th>2026 proyectado</th><th>Cumplimiento proyectado</th><th>Presupuesto Próximo Año</th></tr></thead>
               <tbody id="metasBody"></tbody>
             </table>
           </div>

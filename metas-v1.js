@@ -157,6 +157,16 @@ async function metasAjusteCargarV1() {
     if (error) { console.error("[Radar-Metas] Error listando ajustes:", error); return; }
     metasAjustesCacheV2 = data || [];
     metasAjusteRenderTablaV1();
+    // Fase 2 (2026-08-19): el resumen "Metas y presupuestos" (tabla y
+    // gráficas metasChart/metasMensualChart de mejoras-v1.js) también
+    // usa metasAjustesCacheV2 para calcular "Meta Ajustada". Como esa
+    // vista se dibuja ANTES de que esta carga async termine (ver
+    // showMetasViewV106 más abajo), se vuelve a renderizar aquí para
+    // que quede con el dato correcto, sin necesidad de que el usuario
+    // recargue la página o cambie de pestaña.
+    if (typeof renderMetasViewV106 === "function" && $("metasView") && !$("metasView").classList.contains("hidden-view")) {
+      renderMetasViewV106();
+    }
   } catch (e) {
     console.error("[Radar-Metas] Fallo de conexión listando ajustes:", e);
   }
@@ -443,3 +453,89 @@ function metasEtiquetaEngancharRenderV2() {
     return r;
   };
 }
+
+// ============================================================
+// Fase 2 (2026-08-19) — Meta Ajustada en el Dashboard general.
+// ------------------------------------------------------------
+// El Dashboard (monthlySalesChart) se dibuja en app.js sin conocer
+// los ajustes de ajustes_meta_asesor (esa tabla y su cache
+// metasAjustesCacheV2 son de este archivo). En vez de tocar app.js,
+// se envuelve renderDirectorDashboardV812 una vez más: después de que
+// dibuje el gráfico normalmente, se vuelve a llamar chartV812 sobre el
+// mismo canvas agregando la serie "Meta Ajustada 2026" (organización
+// completa, sin filtro de asesor — el Dashboard no filtra por asesor).
+// Requiere que metasAjustesCacheV2 esté cargada; como el admin puede
+// entrar directo al Dashboard sin pasar antes por "Metas y
+// presupuestos", se dispara una carga propia aquí (independiente de
+// metasAjusteCargarV1, que además pinta la tabla de ajuste).
+async function metasCacheAjustesParaDashboardV1() {
+  const cred = metasAjusteCredencialesV1();
+  if (!cred.email || typeof supabaseClientV94 === "undefined") return;
+  try {
+    const { data, error } = await supabaseClientV94.rpc("listar_ajustes_meta_v1", {
+      p_admin_email: cred.email, p_admin_telefono: cred.telefono || null
+    });
+    if (error) { console.error("[Radar-Metas] Error cargando ajustes para el Dashboard:", error); return; }
+    metasAjustesCacheV2 = data || [];
+    if (typeof renderDirectorDashboardV812 === "function" && typeof currentViewV812 !== "undefined" && currentViewV812 === "dashboard") {
+      renderDirectorDashboardV812();
+    }
+  } catch (e) {
+    console.error("[Radar-Metas] Fallo de conexión cargando ajustes para el Dashboard:", e);
+  }
+}
+
+function metasDashboardAgregarSerieAjustadaV1() {
+  if (typeof chartV812 !== "function" || typeof monthsV812 !== "function") return;
+  const canvas = $("monthlySalesChart");
+  if (!canvas) return;
+
+  const meses = monthsV812();
+  const asesores = (DATA.meta && DATA.meta.asesores) || [];
+  const anio = typeof metasAjusteAnioV1 === "function" ? metasAjusteAnioV1() : 2026;
+  const serieMetaAjustada = new Array(meses.length).fill(0);
+
+  asesores.forEach(asesor => {
+    const clientesAsesor = (DATA.clientes || []).filter(c => {
+      if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return false;
+      return c.asesorAsignado === asesor;
+    });
+    meses.forEach((m, i) => {
+      const metaInicialMes = typeof metaInicialAsesorMesV2 === "function" ? metaInicialAsesorMesV2(clientesAsesor, m) : 0;
+      serieMetaAjustada[i] += (typeof metaVigenteAsesorMesV2 === "function")
+        ? metaVigenteAsesorMesV2(asesor, anio, m, metaInicialMes)
+        : metaInicialMes;
+    });
+  });
+
+  const chart = (typeof dashboardChartsV812 !== "undefined") ? dashboardChartsV812["monthlySalesChart"] : null;
+  if (!chart) return;
+  const yaExiste = chart.data.datasets.some(d => d.label === "Meta Ajustada 2026");
+  if (yaExiste) return;
+  chart.data.datasets.push({
+    label: "Meta Ajustada 2026",
+    data: serieMetaAjustada,
+    tension: .25,
+    borderColor: "#f59e0b",
+    backgroundColor: "rgba(245,158,11,0.08)",
+    pointRadius: 2,
+    pointBackgroundColor: "#f59e0b"
+  });
+  chart.update();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (typeof renderDirectorDashboardV812 === "function") {
+    const _renderDashboardOriginalV1 = renderDirectorDashboardV812;
+    renderDirectorDashboardV812 = function (...args) {
+      const r = _renderDashboardOriginalV1.apply(this, args);
+      if (metasAjusteEsAdminV1()) {
+        if (!metasAjustesCacheV2 || !metasAjustesCacheV2.length) {
+          metasCacheAjustesParaDashboardV1();
+        }
+        metasDashboardAgregarSerieAjustadaV1();
+      }
+      return r;
+    };
+  }
+});
