@@ -311,8 +311,11 @@ function soporteAdminCredencialesV1() {
 
 function soporteInsertarPanelAdminV1() {
   if ($("soporteAdminPanel")) return;
-  const referencia = $("masterDataAdminPanel");
-  if (!referencia || !referencia.parentNode) return;
+  // Mejoras (2026-08-19): el panel de Soporte se muestra solo dentro de
+  // "Gestión de asesores" (antes vivía en la Hoja de ruta y luego se
+  // reubicaba en "Ajustes"; ajustes-v1.js ya no lo mueve).
+  const referencia = $("advisorsManagementView");
+  if (!referencia) return;
 
   const panel = document.createElement("section");
   panel.className = "admin-panel";
@@ -358,7 +361,7 @@ function soporteInsertarPanelAdminV1() {
       </table>
     </div>
   `;
-  referencia.parentNode.insertBefore(panel, referencia.nextSibling);
+  referencia.appendChild(panel);
 
   $("soporteFiltroTipo").addEventListener("change", e => { soporteAdminStateV1.tipo = e.target.value; soporteRenderAdminTablaV1(); });
   $("soporteFiltroEstado").addEventListener("change", e => { soporteAdminStateV1.estado = e.target.value; soporteRenderAdminTablaV1(); });

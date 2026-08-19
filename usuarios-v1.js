@@ -1,18 +1,24 @@
 // ============================================================
 // V1 Usuarios — Radar Comercial B2B (RADAR-INDUSTRIAL)
 // ------------------------------------------------------------
-// Capa aditiva (2026-08-18, Etapa 3). Crea la pestaña "Usuarios",
-// visible para Administrador y Super Administrador, para crear,
-// editar y eliminar EXCLUSIVAMENTE cuentas con rol Asesor.
+// Capa aditiva (2026-08-18, Etapa 3). Gestiona cuentas de acceso
+// (login) con rol Asesor: crear, editar, eliminar.
 //
-// Importante — separación de conceptos:
-// - "Gestión de asesores" (navAdvisors, ya existente) administra el
-//   equipo comercial (nombre, municipio, canal, zona, clientes
-//   asignados) — es información de negocio, en DATA.meta.asesores.
-// - "Usuarios" (esta pestaña, nueva) administra las CUENTAS DE
-//   ACCESO a la app (login: correo, rol) — vive en la tabla
-//   usuarios de Supabase. Un asesor puede existir en "Gestión de
-//   asesores" sin tener todavía una cuenta de acceso, y viceversa.
+// Mejoras (2026-08-19): esta funcionalidad dejó de ser una pestaña
+// separada ("Usuarios") y ahora vive DENTRO de "Gestión de
+// asesores" (advisorsManagementView), como panel adicional. No hay
+// nav ni vista propia — se muestra siempre que se abre Gestión de
+// asesores, con el mismo control de acceso (Administrador + Super
+// Administrador) que ya tiene esa pestaña.
+//
+// Importante — separación de conceptos (sin cambios):
+// - "Gestión de asesores" administra el equipo comercial (nombre,
+//   municipio, canal, zona, clientes asignados) — información de
+//   negocio, en DATA.meta.asesores.
+// - Este panel administra las CUENTAS DE ACCESO a la app (login:
+//   correo, rol) — vive en la tabla usuarios de Supabase. Un
+//   asesor puede existir en "Gestión de asesores" sin tener
+//   todavía una cuenta de acceso, y viceversa.
 //
 // No puede crear, editar ni eliminar cuentas Administrador o Super
 // Administrador — eso sigue siendo exclusivo de Super Admin desde
@@ -32,67 +38,48 @@ function usuariosCredencialesV1() {
   return { email: u ? (u.email || "") : "", telefono: u ? (u.phone || "") : "" };
 }
 
-function usuariosInsertarNavV1() {
-  const nav = document.querySelector(".sidebar nav");
-  if (!nav || $("navUsuarios")) return;
-  const navLog = $("navLog");
-  const navSistema = $("navSistema");
-  const referencia = navLog || navSistema;
-  const a = document.createElement("a");
-  a.id = "navUsuarios";
-  a.textContent = "Usuarios";
-  if (referencia && referencia.parentNode) {
-    referencia.parentNode.insertBefore(a, referencia);
-  } else {
-    nav.appendChild(a);
-  }
-  a.addEventListener("click", showUsuariosV1);
-}
+function usuariosInsertarPanelV1() {
+  if ($("usuariosAdminPanel")) return;
+  const referencia = $("advisorsManagementView");
+  if (!referencia) return;
 
-function usuariosInsertarVistaV1() {
-  if ($("usuariosView")) return;
-  const referencia = $("clientsManagementView") || $("advisorsManagementView");
-  if (!referencia || !referencia.parentNode) return;
-
-  const section = document.createElement("section");
-  section.className = "usuarios-view hidden-view";
-  section.id = "usuariosView";
-  section.innerHTML = `
-    <div class="dashboard-title">
+  const panel = document.createElement("section");
+  panel.className = "admin-panel";
+  panel.id = "usuariosAdminPanel";
+  panel.innerHTML = `
+    <div class="panel-header">
       <div>
-        <h2>Usuarios</h2>
-        <p>Administrador y Super Administrador. Crea, edita y elimina cuentas de acceso con rol Asesor. Las cuentas Administrador y Super Administrador se gestionan desde la pestaña Sistema.</p>
+        <h3>Cuentas de acceso (Asesor)</h3>
+        <p>Administrador y Super Administrador. Correo con el que el asesor ingresa a Radar. El nombre debe coincidir con el asesor de esta misma pestaña para que vea sus propios clientes. Las cuentas Administrador y Super Administrador se gestionan desde la pestaña Sistema.</p>
       </div>
     </div>
-    <section class="admin-panel" id="usuariosAdminPanel">
-      <div class="panel-header">
-        <div>
-          <h3>Cuentas de Asesor</h3>
-          <p>Correo con el que el asesor ingresa a Radar. El nombre debe coincidir con el asesor en "Gestión de asesores" para que vea sus propios clientes.</p>
-        </div>
+    <div class="usuarios-form">
+      <label>Correo <input type="email" id="usuariosEmail" placeholder="correo@ejemplo.com"/></label>
+      <label>Nombre del asesor <input type="text" id="usuariosNombre" placeholder="Como aparece arriba, en Asesores"/></label>
+      <label>Teléfono <input type="tel" id="usuariosTelefono" placeholder="Opcional"/></label>
+      <div class="actions">
+        <button class="btn" id="usuariosCrearBtn" type="button">Crear / editar usuario</button>
       </div>
-      <div class="usuarios-form">
-        <label>Correo <input type="email" id="usuariosEmail" placeholder="correo@ejemplo.com"/></label>
-        <label>Nombre del asesor <input type="text" id="usuariosNombre" placeholder="Como aparece en Gestión de asesores"/></label>
-        <label>Teléfono <input type="tel" id="usuariosTelefono" placeholder="Opcional"/></label>
-        <div class="actions">
-          <button class="btn" id="usuariosCrearBtn" type="button">Crear / editar usuario</button>
-        </div>
-        <div id="usuariosMsg" class="sistema-msg"></div>
-      </div>
-      <div class="usuarios-toolbar">
-        <input type="search" id="usuariosBuscar" placeholder="Buscar por correo o nombre…"/>
-        <span id="usuariosCount" class="usuarios-count"></span>
-      </div>
-      <table class="sistema-admin-table">
-        <thead>
-          <tr><th>Correo</th><th>Nombre</th><th>Teléfono</th><th>Último ingreso</th><th>Acciones</th></tr>
-        </thead>
-        <tbody id="usuariosTableBody"><tr><td colspan="5">Cargando…</td></tr></tbody>
-      </table>
-    </section>
+      <div id="usuariosMsg" class="sistema-msg"></div>
+    </div>
+    <div class="usuarios-toolbar">
+      <input type="search" id="usuariosBuscar" placeholder="Buscar por correo o nombre…"/>
+      <span id="usuariosCount" class="usuarios-count"></span>
+    </div>
+    <table class="sistema-admin-table">
+      <thead>
+        <tr><th>Correo</th><th>Nombre</th><th>Teléfono</th><th>Último ingreso</th><th>Acciones</th></tr>
+      </thead>
+      <tbody id="usuariosTableBody"><tr><td colspan="5">Cargando…</td></tr></tbody>
+    </table>
   `;
-  referencia.parentNode.insertBefore(section, referencia);
+  // Se ubica antes del catálogo de canales/zonas, al final de la vista.
+  const canalPanel = $("canalCatalogPanel");
+  if (canalPanel && canalPanel.parentNode === referencia) {
+    referencia.insertBefore(panel, canalPanel);
+  } else {
+    referencia.appendChild(panel);
+  }
 }
 
 let usuariosCacheV1 = [];
@@ -220,24 +207,8 @@ async function usuariosEliminarV1(email) {
   }
 }
 
-function showUsuariosV1() {
-  if (!usuariosEsAdminV1()) return;
-  if (typeof hideAllPrimaryViewsV93 === "function") hideAllPrimaryViewsV93();
-  // Oculta explícitamente las demás vistas propias/de otras capas (Ajustes,
-  // Sistema, Log, Seguimiento, Prospección, Alarmas, Ranking, Metas), ya
-  // que hideAllPrimaryViewsV93() (app.js) no las conoce.
-  ["ajustesView", "sistemaView", "logView", "seguimientoView", "prospeccionView", "alarmasView", "rankingView", "metasView"].forEach(id => {
-    const el = $(id); if (el) el.classList.add("hidden-view");
-  });
-  const view = $("usuariosView");
-  if (view) view.classList.remove("hidden-view");
-  if ($("navUsuarios")) $("navUsuarios").classList.add("active");
-  usuariosCargarV1();
-}
-
 document.addEventListener("DOMContentLoaded", () => {
-  usuariosInsertarNavV1();
-  usuariosInsertarVistaV1();
+  usuariosInsertarPanelV1();
 
   if ($("usuariosCrearBtn")) $("usuariosCrearBtn").addEventListener("click", usuariosGuardarV1);
   if ($("usuariosBuscar")) $("usuariosBuscar").addEventListener("input", e => {
@@ -254,28 +225,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (accion === "eliminar") usuariosEliminarV1(email);
   });
 
-  const usuariosAjustarVisibilidadNavV1 = () => {
-    const el = $("navUsuarios");
-    if (el) el.style.display = usuariosEsAdminV1() ? "" : "none";
-  };
-  usuariosAjustarVisibilidadNavV1();
-
-  if (typeof applyAdminVisibilityV811 === "function") {
-    const _applyAdminVisibilidadOriginalUsuariosV1 = applyAdminVisibilityV811;
-    applyAdminVisibilityV811 = function () {
-      _applyAdminVisibilidadOriginalUsuariosV1();
-      try { usuariosAjustarVisibilidadNavV1(); } catch (e) { console.error("[Radar-Usuarios] Error aplicando visibilidad:", e); }
+  // showAdvisorsManagementV93 ya existe (app.js V9.3); se envuelve para
+  // cargar las cuentas de acceso cada vez que se abre Gestión de
+  // asesores, sin tocar el archivo original.
+  if (typeof showAdvisorsManagementV93 === "function") {
+    const _showAdvisorsOriginalV1 = showAdvisorsManagementV93;
+    showAdvisorsManagementV93 = function (...args) {
+      const r = _showAdvisorsOriginalV1.apply(this, args);
+      if (usuariosEsAdminV1()) usuariosCargarV1();
+      return r;
     };
   }
-
-  ["showViewV812", "showGlossaryV814", "showClientsManagementV93", "showAdvisorsManagementV93", "showAjustesV1", "showLogViewV98", "showProspeccionViewV104", "showSistemaV1"].forEach(fnName => {
-    if (typeof window[fnName] === "function") {
-      const _original = window[fnName];
-      window[fnName] = function (...args) {
-        const view = $("usuariosView");
-        if (view) view.classList.add("hidden-view");
-        return _original.apply(this, args);
-      };
-    }
-  });
 });

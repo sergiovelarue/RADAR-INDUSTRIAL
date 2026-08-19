@@ -786,21 +786,13 @@
           </div>
         </div>
 
-        <section class="admin-panel" id="metasConfigPanel">
-          <div class="panel-header">
-            <div>
-              <h3>Parámetros de proyección</h3>
-              <p>La proyección del resto de 2026 usa el promedio real transcurrido ajustado por la estacionalidad de 2025. La propuesta 2027 aplica el % de crecimiento por clasificación definido en "Configuración comercial por clasificación" (Hoja de ruta).</p>
-            </div>
-          </div>
-          <div class="growth-grid">
-            <label>Meses transcurridos 2026<input type="text" id="metasMesesTranscurridos" disabled/></label>
-          </div>
-        </section>
-
         <section class="chart-grid">
           <article class="chart-card wide">
-            <div class="chart-header"><h3>Venta mensual comparada</h3><p>2025 real, 2026 (real hasta el mes actual + proyectado el resto) y 2027 proyectado, mes a mes. Total organización.</p></div>
+            <div class="chart-header">
+              <h3>Venta mensual comparada</h3>
+              <p>2025 real, 2026 (real hasta el mes actual + proyectado el resto) y 2027 proyectado, mes a mes. Total organización.</p>
+              <p class="chart-note">Meses transcurridos 2026: <strong id="metasMesesTranscurridos">—</strong>. La proyección del resto de 2026 usa el promedio real transcurrido ajustado por la estacionalidad de 2025. La propuesta 2027 aplica el % de crecimiento por clasificación definido en "Configuración comercial por clasificación" (pestaña Sistema).</p>
+            </div>
             <canvas id="metasMensualChart"></canvas>
           </article>
           <article class="chart-card wide">

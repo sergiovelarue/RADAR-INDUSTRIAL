@@ -670,6 +670,29 @@ async function actualizarDatosManualV98() {
       typeof cargarClientesDesdeSupabaseV94 === "function" ? cargarClientesDesdeSupabaseV94() : Promise.resolve(false),
       typeof cargarConfiguracionDesdeSupabaseV97 === "function" ? cargarConfiguracionDesdeSupabaseV97() : Promise.resolve(false)
     ]);
+    // Mejoras (2026-08-19): "Actualizar datos" solo refrescaba clientes y
+    // configuración. Se extiende para que, cuando el panel correspondiente
+    // esté presente en el DOM (es decir, el admin ya abrió esa pestaña/panel
+    // al menos una vez y por lo tanto existe), también se refresquen
+    // cuentas de acceso (usuarios), ajustes de meta por asesor y reportes
+    // de soporte — evitando llamadas RPC innecesarias cuando el panel no
+    // aplica (p.ej. usuario no administrador).
+    const refrescosSecundarios = [];
+    if ($("usuariosAdminPanel") && typeof usuariosCargarV1 === "function") {
+      refrescosSecundarios.push(usuariosCargarV1());
+    }
+    if ($("metasAjustePanel") && typeof metasAjusteCargarV1 === "function") {
+      refrescosSecundarios.push(metasAjusteCargarV1());
+    }
+    if ($("soporteAdminPanel") && typeof soporteCargarAdminV1 === "function") {
+      refrescosSecundarios.push(soporteCargarAdminV1());
+    }
+    if (refrescosSecundarios.length) {
+      await Promise.all(refrescosSecundarios.map(p => Promise.resolve(p).catch(e => {
+        console.error("[Radar] Error en refresco secundario de 'Actualizar datos':", e);
+        return false;
+      })));
+    }
     if (typeof ensureAsesorPerfilesV93 === "function") ensureAsesorPerfilesV93();
     if (typeof ensureCanalCatalogV94 === "function") ensureCanalCatalogV94();
     if (typeof fillAdvisorFilter === "function") fillAdvisorFilter();
@@ -1876,7 +1899,11 @@ function renderMetasViewV106() {
   const meses = monthsV812();
   const transcurridos = typeof availableMonthsV812 === "function" ? availableMonthsV812() : meses;
   if ($("metasMesesTranscurridos")) {
-    $("metasMesesTranscurridos").value = transcurridos.length
+    // V1 Mejoras (2026-08-19): "Parámetros de proyección" dejó de ser un
+    // panel propio y ahora es una nota junto al gráfico de venta mensual
+    // comparada; el elemento cambió de <input disabled> a <strong>, por
+    // eso se usa textContent en vez de value.
+    $("metasMesesTranscurridos").textContent = transcurridos.length
       ? `${transcurridos[0]} a ${transcurridos[transcurridos.length - 1]} (${transcurridos.length} de 12 meses)`
       : "Sin datos operativos cargados";
   }

@@ -1,25 +1,117 @@
-Mejoras_20260818_1747
-======================
-Fecha/hora de creación: 2026-08-18, 17:47 (hora Colombia)
+RadarComercial B2B — Paquete de mejoras
+Fecha de creación: 2026-08-19 07:58 (hora Colombia)
+Carpeta: Mejoras_20260819_0758
 
-Etapa 5 — Ajuste de meta de ventas por asesor (próximos meses).
+============================================================
+QUÉ CONTIENE ESTE PAQUETE
+============================================================
+Estos son los ÚNICOS archivos que cambiaron en esta ronda. Reemplazan
+a los archivos del mismo nombre en el repositorio de GitHub / sitio
+publicado en Netlify. NO borrar ni tocar ningún otro archivo del
+proyecto — el resto permanece igual.
 
-Archivos en esta carpeta (subir/reemplazar en GitHub, en la raíz del repo):
-  - metas-v1.js   (NUEVO)
-  - metas-v1.css  (NUEVO)
-  - index.html    (MODIFICADO — agrega los links a metas-v1.js/css)
+Archivos incluidos:
+1. index.html
+2. mejoras-v1.js
+3. metas-v1.js
+4. metas-v1.css
+5. soporte-v1.js
+6. ajustes-v1.js
+7. usuarios-v1.js
+8. sistema-v1.js
 
-Base sobre la que aplica: RADAR-COMERCIAL-DEPLOY-v3 + Mejoras_20260818_1734
-(Etapa 3, Usuarios) ya entregados antes. No reemplaza ningún otro archivo
-del repo — solo estos 3.
+============================================================
+QUÉ CAMBIÓ (4 mejoras solicitadas)
+============================================================
 
-Qué hace: dentro de "Metas y presupuestos" (Administrador y Super Admin),
-nuevo panel para subir o bajar la meta planeada de un asesor en los
-próximos meses (% o monto fijo), sin editar cliente por cliente. No
-modifica la meta actual de cada cliente — es una capa de planeación
-aparte, con su propia tabla en Supabase.
+1) Gestión de cuentas de acceso de asesores — reubicada
+   - Antes: pestaña propia "Usuarios" en el menú lateral.
+   - Ahora: el panel "Cuentas de acceso (Asesor)" vive DENTRO de la
+     pestaña "Gestión de asesores", visible solo para Administrador
+     y Super Administrador.
+   - Se eliminó la pestaña "Usuarios" del menú (ya no existe nav ni
+     vista separada).
+   - Archivos: usuarios-v1.js (reescrito), sistema-v1.js (ajuste de
+     lista de vistas a ocultar).
 
-Después de subir a GitHub, Netlify debe redeployar automáticamente.
-Recomendado: probar como Administrador, abrir "Metas y presupuestos",
-seleccionar un asesor y guardar un ajuste de prueba antes de avisar al
-equipo.
+2) Panel "Soporte — reportes de usuarios" — reubicado
+   - Antes: vivía dentro de la pestaña "Ajustes".
+   - Ahora: vive exclusivamente dentro de "Gestión de asesores",
+     junto al panel de cuentas de acceso. Sigue visible solo para
+     Administrador y Super Administrador.
+   - Archivos: soporte-v1.js (cambio de contenedor de inserción),
+     ajustes-v1.js (se removió de la lista de paneles de Ajustes y
+     se eliminó el código de reubicación que ya no se necesita).
+
+3) "Parámetros de proyección" — convertido en nota
+   - Antes: panel propio "Parámetros de proyección" en la pestaña
+     Metas y presupuestos.
+   - Ahora: es una nota de texto (bajo el título) directamente en el
+     gráfico "Venta mensual comparada", donde se usa la proyección.
+   - De paso se corrigió una referencia desactualizada: el texto
+     decía "(Hoja de ruta)" y ahora dice correctamente
+     "(pestaña Sistema)", que es donde vive hoy la configuración de
+     crecimiento por clasificación.
+   - Archivos: index.html (se removió el panel, se agregó la nota),
+     metas-v1.js (ajuste del punto de inserción del panel de ajuste
+     de meta, que usaba el panel removido como referencia),
+     mejoras-v1.js (el campo pasó de <input> a <strong>, se ajustó
+     de .value a .textContent), metas-v1.css (estilo de la nota).
+
+4) Botón "↻ Actualizar datos" — ahora refresca toda la información
+   - Antes: solo refrescaba clientes y configuración comercial.
+   - Ahora: además, SI el panel correspondiente está presente en
+     pantalla (es decir, si aplica para el usuario conectado),
+     también refresca:
+     - Cuentas de acceso (usuarios)
+     - Ajustes de meta por asesor
+     - Reportes de soporte
+   - Se mantiene en su ubicación actual en la barra lateral (visible
+     y accesible desde cualquier pantalla).
+   - Archivo: mejoras-v1.js (función actualizarDatosManualV98).
+
+============================================================
+VERIFICACIÓN REALIZADA
+============================================================
+- Sintaxis: los 6 archivos .js modificados pasaron `node --check`
+  sin errores.
+- HTML: index.html se probó con un parser HTML estándar sin errores.
+- Referencias huérfanas: se confirmó por búsqueda (grep) que no
+  quedan referencias a la pestaña "Usuarios" eliminada
+  (usuariosView, navUsuarios, showUsuariosV1) ni al panel
+  "metasConfigPanel" eliminado.
+- Prueba en navegador (Chromium headless, sin conexión a Supabase
+  por restricción del entorno de desarrollo — ver limitación abajo):
+  - Los paneles "Cuentas de acceso" y "Soporte" se insertan
+    correctamente dentro de "Gestión de asesores".
+  - El panel de ajuste de meta se inserta correctamente dentro de
+    la pestaña Metas, antes del gráfico.
+  - El panel "Parámetros de proyección" ya no existe; la nota
+    aparece correctamente junto al gráfico.
+  - Las funciones nuevas (usuariosCargarV1, metasAjusteCargarV1,
+    soporteCargarAdminV1, actualizarDatosManualV98) existen y son
+    invocables sin errores de código.
+
+LIMITACIÓN CONOCIDA: el entorno donde se desarrolló este paquete no
+tiene salida de red hacia Supabase, por lo que NO fue posible probar
+extremo a extremo con datos reales (login, guardado, listados en
+vivo). Se recomienda una prueba manual en producción después de
+publicar:
+- Entrar como Administrador, abrir "Gestión de asesores" y confirmar
+  que aparecen ambos paneles nuevos (Cuentas de acceso y Soporte) y
+  que funcionan (crear/editar/eliminar usuario, ver reportes).
+- Entrar a "Metas y presupuestos" y confirmar que la nota de
+  proyección aparece correctamente junto al gráfico de venta mensual
+  comparada.
+- Probar el botón "↻ Actualizar datos" como Administrador y
+  confirmar que no arroja errores en consola.
+
+============================================================
+CÓMO APLICAR
+============================================================
+1. Reemplazar en GitHub los 8 archivos listados arriba (mismo
+   nombre, misma ubicación en el repositorio).
+2. Confirmar el commit — Netlify debe re-desplegar automáticamente
+   si el despliegue está conectado al repositorio.
+3. Ejecutar la verificación manual descrita arriba en el sitio ya
+   publicado.

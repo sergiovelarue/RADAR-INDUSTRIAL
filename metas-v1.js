@@ -79,7 +79,11 @@ let metasAjustesCacheV1 = [];
 
 function metasInsertarPanelV1() {
   if ($("metasAjustePanel")) return;
-  const referencia = $("metasConfigPanel");
+  // V1 Mejoras (2026-08-19): metasConfigPanel se eliminó (su contenido
+  // pasó a ser una nota junto al gráfico de venta mensual comparada).
+  // Ahora este panel se inserta al inicio de metasView, antes de la
+  // sección de gráficos.
+  const referencia = document.querySelector("#metasView .chart-grid") || $("metasView");
   if (!referencia || !referencia.parentNode) return;
 
   const panel = document.createElement("section");
@@ -107,7 +111,7 @@ function metasInsertarPanelV1() {
     </div>
     <div id="metasAjusteMsg" class="sistema-msg"></div>
   `;
-  referencia.parentNode.insertBefore(panel, referencia.nextSibling);
+  referencia.parentNode.insertBefore(panel, referencia);
 }
 
 function metasAjusteLlenarSelectAsesorV1() {

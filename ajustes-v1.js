@@ -2,8 +2,8 @@
 // V1 Ajustes — Radar Comercial B2B (RADAR-INDUSTRIAL)
 // Capa aditiva: agrupa en una sola pestaña "Ajustes" los paneles que
 // hoy están sueltos en la Hoja de ruta (Actualización diaria,
-// Estadísticas de uso Radar, Soporte — reportes de usuarios,
-// Sincronización de datos). No borra ni reescribe esos paneles: los
+// Estadísticas de uso Radar, Sincronización de datos). No borra ni
+// reescribe esos paneles: los
 // reubica en el DOM dentro de una nueva vista, siguiendo el mismo
 // patrón que showClientsManagementV93/showAdvisorsManagementV93
 // (app.js V9.3).
@@ -16,12 +16,15 @@
 //   se relaja su visibilidad: pasa de "solo Super Administrador" a
 //   "Administrador y Super Administrador", igual que el resto de
 //   Ajustes.
+//
+// Mejoras (2026-08-19): "Soporte — reportes de usuarios" (soporteAdminPanel)
+// SALE de Ajustes. Ahora vive exclusivamente dentro de "Gestión de
+// asesores" (soporte-v1.js lo inserta allí directamente).
 // ============================================================
 
 const AJUSTES_PANEL_IDS_V1 = [
   "dailyUpdatePanel",
   "usageAdminPanel",
-  "soporteAdminPanel",
   "syncAdminPanel"
 ];
 
@@ -71,30 +74,10 @@ function ajustesReubicarPanelesV1() {
   if (!host) return;
   AJUSTES_PANEL_IDS_V1.forEach(id => {
     const el = $(id);
-    // soporteAdminPanel se inserta de forma asíncrona por soporte-v1.js
-    // (después de masterDataAdminPanel); si aún no existe, se reintenta
-    // más adelante vía ajustesReintentarSoporteV1.
     if (el && el.parentNode !== host) {
       host.appendChild(el);
     }
   });
-}
-
-function ajustesReintentarSoporteV1() {
-  // El panel de soporte lo crea soporte-v1.js de forma asíncrona (tras
-  // DOMContentLoaded, insertándolo junto a masterDataAdminPanel). Si
-  // Ajustes se muestra antes de que exista, se reintenta un par de
-  // veces sin bloquear el resto de la vista.
-  let intentos = 0;
-  const intervalo = setInterval(() => {
-    intentos++;
-    const panel = $("soporteAdminPanel");
-    const host = $("ajustesPanelsHost");
-    if (panel && host && panel.parentNode !== host) {
-      host.appendChild(panel);
-    }
-    if ((panel && host) || intentos >= 20) clearInterval(intervalo);
-  }, 250);
 }
 
 function showAjustesV1() {
@@ -132,7 +115,6 @@ function ajustesAjustarVisibilidadUsoV1() {
 document.addEventListener("DOMContentLoaded", () => {
   ajustesInsertarNavV1();
   ajustesInsertarVistaV1();
-  ajustesReintentarSoporteV1();
 
   if (typeof applyAdminVisibilityV811 === "function") {
     const _applyAdminVisibilidadOriginalAjustesV1 = applyAdminVisibilityV811;
