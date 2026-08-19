@@ -240,6 +240,10 @@ async function cargarConfiguracionDesdeSupabaseV97() {
     if (porClave.canales) DATA.meta.canales = porClave.canales;
     if (porClave.asesorPerfiles) DATA.meta.asesorPerfiles = porClave.asesorPerfiles;
     if (porClave.growthByClass) DATA.meta.growthByClass = porClave.growthByClass;
+    // Fase 2 (2026-08-19) — modelo de cálculo de proyección/presupuesto,
+    // compartido entre administradores (ver metas-v1.js).
+    if (porClave.modeloProyeccion) DATA.meta.modeloProyeccion = porClave.modeloProyeccion;
+    if (porClave.modeloPresupuesto) DATA.meta.modeloPresupuesto = porClave.modeloPresupuesto;
     return true;
   } catch (e) {
     console.error('[Radar-Supabase] Fallo de conexión al cargar configuración:', e);
@@ -257,7 +261,9 @@ async function sincronizarConfiguracionV97() {
     const filas = [
       { clave: 'canales', valor: DATA.meta.canales || {} },
       { clave: 'asesorPerfiles', valor: DATA.meta.asesorPerfiles || {} },
-      { clave: 'growthByClass', valor: DATA.meta.growthByClass || {} }
+      { clave: 'growthByClass', valor: DATA.meta.growthByClass || {} },
+      { clave: 'modeloProyeccion', valor: DATA.meta.modeloProyeccion || 'estacional' },
+      { clave: 'modeloPresupuesto', valor: DATA.meta.modeloPresupuesto || 'porcentual' }
     ];
     const { error } = await supabaseClientV94.from('configuracion').upsert(filas, { onConflict: 'clave' });
     if (error) console.error('[Radar-Supabase] Error guardando configuración:', error);

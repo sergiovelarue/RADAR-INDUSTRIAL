@@ -1789,60 +1789,218 @@ function ventaMesClienteV106(c, year, mes) {
   return typeof saleMonthV812 === "function" ? saleMonthV812(c, year, mes) : 0;
 }
 
-// Proyecta cada mes que falta de 2026 para UN cliente:
-// proyección(mes) = promedio real 2026 transcurrido × factor de
-// estacionalidad de ese mes en 2025 (venta 2025 del mes ÷ promedio
-// 2025 de los mismos meses ya transcurridos en 2026).
+// ============================================================
+// Fase 2 (2026-08-19) — Motores de cálculo de proyección,
+// seleccionables por el Super Administrador (pestaña Sistema).
+// ------------------------------------------------------------
+// Cada motor recibe:
+//   serieAnioBase (12 valores, Ene-Dic del año de referencia, ej. 2025)
+//   serieAnioActualTranscurrida (12 valores, solo con dato en los
+//     meses ya transcurridos del año que se está proyectando; 0 en
+//     los meses futuros — el motor decide qué hacer con esos ceros)
+//   mesesTranscurridosIdx (array de índices 0-11 de los meses YA
+//     transcurridos, para que el motor sepa dónde termina lo real)
+// y devuelve la serie completa de 12 meses (real en los transcurridos,
+// proyectado en los futuros). Se usan tanto para "proyección resto del
+// año actual" (serieAnioBase=2025, serieAnioActualTranscurrida=2026)
+// como para "Presupuesto Próximo Año" (serieAnioBase=serie2026 ya
+// completa —real+proyectada—, aplicando el modelo sobre ella con
+// mesesTranscurridosIdx = todos los 12 meses, es decir, tratando 2026
+// completo como "lo ya transcurrido" del cálculo hacia 2027).
+// ------------------------------------------------------------
+
+// Porcentual: cada mes futuro = mismo mes del año base × (1 + %growth).
+// El % puede venir por clasificación de cliente (ya existente,
+// growthConfigV810) o, si no se pasa cliente, un % único (usado para
+// la organización agregada en modo "todos los clientes mezclados").
+function motorPorcentualV2(serieAnioBase, serieAnioActualTranscurrida, mesesTranscurridosIdx, growthPct) {
+  const factor = 1 + Number(growthPct || 0) / 100;
+  return serieAnioBase.map((v, i) => {
+    if (mesesTranscurridosIdx.includes(i)) return serieAnioActualTranscurrida[i];
+    return Number(v || 0) * factor;
+  });
+}
+
+// Lineal: calcula la tasa de crecimiento PROMEDIO entre meses
+// consecutivos ya transcurridos del año actual (ej. (mayo-abril) +
+// (abril-marzo) + ... promediado), y la va sumando de forma
+// acumulativa a cada mes futuro sucesivo, partiendo del último mes
+// real. Si solo hay 0 o 1 mes transcurrido, no hay tasa que calcular
+// y se repite el último valor real (tasa = 0).
+function motorLinealV2(serieAnioBase, serieAnioActualTranscurrida, mesesTranscurridosIdx) {
+  const idxOrdenados = mesesTranscurridosIdx.slice().sort((a, b) => a - b);
+  const ultimoIdx = idxOrdenados.length ? idxOrdenados[idxOrdenados.length - 1] : -1;
+  const ultimoValor = ultimoIdx >= 0 ? Number(serieAnioActualTranscurrida[ultimoIdx] || 0) : 0;
+
+  let tasaPromedio = 0;
+  if (idxOrdenados.length >= 2) {
+    let sumaDeltas = 0;
+    for (let k = 1; k < idxOrdenados.length; k++) {
+      sumaDeltas += Number(serieAnioActualTranscurrida[idxOrdenados[k]] || 0) - Number(serieAnioActualTranscurrida[idxOrdenados[k - 1]] || 0);
+    }
+    tasaPromedio = sumaDeltas / (idxOrdenados.length - 1);
+  }
+
+  const resultado = serieAnioBase.map((v, i) => mesesTranscurridosIdx.includes(i) ? Number(serieAnioActualTranscurrida[i] || 0) : null);
+  let acumulado = ultimoValor;
+  for (let i = 0; i < resultado.length; i++) {
+    if (resultado[i] === null) {
+      acumulado = Math.max(0, acumulado + tasaPromedio);
+      resultado[i] = acumulado;
+    }
+  }
+  return resultado;
+}
+
+// Índice/factor estacional (modelo ya existente desde antes de la
+// Fase 2, sin cambios de fórmula): promedio real transcurrido × factor
+// estacional del mes en el año base (venta del mes en el año base ÷
+// promedio del año base en los mismos meses transcurridos).
+function motorEstacionalV2(serieAnioBase, serieAnioActualTranscurrida, mesesTranscurridosIdx) {
+  const transcurridoTotal = mesesTranscurridosIdx.reduce((s, i) => s + Number(serieAnioActualTranscurrida[i] || 0), 0);
+  const promedioActual = mesesTranscurridosIdx.length ? transcurridoTotal / mesesTranscurridosIdx.length : 0;
+  const baseTranscurridoTotal = mesesTranscurridosIdx.reduce((s, i) => s + Number(serieAnioBase[i] || 0), 0);
+  const promedioBase = mesesTranscurridosIdx.length ? baseTranscurridoTotal / mesesTranscurridosIdx.length : 0;
+
+  return serieAnioBase.map((v, i) => {
+    if (mesesTranscurridosIdx.includes(i)) return Number(serieAnioActualTranscurrida[i] || 0);
+    const factorEstacional = promedioBase > 0 ? (Number(v || 0) / promedioBase) : 1;
+    return promedioActual * factorEstacional;
+  });
+}
+
+// Mínimos cuadrados: regresión lineal simple (y = a + b·x) ajustada
+// sobre los meses YA transcurridos del año actual (x = índice de mes
+// 0-11, y = venta real), y se extrapola esa recta a los meses futuros.
+// Con menos de 2 puntos no hay regresión posible: se repite el último
+// valor real (pendiente 0), igual que el motor Lineal en ese caso
+// límite.
+function motorMinimosCuadradosV2(serieAnioBase, serieAnioActualTranscurrida, mesesTranscurridosIdx) {
+  const idxOrdenados = mesesTranscurridosIdx.slice().sort((a, b) => a - b);
+  const n = idxOrdenados.length;
+  const resultado = serieAnioBase.map((v, i) => mesesTranscurridosIdx.includes(i) ? Number(serieAnioActualTranscurrida[i] || 0) : null);
+
+  if (n < 2) {
+    const ultimoIdx = n ? idxOrdenados[0] : -1;
+    const ultimoValor = ultimoIdx >= 0 ? Number(serieAnioActualTranscurrida[ultimoIdx] || 0) : 0;
+    for (let i = 0; i < resultado.length; i++) if (resultado[i] === null) resultado[i] = ultimoValor;
+    return resultado;
+  }
+
+  const xs = idxOrdenados;
+  const ys = idxOrdenados.map(i => Number(serieAnioActualTranscurrida[i] || 0));
+  const sumX = xs.reduce((s, x) => s + x, 0);
+  const sumY = ys.reduce((s, y) => s + y, 0);
+  const sumXY = xs.reduce((s, x, k) => s + x * ys[k], 0);
+  const sumX2 = xs.reduce((s, x) => s + x * x, 0);
+  const denom = (n * sumX2 - sumX * sumX);
+  const b = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
+  const a = (sumY - b * sumX) / n;
+
+  for (let i = 0; i < resultado.length; i++) {
+    if (resultado[i] === null) resultado[i] = Math.max(0, a + b * i);
+  }
+  return resultado;
+}
+
+// Despacha al motor configurado. clasificacionCliente es opcional
+// (solo se usa en el modelo "porcentual" para tomar el % específico de
+// esa clasificación A/B/C/E/N; si no se pasa, se usa un % genérico=0,
+// pensado para cuando se calcula ya agregado a nivel organización).
+function calcularSerieConModeloV2(modelo, serieAnioBase, serieAnioActualTranscurrida, mesesTranscurridosIdx, growthPct) {
+  switch (modelo) {
+    case "lineal": return motorLinealV2(serieAnioBase, serieAnioActualTranscurrida, mesesTranscurridosIdx);
+    case "minimosCuadrados": return motorMinimosCuadradosV2(serieAnioBase, serieAnioActualTranscurrida, mesesTranscurridosIdx);
+    case "porcentual": return motorPorcentualV2(serieAnioBase, serieAnioActualTranscurrida, mesesTranscurridosIdx, growthPct);
+    case "estacional":
+    default: return motorEstacionalV2(serieAnioBase, serieAnioActualTranscurrida, mesesTranscurridosIdx);
+  }
+}
+
+// Modelo configurado por el Super Administrador (pestaña Sistema),
+// compartido vía Supabase (tabla configuracion, igual patrón que
+// growthByClass) con fallback a localStorage y, por último, al modelo
+// "estacional"/"porcentual" que eran los únicos que existían antes de
+// esta Fase 2 (para no cambiar el resultado de nadie que no haya
+// tocado el nuevo panel).
+function modeloProyeccionConfiguradoV2() {
+  if (DATA.meta && DATA.meta.modeloProyeccion) return DATA.meta.modeloProyeccion;
+  const saved = localStorage.getItem("radarModeloProyeccionV2");
+  if (saved) return saved;
+  return "estacional";
+}
+function modeloPresupuestoConfiguradoV2() {
+  if (DATA.meta && DATA.meta.modeloPresupuesto) return DATA.meta.modeloPresupuesto;
+  const saved = localStorage.getItem("radarModeloPresupuestoV2");
+  if (saved) return saved;
+  return "porcentual";
+}
+
+// Proyecta cada mes que falta del año actual para UN cliente, usando
+// el modelo configurado (por defecto "estacional", igual fórmula que
+// existía antes de esta Fase 2).
 function proyeccionRestoAnioClienteV106(c) {
   const meses = monthsV812();
   const transcurridos = typeof availableMonthsV812 === "function" ? availableMonthsV812() : meses;
-  const restantes = meses.filter(m => !transcurridos.includes(m));
+  const idxTranscurridos = transcurridos.map(m => meses.indexOf(m));
 
-  const real2026Transcurrido = transcurridos.reduce((s, m) => s + ventaMesClienteV106(c, 2026, m), 0);
-  const promedioReal2026 = transcurridos.length ? real2026Transcurrido / transcurridos.length : 0;
+  const serie2025 = meses.map(m => ventaMesClienteV106(c, 2025, m));
+  const serie2026Transcurrida = meses.map(m => ventaMesClienteV106(c, 2026, m));
+  const modelo = modeloProyeccionConfiguradoV2();
+  const serieCompleta = calcularSerieConModeloV2(modelo, serie2025, serie2026Transcurrida, idxTranscurridos, 0);
 
-  const promedio2025Transcurrido = transcurridos.length
-    ? transcurridos.reduce((s, m) => s + ventaMesClienteV106(c, 2025, m), 0) / transcurridos.length
-    : 0;
-
-  let proyeccionResto = 0;
-  restantes.forEach(m => {
-    const venta2025Mes = ventaMesClienteV106(c, 2025, m);
-    const factorEstacional = promedio2025Transcurrido > 0 ? (venta2025Mes / promedio2025Transcurrido) : 1;
-    proyeccionResto += promedioReal2026 * factorEstacional;
-  });
+  const real2026Transcurrido = idxTranscurridos.reduce((s, i) => s + serie2026Transcurrida[i], 0);
+  const proyeccionResto = serieCompleta.reduce((s, v, i) => s + (idxTranscurridos.includes(i) ? 0 : v), 0);
 
   return { real2026Transcurrido, proyeccionResto, total2026Estimado: real2026Transcurrido + proyeccionResto };
 }
 
-// Serie mes a mes (12 valores, Enero-Diciembre) de 2026 real+proyectado
-// para un cliente: meses ya transcurridos = venta real; meses futuros =
-// promedio real 2026 × factor de estacionalidad de ese mes en 2025
-// (mismo criterio que proyeccionRestoAnioClienteV106, pero mes a mes
-// en vez de solo el total del resto del año).
+// Serie mes a mes (12 valores, Enero-Diciembre) de año actual
+// real+proyectado para un cliente, con el modelo configurado.
 function serieMensual2026ClienteV106(c) {
   const meses = monthsV812();
   const transcurridos = typeof availableMonthsV812 === "function" ? availableMonthsV812() : meses;
-  const real2026Transcurrido = transcurridos.reduce((s, m) => s + ventaMesClienteV106(c, 2026, m), 0);
-  const promedioReal2026 = transcurridos.length ? real2026Transcurrido / transcurridos.length : 0;
-  const promedio2025Transcurrido = transcurridos.length
-    ? transcurridos.reduce((s, m) => s + ventaMesClienteV106(c, 2025, m), 0) / transcurridos.length
-    : 0;
+  const idxTranscurridos = transcurridos.map(m => meses.indexOf(m));
 
-  return meses.map(m => {
-    if (transcurridos.includes(m)) return ventaMesClienteV106(c, 2026, m);
-    const venta2025Mes = ventaMesClienteV106(c, 2025, m);
-    const factorEstacional = promedio2025Transcurrido > 0 ? (venta2025Mes / promedio2025Transcurrido) : 1;
-    return promedioReal2026 * factorEstacional;
-  });
+  const serie2025 = meses.map(m => ventaMesClienteV106(c, 2025, m));
+  const serie2026Transcurrida = meses.map(m => ventaMesClienteV106(c, 2026, m));
+  const modelo = modeloProyeccionConfiguradoV2();
+  return calcularSerieConModeloV2(modelo, serie2025, serie2026Transcurrida, idxTranscurridos, 0);
 }
 
-// Serie mes a mes de la organización completa: 2025 real, 2026
-// real+proyectado, y 2027 proyectado (cada mes de la serie 2026 de
-// cada cliente × su % de crecimiento por clasificación).
+// Presupuesto Próximo Año para UN cliente: aplica el modelo
+// configurado sobre la serie 2026 (real+proyectada) ya calculada,
+// tratándola como "año base transcurrido completo" (los 12 meses
+// cuentan como transcurridos para el cálculo hacia el año siguiente).
+// El modelo "porcentual" usa el % de crecimiento por clasificación del
+// cliente (growthConfigV810), igual que antes de esta Fase 2; los
+// otros 3 modelos ignoran la clasificación y extrapolan la serie 2026
+// con su propia fórmula (siendo "todos los meses transcurridos", el
+// resultado para lineal/mínimos cuadrados es la extrapolación de la
+// tendencia de 2026 hacia 2027, y para estacional es igual a repetir
+// el promedio 2026 ajustado por su propia forma mensual).
+function serieMensualPresupuestoProximoAnioClienteV2(c, serie2026) {
+  const meses = monthsV812();
+  const idxTodos = meses.map((m, i) => i);
+  const modelo = modeloPresupuestoConfiguradoV2();
+  if (modelo === "porcentual") {
+    const cfg = typeof growthConfigV810 === "function" ? growthConfigV810() : { A: 12, B: 10, C: 5, E: 15, N: 0 };
+    const g = Number(cfg[c.clasificacion] ?? 0);
+    const factor = 1 + g / 100;
+    return serie2026.map(v => v * factor);
+  }
+  // Para lineal/estacional/mínimos cuadrados: se usa serie2026 tanto
+  // como "año base" (referencia de forma) como "año actual transcurrido"
+  // (con los 12 meses marcados como transcurridos), lo que en la
+  // práctica extrapola la tendencia/forma de 2026 un año hacia adelante.
+  return calcularSerieConModeloV2(modelo, serie2026, serie2026, idxTodos, 0);
+}
+
+// Serie mes a mes de la organización completa: año base (2025) real,
+// año actual real+proyectado, y Presupuesto Próximo Año (según los
+// modelos configurados por el Super Administrador).
 function serieMensualOrganizacionV106() {
   const meses = monthsV812();
-  const cfg = typeof growthConfigV810 === "function" ? growthConfigV810() : { A: 12, B: 10, C: 5, E: 15, N: 0 };
   const clientes = (DATA.clientes || []).filter(c => !(typeof isBlockedV87 === "function" && isBlockedV87(c)));
   const asesores = (DATA.meta && DATA.meta.asesores) || [];
   const anio = typeof metasAjusteAnioV1 === "function" ? metasAjusteAnioV1() : 2026;
@@ -1854,13 +2012,12 @@ function serieMensualOrganizacionV106() {
   const serieMetaAjustada = new Array(12).fill(0);
 
   clientes.forEach(c => {
-    const g = Number(cfg[c.clasificacion] ?? 0);
-    const factor2027 = 1 + g / 100;
     const s2026 = serieMensual2026ClienteV106(c);
+    const s2027 = serieMensualPresupuestoProximoAnioClienteV2(c, s2026);
     meses.forEach((m, i) => {
       serie2025[i] += ventaMesClienteV106(c, 2025, m);
       serie2026[i] += s2026[i];
-      serie2027[i] += s2026[i] * factor2027;
+      serie2027[i] += s2027[i];
     });
   });
 
@@ -1910,8 +2067,6 @@ function resumenMetasAsesorV106(nombreAsesor) {
     return true;
   });
 
-  const cfg = typeof growthConfigV810 === "function" ? growthConfigV810() : { A: 12, B: 10, C: 5, E: 15, N: 0 };
-
   let real2025 = 0, real2026 = 0, planeado2026 = 0, ajustado2026 = 0, proyectado2026 = 0, presupuestoProximoAnio = 0;
   const meses = monthsV812();
   const anio = typeof metasAjusteAnioV1 === "function" ? metasAjusteAnioV1() : 2026;
@@ -1922,8 +2077,9 @@ function resumenMetasAsesorV106(nombreAsesor) {
     real2026 += real2026Transcurrido;
     proyectado2026 += total2026Estimado;
 
-    const g = Number(cfg[c.clasificacion] ?? 0);
-    presupuestoProximoAnio += total2026Estimado * (1 + g / 100);
+    const s2026 = serieMensual2026ClienteV106(c);
+    const s2027 = serieMensualPresupuestoProximoAnioClienteV2(c, s2026);
+    presupuestoProximoAnio += s2027.reduce((s, v) => s + v, 0);
   });
 
   // 2026 planeado (Meta Inicial) y 2026 ajustado (Meta Ajustada vigente,
@@ -2074,12 +2230,11 @@ function exportarPresupuestoProximoAnioExcelV1() {
 
   const asesores = (DATA.meta && DATA.meta.asesores) || [];
   const meses = monthsV812();
-  const cfg = typeof growthConfigV810 === "function" ? growthConfigV810() : { A: 12, B: 10, C: 5, E: 15, N: 0 };
   const anioSiguiente = (typeof metasAjusteAnioV1 === "function" ? metasAjusteAnioV1() : 2026) + 1;
 
-  // Tabla 1: por asesor, mes a mes (Presupuesto Próximo Año = serie
-  // 2026 estimada del cliente × su % de crecimiento por clasificación,
-  // igual fórmula que ya usa serieMensualOrganizacionV106/propuesto2027).
+  // Tabla 1: por asesor, mes a mes. Presupuesto Próximo Año calculado
+  // con el modelo configurado por el Super Administrador (pestaña
+  // Sistema) — ver serieMensualPresupuestoProximoAnioClienteV2.
   const encabezado = ["Asesor", ...meses, "Total " + anioSiguiente];
   const filas = [encabezado];
 
@@ -2090,10 +2245,9 @@ function exportarPresupuestoProximoAnioExcelV1() {
     });
     const serieMeses = new Array(12).fill(0);
     clientesAsesor.forEach(c => {
-      const g = Number(cfg[c.clasificacion] ?? 0);
-      const factor = 1 + g / 100;
       const s2026 = serieMensual2026ClienteV106(c);
-      meses.forEach((m, i) => { serieMeses[i] += s2026[i] * factor; });
+      const s2027 = serieMensualPresupuestoProximoAnioClienteV2(c, s2026);
+      meses.forEach((m, i) => { serieMeses[i] += s2027[i]; });
     });
     const totalAsesor = serieMeses.reduce((s, v) => s + v, 0);
     filas.push([asesor, ...serieMeses.map(v => Math.round(v)), Math.round(totalAsesor)]);
@@ -2244,4 +2398,67 @@ document.addEventListener("DOMContentLoaded", () => {
   if ($("navMetas")) $("navMetas").addEventListener("click", showMetasViewV106);
   if ($("metasExportBtn")) $("metasExportBtn").addEventListener("click", exportarMetasCSVV106);
   if ($("metasExportExcelBtn")) $("metasExportExcelBtn").addEventListener("click", exportarPresupuestoProximoAnioExcelV1);
+
+  // Fase 2 (2026-08-19) — Selector de modelo de cálculo (Sistema).
+  setModeloCalculoInputsV2();
+  if ($("applyModeloCalculoBtn")) $("applyModeloCalculoBtn").addEventListener("click", applyModeloCalculoV2);
 });
+
+// ============================================================
+// Fase 2 (2026-08-19) — Panel "Modelo de cálculo" (pestaña Sistema).
+// Solo visible/editable para Super Administrador (isSuperAdminV93),
+// más restrictivo que el panel de Configuración comercial por
+// clasificación (visible para Administrador). Sigue el mismo patrón
+// de setGrowthInputsV82/applyGrowthConfigV82 (app.js): lee/escribe
+// DATA.meta, guarda copia en localStorage como respaldo inmediato, y
+// sincroniza a Supabase (tabla configuracion) vía saveDataV93(), que
+// ya dispara sincronizarConfiguracionV97() automáticamente.
+function setModeloCalculoInputsV2() {
+  if ($("modeloProyeccionSelect")) $("modeloProyeccionSelect").value = typeof modeloProyeccionConfiguradoV2 === "function" ? modeloProyeccionConfiguradoV2() : "estacional";
+  if ($("modeloPresupuestoSelect")) $("modeloPresupuestoSelect").value = typeof modeloPresupuestoConfiguradoV2 === "function" ? modeloPresupuestoConfiguradoV2() : "porcentual";
+}
+
+function applyModeloCalculoV2() {
+  const modeloProyeccion = $("modeloProyeccionSelect") ? $("modeloProyeccionSelect").value : "estacional";
+  const modeloPresupuesto = $("modeloPresupuestoSelect") ? $("modeloPresupuestoSelect").value : "porcentual";
+
+  DATA.meta.modeloProyeccion = modeloProyeccion;
+  DATA.meta.modeloPresupuesto = modeloPresupuesto;
+  localStorage.setItem("radarModeloProyeccionV2", modeloProyeccion);
+  localStorage.setItem("radarModeloPresupuestoV2", modeloPresupuesto);
+
+  if (typeof saveDataV93 === "function") saveDataV93();
+  alert("Modelo de cálculo aplicado. La proyección y el Presupuesto Próximo Año se recalculan automáticamente en 'Metas y presupuestos' y el Dashboard.");
+
+  if (typeof renderMetasViewV106 === "function" && $("metasView") && !$("metasView").classList.contains("hidden-view")) {
+    renderMetasViewV106();
+  }
+  if (typeof renderDirectorDashboardV812 === "function" && typeof currentViewV812 !== "undefined" && currentViewV812 === "dashboard") {
+    renderDirectorDashboardV812();
+  }
+}
+
+// El panel modeloCalculoPanel se muestra/oculta igual que
+// growthConfigPanel pero restringido a Super Administrador
+// (isSuperAdminV93), no a cualquier Administrador.
+const _previousApplyProfileModeloV2 = applyUserProfileV84;
+if (typeof _previousApplyProfileModeloV2 === "function") {
+  applyUserProfileV84 = function (...args) {
+    const r = _previousApplyProfileModeloV2.apply(this, args);
+    const panel = $("modeloCalculoPanel");
+    if (panel) panel.classList.toggle("hidden-by-profile", !(typeof isSuperAdminV93 === "function" && isSuperAdminV93()));
+    return r;
+  };
+}
+// El Dashboard también oculta/muestra growthConfigPanel al entrar/salir
+// (ver app.js showViewV812/showGlossaryV814); se replica aquí para
+// modeloCalculoPanel envolviendo esas mismas funciones.
+if (typeof showViewV812 === "function") {
+  const _previousShowViewModeloV2 = showViewV812;
+  showViewV812 = function (view) {
+    const r = _previousShowViewModeloV2(view);
+    const panel = $("modeloCalculoPanel");
+    if (panel) panel.classList.toggle("hidden-view", view === "dashboard");
+    return r;
+  };
+}

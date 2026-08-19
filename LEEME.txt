@@ -1,207 +1,187 @@
-RadarComercial B2B — Ajuste de metas por asesor (Fase 2 de 2)
-Fecha de creación: 2026-08-19 17:25 (hora Colombia)
-Carpeta: Mejoras_20260819_1725
+RadarComercial B2B — Selector de modelo de cálculo (Proyección y
+Presupuesto Próximo Año)
+Fecha de creación: 2026-08-19 17:53 (hora Colombia)
+Carpeta: Mejoras_20260819_1753
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
 Archivos incluidos (reemplazan a los del mismo nombre en GitHub):
 1. mejoras-v1.js
-2. metas-v1.js
-3. index.html
-4. version.js (actualizado a V12.0 · 2026-08-19)
+2. index.html
+3. metas-v1.css
+4. supabase-sync.js
+5. version.js (actualizado a V13.0 · 2026-08-19)
 
-Esta es la Fase 2 de la mejora de "Ajuste de metas por asesor" (la
-Fase 1 — tabla de ajuste, confirmación del 20%, animación, etiqueta al
-asesor — ya está en producción y confirmada funcionando desde
-Mejoras_20260819_1705).
-
-NO requirió cambios en Supabase — todo lo de esta fase es cálculo y
-visualización en el frontend, usando datos que ya existen (los ajustes
-guardados en ajustes_meta_asesor de la Fase 1, y el cálculo de
-proyección/crecimiento que ya existía en la app desde antes).
+NO requirió migración de Supabase — se reutilizó la tabla
+"configuracion" que ya existía (usada hoy para canales/zonas, perfiles
+de asesor y % de crecimiento por clasificación), agregando 2 claves
+nuevas: modeloProyeccion y modeloPresupuesto.
 
 ============================================================
-QUÉ SE PIDIÓ EN ESTA FASE
+CONTEXTO — ESTE ES EL PRIMERO DE 2 PAQUETES DE UN PEDIDO MÁS GRANDE
 ============================================================
-1. Diferenciar en las gráficas de Dashboard y de "Metas y presupuestos"
-   el valor de Meta Ajustada frente a la Meta Inicial, la proyección
-   del resto del año, y el presupuesto del año siguiente.
-2. Que el lenguaje del año siguiente diga exactamente "Presupuesto
-   Próximo Año".
-3. Que ese presupuesto sea exportable en un archivo compatible con
-   Excel, con tabla por asesor y mes a mes más el total del año
-   siguiente, y también en gráfica.
+Pediste dos cosas relacionadas con "Metas y presupuestos":
+
+(B) — ENTREGADO EN ESTE PAQUETE: que el Super Administrador pueda
+elegir el modelo de cálculo (Porcentual, Lineal, Índice/factor
+estacional, Mínimos cuadrados) tanto para la proyección de los meses
+que faltan del año actual como para el Presupuesto Próximo Año, y que
+esto sea configurable desde la pestaña Sistema.
+
+(A) — PENDIENTE, PRÓXIMA ENTREGA: el sistema de versionado de metas
+(Meta Inicial fija al principio del año + Meta Actual + Forecast 1, 2,
+3... cada vez que se cargue una meta nueva vía Excel). Acordamos
+contigo entregar primero (B) por ser más autónomo, y trabajar (A) con
+calma después porque redefine qué es "Meta Inicial" en toda la app y
+requiere una pantalla de carga masiva nueva + otra migración de
+Supabase.
 
 ============================================================
-ACLARACIÓN IMPORTANTE — MÉTODO DE CÁLCULO (léelo antes de usar)
+ACLARACIÓN DE DISEÑO — CONFIRMADA CONTIGO ANTES DE CONSTRUIR
 ============================================================
-Al revisar el código antes de empezar esta fase, confirmamos contigo
-un punto que vale la pena dejar por escrito:
+Se definieron las 4 fórmulas exactas contigo (quedan documentadas en
+el código, no solo aquí):
 
-- La "proyección" del resto de 2026 y el "Presupuesto Próximo Año" NO
-  usan una regresión de mínimos cuadrados. Usan un método de índice/
-  factor estacional: el promedio real de lo que va del año, ajustado
-  por cómo se comportó cada mes en el año anterior (2025) respecto a
-  su propio promedio. Este método YA EXISTÍA en la app desde antes de
-  esta Fase 2 (no se creó ni se modificó en esta entrega).
-- El % de crecimiento por clasificación de cliente (A, B, C, E, N) que
-  se usa para calcular el Presupuesto Próximo Año también ya existía:
-  se configura en la pestaña "Sistema" → "Configuración comercial por
-  clasificación", y HOY se guarda en el navegador (localStorage) de
-  quien lo configura, no en Supabase. Esto significa que si otro
-  administrador entra desde otro computador, ve los valores por
-  defecto (12%/10%/5%/15%/0%) en vez del que tú configuraste, hasta
-  que alguien lo vuelva a guardar desde ese navegador. Quedó pendiente
-  como mejora futura (no incluida en esta Fase 2, para no mezclar
-  alcance) migrar ese % a una tabla en Supabase compartida entre todos
-  los administradores — avísame si quieres que la incluyamos en una
-  próxima entrega.
-- Se decidió contigo NO cambiar ninguna de estas dos fórmulas en esta
-  Fase 2 — solo se agregó la nueva serie "Meta Ajustada" (que antes no
-  existía en ningún lado) y se renombró el lenguaje del año siguiente.
+1. Porcentual (el más simple): cada mes futuro = mismo mes del año
+   anterior × (1 + % de crecimiento). Es el modelo que YA EXISTÍA antes
+   de esta entrega para el Presupuesto Próximo Año (usa el % de
+   crecimiento por clasificación de cliente A/B/C/E/N, definido en
+   "Configuración comercial por clasificación").
+
+2. Lineal: se calcula la tasa de crecimiento PROMEDIO entre los meses
+   ya transcurridos del año (diferencia mes a mes, promediada), y se
+   va sumando esa tasa fija, de forma acumulativa, a cada mes futuro
+   sucesivo.
+
+3. Índice/factor estacional (el que YA EXISTÍA antes de esta entrega
+   para la proyección del resto del año, sin cambios de fórmula):
+   promedio real transcurrido del año actual × factor estacional de
+   cada mes futuro (venta del año anterior en ese mes, dividida entre
+   el promedio del año anterior en los mismos meses transcurridos).
+
+4. Mínimos cuadrados (el más complejo): regresión lineal estadística
+   real (ajusta la mejor línea recta a los meses ya transcurridos del
+   año actual) y extrapola esa recta a los meses futuros.
+
+Los 4 modelos quedaron verificados con datos numéricos de prueba
+conocidos (no solo con datos reales de tu app) para confirmar que cada
+fórmula da el resultado matemático esperado, antes de conectarlos a la
+aplicación.
 
 ============================================================
 QUÉ CAMBIÓ EN DETALLE
 ============================================================
 
-1) Nueva serie "Meta Ajustada 2026"
-   Se agregó a los cálculos de mejoras-v1.js (resumenMetasAsesorV106 y
-   serieMensualOrganizacionV106) una nueva cifra: la Meta Ajustada
-   vigente de cada asesor, mes a mes. Para cada mes: si el
-   administrador guardó un ajuste manual en el panel "Ajuste de metas
-   por asesor" (Fase 1) para ese asesor/mes, se usa ese valor; si no,
-   se usa la Meta Inicial normal de ese mes. Así la serie queda
-   completa los 12 meses, mostrando claramente dónde hay un ajuste
-   manual aplicado y dónde no.
+1) Nuevo panel "Modelo de cálculo — Proyección y Presupuesto"
+   (pestaña Sistema, junto al panel de "Configuración comercial por
+   clasificación"). SOLO VISIBLE Y EDITABLE PARA SUPER ADMINISTRADOR
+   (más restrictivo que el panel de % de crecimiento, que sí ve
+   cualquier Administrador) — así lo pediste explícitamente.
+   Tiene 2 selectores independientes:
+   - "Proyección resto del año actual"
+   - "Presupuesto Próximo Año"
+   Cada uno con las 4 opciones, en el orden que definiste (de menos a
+   más complejo): Porcentual → Lineal → Índice/factor estacional →
+   Mínimos cuadrados. Un botón "Aplicar modelo de cálculo" guarda la
+   selección y recalcula automáticamente la tabla y las gráficas de
+   "Metas y presupuestos" (si esa vista está abierta) y del Dashboard
+   (si está abierto).
 
-2) Tabla "Resumen por asesor" (Metas y presupuestos)
-   Columnas actuales: Asesor, 2025 real, 2026 real, Meta Inicial 2026,
-   Meta Ajustada 2026 (con etiqueta "Ajustada" si el total del asesor
-   incluye algún ajuste manual), 2026 proyectado, Cumplimiento
-   proyectado, Presupuesto Próximo Año (antes decía "2027 propuesto").
+2) Los modelos aplican a TODA la organización (no por asesor ni por
+   cliente individual) — confirmaste que así lo prefieres, por
+   simplicidad y para que las gráficas/tabla sigan siendo comparables
+   entre asesores.
 
-3) Gráficas de "Metas y presupuestos"
-   - "Venta anual comparada" (metasChart): ahora muestra 5 series por
-     asesor — 2025 real, Meta Inicial 2026, Meta Ajustada 2026, 2026
-     proyectado, Presupuesto Próximo Año.
-   - "Venta mensual comparada" (metasMensualChart): ahora muestra 5
-     series mes a mes de toda la organización — 2025 real, Meta
-     Inicial 2026, Meta Ajustada 2026, 2026 real+proyectado,
-     Presupuesto Próximo Año.
+3) Persistencia compartida entre administradores
+   La selección se guarda en la tabla "configuracion" de Supabase
+   (igual mecanismo que el % de crecimiento por clasificación), así
+   que cualquier Super Administrador que entre desde cualquier
+   computador ve la misma configuración vigente — no depende del
+   navegador de cada quien. Como respaldo inmediato también se guarda
+   en el navegador (localStorage), por si la sincronización a Supabase
+   tarda un instante.
 
-4) Dashboard general
-   La gráfica principal del Dashboard ("Venta mensual" /
-   monthlySalesChart) ahora incluye también la serie "Meta Ajustada
-   2026" de toda la organización, junto a las series que ya existían
-   (2025, 2026, Tendencia proyectada 2026). Se agregó sin modificar
-   app.js directamente — metas-v1.js "envuelve" la función de
-   renderizado del Dashboard para sumar esta serie después, siguiendo
-   el mismo patrón usado en el resto del proyecto.
-
-5) Renombrado a "Presupuesto Próximo Año"
-   Se cambió el texto en la tabla, en las 2 gráficas de "Metas y
-   presupuestos", en los textos descriptivos de esa vista, y en el CSV
-   exportado — donde antes decía "2027 propuesto" o "2027 proyectado",
-   ahora dice "Presupuesto Próximo Año" (con el año real calculado
-   dinámicamente, no un texto fijo "2027").
-
-6) Exportación a Excel del Presupuesto Próximo Año — NUEVO BOTÓN
-   En "Metas y presupuestos" aparece un nuevo botón: "Exportar
-   Presupuesto Próximo Año (Excel)", junto al botón de "Exportar CSV"
-   que ya existía (ese CSV también se actualizó con las 2 columnas
-   nuevas de Meta Ajustada). El botón nuevo descarga un archivo
-   radar_presupuesto_[año].xlsx con:
-   - Hoja "Presupuesto [año]": tabla completa por asesor, con una
-     columna por cada uno de los 12 meses más el total del año
-     siguiente, y una fila de TOTAL ORGANIZACIÓN al final.
-   - Hoja "Datos gráfica [año]": los mismos totales mensuales de la
-     organización (2025 real, 2026 real+proyectado, Presupuesto
-     Próximo Año) en columnas simples, listos para seleccionar e
-     Insertar > Gráfico directamente en Excel.
-   Además, al exportar también se descarga automáticamente una imagen
-   PNG con la gráfica de "Venta mensual comparada" tal como se ve en
-   pantalla en ese momento (captura directa del gráfico ya dibujado).
-
-   ACLARACIÓN TÉCNICA IMPORTANTE: la librería usada para generar el
-   Excel (SheetJS, ya estaba cargada en la app desde antes, edición
-   gratuita/community) NO permite insertar un gráfico nativo ni una
-   imagen incrustada dentro del archivo .xlsx — esa función solo
-   existe en la versión de pago de esa librería. Por eso el archivo
-   trae los datos de la gráfica en una hoja aparte lista para graficar
-   en 2 clics dentro de Excel, en vez de prometer una gráfica ya
-   dibujada dentro del Excel que esta librería no puede generar. La
-   gráfica "de verdad" (imagen ya dibujada) se entrega aparte, como
-   PNG. Si más adelante quieres un Excel con el gráfico ya incrustado
-   sin pasos manuales, existen librerías de pago o un backend que
-   podrían hacerlo — dímelo y lo evaluamos como mejora futura.
+4) Todo el cálculo de proyección/presupuesto ahora pasa por el modelo
+   elegido
+   Se unificó el cálculo en 4 "motores" reutilizables (uno por
+   fórmula). Todos los lugares que antes calculaban proyección o
+   Presupuesto Próximo Año (tabla de "Metas y presupuestos", gráfica
+   anual, gráfica mensual, resumen por asesor, exportación a CSV,
+   exportación a Excel) ahora usan el modelo configurado, en vez de la
+   fórmula fija que había antes.
 
 ============================================================
 LO QUE NO CAMBIÓ
 ============================================================
-- No se tocó la fórmula de proyección del resto de 2026 ni la del
-  crecimiento por clasificación — ver aclaración arriba.
-- No hubo cambios en Supabase.
-- La Fase 1 (panel de ajuste de metas, confirmación del 20%,
-  animación, etiqueta del asesor) sigue funcionando exactamente igual.
+- La Fase 1 (ajuste de metas por asesor) y la Fase 2 anterior (Meta
+  Ajustada en gráficas/Dashboard, exportación a Excel) siguen
+  funcionando exactamente igual — solo se les conectó el nuevo motor
+  de cálculo configurable en vez de la fórmula fija que tenían.
+- Por defecto (sin que nadie toque el panel nuevo), el comportamiento
+  es IDÉNTICO al que ya tenías: modelo "Índice/factor estacional" para
+  la proyección, y "Porcentual" para el Presupuesto Próximo Año — son
+  los valores por defecto, elegidos a propósito para que nadie note un
+  cambio de cifras hasta que el Super Administrador decida
+  explícitamente usar otro modelo.
+- El sistema de versionado de metas (Meta Inicial/Actual/Forecast) NO
+  está incluido aquí — ver la sección de contexto arriba.
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- node --check en mejoras-v1.js y metas-v1.js: sin errores.
-- Prueba en navegador (Chromium headless) con datos reales de tu
-  copia de data.js y un simulador fiel del backend de Supabase (el
-  entorno de desarrollo no tiene salida de red real hacia Supabase ni
-  hacia el CDN de Chart.js/SheetJS — limitación conocida y recurrente
-  de este entorno, no del código, ya documentada en entregas
-  anteriores):
-  - Se simuló un ajuste manual guardado para un asesor en un mes ya
-    transcurrido: se confirmó que la tabla, la gráfica anual
-    (metasChart), la gráfica mensual (metasMensualChart) y la gráfica
-    del Dashboard (monthlySalesChart) reflejan correctamente el valor
-    ajustado en el mes correspondiente, y el valor normal (igual a
-    Meta Inicial) en los meses sin ajuste.
-  - Se confirmó que la tabla se actualiza automáticamente cuando la
-    carga de ajustes (asíncrona) termina después del primer dibujo de
-    la pantalla — antes de esta verificación esto NO ocurría
-    correctamente en las gráficas de resumen, se corrigió durante las
-    pruebas de esta misma entrega.
-  - Se simuló la librería de Excel con un objeto de prueba fiel a la
-    función real usada (XLSX.utils/writeFile) y se confirmó que la
-    función de exportación genera las 2 hojas esperadas con las filas
-    correctas (encabezado + 7 asesores + total).
-  - Sin errores de JavaScript en consola durante ninguna de estas
-    pruebas.
+- node --check en mejoras-v1.js y supabase-sync.js: sin errores.
+- Verificación matemática aislada (Node.js puro, sin navegador) de los
+  4 modelos con datos de prueba conocidos: se confirmó que cada
+  fórmula da exactamente el resultado esperado a mano (por ejemplo,
+  con una tasa de crecimiento conocida de 10 en el modelo Lineal, se
+  confirmó que cada mes futuro suma exactamente esa tasa al anterior;
+  con Mínimos cuadrados sobre datos perfectamente lineales, dio el
+  mismo resultado que el modelo Lineal, como matemáticamente debe
+  ocurrir en ese caso particular).
+- Prueba en navegador (Chromium headless) con datos reales de tu copia
+  de data.js y un simulador fiel del backend de Supabase (el entorno
+  de desarrollo no tiene salida de red real hacia Supabase ni hacia el
+  CDN de Chart.js — limitación conocida y recurrente de este entorno,
+  no del código, ya documentada en entregas anteriores):
+  - Confirmado que el panel es visible para Super Administrador y NO
+    visible para un Administrador normal.
+  - Confirmado que al cambiar de modelo y presionar "Aplicar", el
+    total de "2026 proyectado" cambia de forma coherente (en la
+    prueba: de $30.018 MM con el modelo estacional por defecto, a
+    $26.426 MM al cambiar a porcentual — una diferencia real y
+    esperada, no un error).
+  - Confirmado que la tabla y las gráficas (metasChart,
+    metasMensualChart) se refrescan automáticamente tras aplicar el
+    nuevo modelo, sin necesidad de recargar la página.
+  - Confirmado que la selección se guarda en localStorage como
+    respaldo.
+  - Sin errores de JavaScript en consola en ninguna prueba.
 
-LIMITACIÓN CONOCIDA: no fue posible probar la descarga real del
-archivo .xlsx (con la librería SheetJS real) ni la carga real del
-gráfico (Chart.js real) desde este entorno, por la misma falta de
-salida de red hacia los CDN ya documentada en entregas anteriores. Se
-recomienda una prueba manual completa en producción:
-- Entrar a "Metas y presupuestos" como Administrador y confirmar que
-  la tabla y ambas gráficas muestran las columnas/series nuevas
-  (Meta Inicial, Meta Ajustada, Presupuesto Próximo Año).
-- Si ya guardaste algún ajuste de la Fase 1, confirmar que se refleja
-  en "Meta Ajustada" del asesor correspondiente.
-- Entrar al Dashboard y confirmar que la gráfica "Venta mensual"
-  incluye la serie "Meta Ajustada 2026".
-- Presionar "Exportar Presupuesto Próximo Año (Excel)" y confirmar que
-  descarga un .xlsx abrible con 2 hojas, y una imagen PNG de la
-  gráfica.
+LIMITACIÓN CONOCIDA: no fue posible probar el guardado/lectura real
+contra Supabase desde este entorno (sin salida de red real hacia
+Supabase). Se recomienda una prueba manual completa en producción:
+- Entrar como Super Administrador a la pestaña Sistema y confirmar que
+  aparece el panel "Modelo de cálculo — Proyección y Presupuesto"
+  (y que un Administrador normal NO lo ve).
+- Cambiar ambos selectores y presionar "Aplicar modelo de cálculo".
+- Ir a "Metas y presupuestos" y confirmar que la tabla/gráficas
+  cambiaron los valores de "2026 proyectado" y "Presupuesto Próximo
+  Año" de forma coherente con el modelo elegido.
+- Cerrar sesión, volver a entrar (o entrar desde otro navegador/
+  computador) como Super Administrador y confirmar que el modelo
+  elegido sigue guardado (prueba de que quedó en Supabase, no solo en
+  el navegador local).
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Reemplazar en GitHub los 4 archivos listados arriba.
+1. Reemplazar en GitHub los 5 archivos listados arriba.
 2. Confirmar el commit — Netlify debe re-desplegar automáticamente.
 3. No requiere ninguna acción en Supabase.
 4. Ejecutar la verificación manual descrita arriba en el sitio ya
    publicado.
 
-Con esta entrega queda completa la mejora de "Ajuste de metas por
-asesor" en sus 2 fases. Quedan 2 mejoras futuras identificadas durante
-el trabajo, no incluidas aquí por estar fuera del alcance pedido:
-migrar el % de crecimiento por clasificación de localStorage a
-Supabase (para que sea compartido entre administradores), y — si lo
-necesitas — una exportación de Excel con gráfico nativo ya incrustado
-(requeriría una librería de pago o un proceso en backend).
+Cuando confirmes que esto funciona bien, seguimos con la parte (A)
+pendiente: el sistema de versionado de metas (Meta Inicial fija,
+Meta Actual, Forecast 1/2/3... por carga masiva de Excel).
