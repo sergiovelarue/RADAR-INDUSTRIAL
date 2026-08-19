@@ -2,23 +2,23 @@
 const DATA=window.RADAR_DATA;let state={businessView:"total",advisor:"todos",type:"todos",status:"todos",search:""};const $=id=>document.getElementById(id);const money=v=>"$"+Number(v||0).toLocaleString("es-CO",{maximumFractionDigits:1})+" MM";const pct=v=>`${Math.round(v||0)}%`;const cleanNit=v=>String(v||"").replace(/\s+/g,"").trim();
 function init(){restoreLocal();fillAdvisorFilter();bindEvents();render()}
 function fillAdvisorFilter(){const s=$("advisorFilter");s.innerHTML=`<option value="todos">Todos</option><option value="SIN ASIGNACION">Sin asignación</option>`;DATA.meta.asesores.forEach(a=>{const o=document.createElement("option");o.value=a;o.textContent=a;s.appendChild(o)})}
-function saleCurrent(c){return state.businessView==="espumas"?Number(c.ventaEspumasActual||0):state.businessView==="colchones"?Number(c.ventaColchonesActual||0):Number(c.ventaMesActual||0)}
-function salePrev(c){return state.businessView==="espumas"?Number(c.ventaEspumas2025Mes||0):state.businessView==="colchones"?Number(c.ventaColchones2025Mes||0):Number(c.ventaMismoMesAnterior||0)}
-function typeBelongs(c){if(state.businessView==="total")return true;if(state.businessView==="espumas")return c.tipoCliente==="Espumas"||c.tipoCliente==="Mixto"||Number(c.ventaEspumasActual||0)>0||Number(c.totalEspumas2025||0)>0;if(state.businessView==="colchones")return c.tipoCliente==="Colchones"||c.tipoCliente==="Mixto"||Number(c.ventaColchonesActual||0)>0||Number(c.totalColchones2025||0)>0;return true}
-function goal(c){return Number(c.metaAsesor||c.metaSugerida||0)}function compliance(c){return goal(c)?saleCurrent(c)/goal(c)*100:0}function missing(c){return Math.max(goal(c)-saleCurrent(c),0)}function sem(c){let x=compliance(c);return x>=100?"green":(x>=80||(salePrev(c)>0&&saleCurrent(c)>=salePrev(c)))?"yellow":"red"}function tClass(t){return t==="Espumas"?"espumas":t==="Colchones"?"colchones":t==="Mixto"?"mixto":"nuevo"}function tIcon(t){return t==="Espumas"?"🟦":t==="Colchones"?"🟪":t==="Mixto"?"🟩":"⬜"}
+function saleCurrent(c){return state.businessView==="espumas"?Number(c.ventaEspumasActual||0):Number(c.ventaMesActual||0)}
+function salePrev(c){return state.businessView==="espumas"?Number(c.ventaEspumas2025Mes||0):Number(c.ventaMismoMesAnterior||0)}
+function typeBelongs(c){if(state.businessView==="total")return true;if(state.businessView==="espumas")return c.tipoCliente==="Espumas"||c.tipoCliente==="Mixto"||Number(c.ventaEspumasActual||0)>0||Number(c.totalEspumas2025||0)>0;return true}
+function goal(c){return Number(c.metaAsesor||c.metaSugerida||0)}function compliance(c){return goal(c)?saleCurrent(c)/goal(c)*100:0}function missing(c){return Math.max(goal(c)-saleCurrent(c),0)}function sem(c){let x=compliance(c);return x>=100?"green":(x>=80||(salePrev(c)>0&&saleCurrent(c)>=salePrev(c)))?"yellow":"red"}function tClass(t){return t==="Espumas"?"espumas":t==="Mixto"?"mixto":"nuevo"}function tIcon(t){return t==="Espumas"?"🟦":t==="Mixto"?"🟩":"⬜"}
 function filteredBase(){const q=state.search.toLowerCase().trim();return DATA.clientes.filter(c=>{if(!typeBelongs(c))return false;if(state.advisor!=="todos"&&c.asesorAsignado!==state.advisor)return false;if(state.type!=="todos"&&c.tipoCliente!==state.type)return false;if(state.status!=="todos"&&c.estado!==state.status)return false;if(q&&![c.cliente,c.nit,c.asesorAsignado,c.ciudad,c.departamento,c.tipoCliente].join(" ").toLowerCase().includes(q))return false;return true})}
-function businessLabel(){return state.businessView==="espumas"?"Solo Espumas":state.businessView==="colchones"?"Solo Colchones":"Total Radar"}
-function render(){document.body.classList.toggle("view-espumas",state.businessView==="espumas");document.body.classList.toggle("view-colchones",state.businessView==="colchones");document.body.classList.toggle("view-total",state.businessView==="total");const arr=filteredBase();renderKpis(arr);renderTypeSummary();renderTable(arr);$("contextLabel").textContent=`Vista: ${businessLabel()} · Base maestra: ${DATA.meta.baseMaestraUpdatedAt} · Ventas: ${DATA.meta.ventasOperativasUpdatedAt}`}
-function renderKpis(arr){const venta=arr.reduce((s,c)=>s+saleCurrent(c),0),prev=arr.reduce((s,c)=>s+salePrev(c),0),meta=arr.reduce((s,c)=>s+goal(c),0),falt=Math.max(meta-venta,0);$("kClients").textContent=arr.length.toLocaleString("es-CO");$("kCurrentSale").textContent=money(venta);$("kPrevSale").textContent=money(prev);$("kGoal").textContent=money(meta);$("kCompliance").textContent=meta?pct(venta/meta*100):"0%";$("kMissing").textContent=money(falt);$("kClientsSub").textContent=businessLabel();$("kCurrentSaleSub").textContent=DATA.meta.currentMonthName;const base=filteredBase();$("bEspActual").textContent=money(base.reduce((s,c)=>s+Number(c.ventaEspumasActual||0),0));$("bColActual").textContent=money(base.reduce((s,c)=>s+Number(c.ventaColchonesActual||0),0));$("bEsp2025").textContent="2025: "+money(base.reduce((s,c)=>s+Number(c.ventaEspumas2025Mes||0),0));$("bCol2025").textContent="2025: "+money(base.reduce((s,c)=>s+Number(c.ventaColchones2025Mes||0),0))}
-function renderTypeSummary(){const base=DATA.clientes.filter(c=>typeBelongs(c)&&(state.advisor==="todos"||c.asesorAsignado===state.advisor));const count=t=>base.filter(c=>c.tipoCliente===t).length;$("tEspumas").textContent=count("Espumas");$("tColchones").textContent=count("Colchones");$("tMixto").textContent=count("Mixto");$("tNuevo").textContent=count("Nuevo");document.querySelectorAll("[data-type-card]").forEach(card=>card.classList.toggle("active",state.type===card.dataset.typeCard))}
+function businessLabel(){return state.businessView==="espumas"?"Solo Espumas":"Total Radar"}
+function render(){document.body.classList.toggle("view-espumas",state.businessView==="espumas");document.body.classList.toggle("view-total",state.businessView==="total");const arr=filteredBase();renderKpis(arr);renderTypeSummary();renderTable(arr);$("contextLabel").textContent=`Vista: ${businessLabel()} · Base maestra: ${DATA.meta.baseMaestraUpdatedAt} · Ventas: ${DATA.meta.ventasOperativasUpdatedAt}`}
+function renderKpis(arr){const venta=arr.reduce((s,c)=>s+saleCurrent(c),0),prev=arr.reduce((s,c)=>s+salePrev(c),0),meta=arr.reduce((s,c)=>s+goal(c),0),falt=Math.max(meta-venta,0);$("kClients").textContent=arr.length.toLocaleString("es-CO");$("kCurrentSale").textContent=money(venta);$("kPrevSale").textContent=money(prev);$("kGoal").textContent=money(meta);$("kCompliance").textContent=meta?pct(venta/meta*100):"0%";$("kMissing").textContent=money(falt);$("kClientsSub").textContent=businessLabel();$("kCurrentSaleSub").textContent=DATA.meta.currentMonthName;const base=filteredBase();$("bEspActual").textContent=money(base.reduce((s,c)=>s+Number(c.ventaEspumasActual||0),0));$("bEsp2025").textContent="2025: "+money(base.reduce((s,c)=>s+Number(c.ventaEspumas2025Mes||0),0))}
+function renderTypeSummary(){const base=DATA.clientes.filter(c=>typeBelongs(c)&&(state.advisor==="todos"||c.asesorAsignado===state.advisor));const count=t=>base.filter(c=>c.tipoCliente===t).length;$("tEspumas").textContent=count("Espumas");$("tMixto").textContent=count("Mixto");$("tNuevo").textContent=count("Nuevo");document.querySelectorAll("[data-type-card]").forEach(card=>card.classList.toggle("active",state.type===card.dataset.typeCard))}
 function renderTable(arr){const tb=$("routeBody");tb.innerHTML="";$("rowCount").textContent=`${arr.length.toLocaleString("es-CO")} clientes`;arr.sort((a,b)=>salePrev(b)-salePrev(a));arr.forEach(c=>{const tr=document.createElement("tr");tr.className=sem(c);tr.innerHTML=`<td data-label="Cliente"><span class="client-main" title="${esc(c.cliente)}">${esc(c.cliente)}</span><span class="client-location">${esc([c.ciudad,c.departamento].filter(Boolean).join(" · "))}</span></td><td data-label="NIT" title="${esc(c.nit)}">${esc(c.nit)}</td><td data-label="Tipo"><span class="badge ${tClass(c.tipoCliente)}">${tIcon(c.tipoCliente)} ${c.tipoCliente}</span></td><td data-label="Asesor">${esc(c.asesorAsignado)}</td><td data-label="Estado"><span class="status">${esc(c.estado)}</span></td><td data-label="Venta 2025">${money(salePrev(c))}</td><td data-label="Venta actual">${money(saleCurrent(c))}</td><td data-label="Meta">${money(goal(c))}</td><td data-label="Cump.">${pct(compliance(c))}</td><td data-label="Faltante">${money(missing(c))}</td>`;tb.appendChild(tr)})}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function bindEvents(){$("businessView").onchange=e=>{state.businessView=e.target.value;render()};$("advisorFilter").onchange=e=>{state.advisor=e.target.value;render()};$("typeFilter").onchange=e=>{state.type=e.target.value;render()};$("statusFilter").onchange=e=>{state.status=e.target.value;render()};$("searchInput").oninput=e=>{state.search=e.target.value;render()};document.querySelectorAll("[data-type-card]").forEach(card=>card.onclick=()=>{state.type=state.type===card.dataset.typeCard?"todos":card.dataset.typeCard;$("typeFilter").value=state.type;render()});$("validateBtn").onclick=validateDailyFiles;$("applyBtn").onclick=applyDailyFiles;$("clearLocalBtn").onclick=()=>{localStorage.removeItem("radarV8Data");alert("Actualización local eliminada. Recarga la página para volver a la base inicial del ZIP.")};$("exportCsvBtn").onclick=exportCsv}
 async function readWorkbook(id){const input=$(id);if(!input.files.length)return{rows:[],fileName:"No cargado"};const file=input.files[0],buf=await file.arrayBuffer(),wb=XLSX.read(buf,{type:"array"}),sh=wb.Sheets[wb.SheetNames[0]];return{rows:XLSX.utils.sheet_to_json(sh,{defval:0}),fileName:file.name}}
 function parseSalesRows(rows){const map=new Map();rows.forEach(row=>{const keys=Object.keys(row),nitKey=keys.find(k=>{const x=String(k).toLowerCase().trim();return x==="nit"||x==="mes"||x==="unnamed: 0"||x==="__empty"||x.includes("nit")})||keys[0],nit=cleanNit(row[nitKey]);if(!nit||nit.toLowerCase()==="total")return;const months={};let total=0;["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].forEach(m=>{const key=keys.find(k=>String(k).trim().toLowerCase()===m.toLowerCase()),v=key?toNumber(row[key]):0;months[m]=v;total+=v});const tk=keys.find(k=>String(k).trim().toLowerCase()==="total");if(tk)total=toNumber(row[tk]);map.set(nit,{months,total})});return map}
 function toNumber(v){if(v==null||v==="")return 0;if(typeof v==="number")return v;let s=String(v).replace(/\$/g,"").replace(/\s/g,"");if(s.includes(",")&&s.includes("."))s=s.lastIndexOf(",")>s.lastIndexOf(".")?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");else if(s.includes(","))s=s.replace(",",".");const n=Number(s);return Number.isFinite(n)?n:0}
-async function validateDailyFiles(){const r=$("updateResult");try{const esp=await readWorkbook("fileEspumas"),col=await readWorkbook("fileColchones"),em=parseSalesRows(esp.rows),cm=parseSalesRows(col.rows),month=DATA.meta.currentMonthName,ev=[...em.values()].reduce((s,x)=>s+(x.months[month]||0),0),cv=[...cm.values()].reduce((s,x)=>s+(x.months[month]||0),0);r.className="update-result ok";r.innerHTML=`<strong>Validación correcta:</strong><div class="summary-grid"><article><span>Registros Espumas</span><strong>${esp.rows.length}</strong></article><article><span>Registros Colchones</span><strong>${col.rows.length}</strong></article><article><span>Venta Espumas ${month}</span><strong>${money(ev)}</strong></article><article><span>Venta Colchones ${month}</span><strong>${money(cv)}</strong></article></div><p>${esp.fileName} · ${col.fileName}</p>`}catch(err){r.className="update-result error";r.innerHTML=`<strong>Error:</strong> ${err.message}`}}
-async function applyDailyFiles(){const r=$("updateResult");try{const esp=await readWorkbook("fileEspumas"),col=await readWorkbook("fileColchones"),em=parseSalesRows(esp.rows),cm=parseSalesRows(col.rows),month=DATA.meta.currentMonthName;let updated=0;DATA.clientes.forEach(c=>{const nit=cleanNit(c.nit),ev=em.get(nit)||{months:{},total:0},cv=cm.get(nit)||{months:{},total:0};c.ventaEspumasActual=Number(ev.months[month]||0);c.ventaColchonesActual=Number(cv.months[month]||0);c.ventaMesActual=c.ventaEspumasActual+c.ventaColchonesActual;c.totalEspumas2026=Number(ev.total||0);c.totalColchones2026=Number(cv.total||0);c.total2026=c.totalEspumas2026+c.totalColchones2026;if(em.has(nit)||cm.has(nit))updated++});DATA.meta.ventasOperativasUpdatedAt=new Date().toLocaleDateString("es-CO",{year:"numeric",month:"long",day:"numeric"});localStorage.setItem("radarV8Data",JSON.stringify(DATA));r.className="update-result ok";r.innerHTML=`<strong>Actualización aplicada:</strong> ${updated} clientes actualizados. La base maestra y el histórico 2025 no cambiaron.`;render()}catch(err){r.className="update-result error";r.innerHTML=`<strong>Error:</strong> ${err.message}`}}
+async function validateDailyFiles(){const r=$("updateResult");try{const esp=await readWorkbook("fileEspumas"),em=parseSalesRows(esp.rows),month=DATA.meta.currentMonthName,ev=[...em.values()].reduce((s,x)=>s+(x.months[month]||0),0);r.className="update-result ok";r.innerHTML=`<strong>Validación correcta:</strong><div class="summary-grid"><article><span>Registros Espumas</span><strong>${esp.rows.length}</strong></article><article><span>Venta Espumas ${month}</span><strong>${money(ev)}</strong></article></div><p>${esp.fileName}</p>`}catch(err){r.className="update-result error";r.innerHTML=`<strong>Error:</strong> ${err.message}`}}
+async function applyDailyFiles(){const r=$("updateResult");try{const esp=await readWorkbook("fileEspumas"),em=parseSalesRows(esp.rows),month=DATA.meta.currentMonthName;let updated=0;DATA.clientes.forEach(c=>{const nit=cleanNit(c.nit),ev=em.get(nit)||{months:{},total:0};c.ventaEspumasActual=Number(ev.months[month]||0);c.ventaMesActual=c.ventaEspumasActual;c.totalEspumas2026=Number(ev.total||0);c.total2026=c.totalEspumas2026;if(em.has(nit))updated++});DATA.meta.ventasOperativasUpdatedAt=new Date().toLocaleDateString("es-CO",{year:"numeric",month:"long",day:"numeric"});localStorage.setItem("radarV8Data",JSON.stringify(DATA));r.className="update-result ok";r.innerHTML=`<strong>Actualización aplicada:</strong> ${updated} clientes actualizados. La base maestra y el histórico 2025 no cambiaron.`;render()}catch(err){r.className="update-result error";r.innerHTML=`<strong>Error:</strong> ${err.message}`}}
 function restoreLocal(){const saved=localStorage.getItem("radarV8Data");if(!saved)return;try{const p=JSON.parse(saved);DATA.clientes=p.clientes||DATA.clientes;DATA.meta=p.meta||DATA.meta}catch(e){}}
 function exportCsv(){const arr=filteredBase(),rows=[["Cliente","NIT","Tipo","Asesor","Estado","Venta 2025","Venta actual","Meta","Cumplimiento","Faltante"]];arr.forEach(c=>rows.push([c.cliente,c.nit,c.tipoCliente,c.asesorAsignado,c.estado,salePrev(c),saleCurrent(c),goal(c),Math.round(compliance(c)),missing(c)]));const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="radar_v8_hoja_ruta.csv";document.body.appendChild(a);a.click();document.body.removeChild(a)}
 document.addEventListener("DOMContentLoaded",init);
@@ -47,19 +47,16 @@ function fillProfileSelectV81(){
 
 function saleCurrentMonthV81(c){
   if(state.businessView === "espumas") return Number(c.ventaEspumasActual || 0);
-  if(state.businessView === "colchones") return Number(c.ventaColchonesActual || 0);
   return Number(c.ventaMesActual || 0);
 }
 
 function salePrevMonthV81(c){
   if(state.month !== DATA.meta.currentMonthName){
     if(state.businessView === "espumas") return Number(c.totalEspumas2025 || 0) / 12;
-    if(state.businessView === "colchones") return Number(c.totalColchones2025 || 0) / 12;
     return Number(c.total2025 || 0) / 12;
   }
 
   if(state.businessView === "espumas") return Number(c.ventaEspumas2025Mes || 0);
-  if(state.businessView === "colchones") return Number(c.ventaColchones2025Mes || 0);
   return Number(c.ventaMismoMesAnterior || 0);
 }
 
@@ -319,19 +316,13 @@ saleCurrent = function(c){
   // Si el archivo operativo 2026 no trae ese mes todavía, venta actual debe ser cero.
   if(!isMonthAvailable2026V83(month)) return 0;
 
-  if(state.businessView === "espumas") return monthValueV83(c.ventas2026EspumasPorMes, month);
-  if(state.businessView === "colchones") return monthValueV83(c.ventas2026ColchonesPorMes, month);
-
-  return monthValueV83(c.ventas2026EspumasPorMes, month) + monthValueV83(c.ventas2026ColchonesPorMes, month);
+  return monthValueV83(c.ventas2026EspumasPorMes, month);
 };
 
 salePrev = function(c){
   const month = selectedMonthV83();
 
-  if(state.businessView === "espumas") return monthValueV83(c.ventas2025EspumasPorMes, month);
-  if(state.businessView === "colchones") return monthValueV83(c.ventas2025ColchonesPorMes, month);
-
-  return monthValueV83(c.ventas2025EspumasPorMes, month) + monthValueV83(c.ventas2025ColchonesPorMes, month);
+  return monthValueV83(c.ventas2025EspumasPorMes, month);
 };
 
 function suggestedGoalV83(c){
@@ -371,7 +362,7 @@ function recalcClientAveragesV83(c){
   let mesesCompra2026 = 0;
 
   RADAR_MONTHS_V83.slice(0, lastIdx + 1).forEach(m => {
-    const v = monthValueV83(c.ventas2026EspumasPorMes, m) + monthValueV83(c.ventas2026ColchonesPorMes, m);
+    const v = monthValueV83(c.ventas2026EspumasPorMes, m);
     total2026 += v;
     if(Math.abs(v) > 0) mesesCompra2026++;
   });
@@ -452,10 +443,8 @@ applyDailyFiles = async function(){
   const r = $("updateResult");
   try{
     const esp = await readWorkbook("fileEspumas");
-    const col = await readWorkbook("fileColchones");
 
     const em = parseSalesRowsMonthlyV83(esp.rows);
-    const cm = parseSalesRowsMonthlyV83(col.rows);
 
     let updated = 0;
     let latestIdx = -1;
@@ -463,18 +452,15 @@ applyDailyFiles = async function(){
     DATA.clientes.forEach(c => {
       const nit = cleanNit(c.nit);
       const ev = em.get(nit) || {};
-      const cv = cm.get(nit) || {};
 
       c.ventas2026EspumasPorMes = c.ventas2026EspumasPorMes || {};
-      c.ventas2026ColchonesPorMes = c.ventas2026ColchonesPorMes || {};
 
       RADAR_MONTHS_V83.forEach((m, idx) => {
         c.ventas2026EspumasPorMes[m] = Number(ev[m] || 0);
-        c.ventas2026ColchonesPorMes[m] = Number(cv[m] || 0);
-        if(Math.abs(Number(ev[m] || 0)) > 0 || Math.abs(Number(cv[m] || 0)) > 0) latestIdx = Math.max(latestIdx, idx);
+        if(Math.abs(Number(ev[m] || 0)) > 0) latestIdx = Math.max(latestIdx, idx);
       });
 
-      if(em.has(nit) || cm.has(nit)) updated++;
+      if(em.has(nit)) updated++;
     });
 
     if(latestIdx >= 0){
@@ -501,20 +487,17 @@ validateDailyFiles = async function(){
   const r = $("updateResult");
   try{
     const esp = await readWorkbook("fileEspumas");
-    const col = await readWorkbook("fileColchones");
     const em = parseSalesRowsMonthlyV83(esp.rows);
-    const cm = parseSalesRowsMonthlyV83(col.rows);
 
     let latestIdx = -1;
     RADAR_MONTHS_V83.forEach((m, idx) => {
-      const total = [...em.values()].reduce((s,x)=>s+Number(x[m]||0),0) + [...cm.values()].reduce((s,x)=>s+Number(x[m]||0),0);
+      const total = [...em.values()].reduce((s,x)=>s+Number(x[m]||0),0);
       if(Math.abs(total) > 0) latestIdx = idx;
     });
 
     const latest = latestIdx >= 0 ? RADAR_MONTHS_V83[latestIdx] : "Sin ventas";
     const current = selectedMonthV83();
     const espCurrent = [...em.values()].reduce((s,x)=>s+Number(x[current]||0),0);
-    const colCurrent = [...cm.values()].reduce((s,x)=>s+Number(x[current]||0),0);
 
     r.className = "update-result ok";
     r.innerHTML = `<strong>Validación correcta:</strong>
@@ -902,7 +885,6 @@ document.addEventListener("DOMContentLoaded", () => {
 function businessTypeMatchV85(c){
   if(state.businessView === "total") return true;
   if(state.businessView === "espumas") return c.tipoCliente === "Espumas";
-  if(state.businessView === "colchones") return c.tipoCliente === "Colchones";
   if(state.businessView === "mixto") return c.tipoCliente === "Mixto";
   return true;
 }
@@ -911,7 +893,6 @@ typeBelongs = businessTypeMatchV85;
 
 businessLabel = function(){
   if(state.businessView === "espumas") return "Solo Espumas";
-  if(state.businessView === "colchones") return "Solo Colchones";
   if(state.businessView === "mixto") return "Solo Mixto";
   return "Total Radar";
 };
@@ -941,14 +922,12 @@ renderTypeSummary = function(){
   const count = t => base.filter(c => c.tipoCliente === t).length;
 
   if($("tEspumas")) $("tEspumas").textContent = count("Espumas");
-  if($("tColchones")) $("tColchones").textContent = count("Colchones");
   if($("tMixto")) $("tMixto").textContent = count("Mixto");
   if($("tNuevo")) $("tNuevo").textContent = count("Nuevo");
 
   document.querySelectorAll("[data-type-card]").forEach(card => {
     const map = {
       "Espumas": "espumas",
-      "Colchones": "colchones",
       "Mixto": "mixto",
       "Nuevo": "total"
     };
@@ -962,7 +941,6 @@ function setupBusinessCardsV85(){
     card.addEventListener("click", () => {
       const map = {
         "Espumas": "espumas",
-        "Colchones": "colchones",
         "Mixto": "mixto",
         "Nuevo": "total"
       };
@@ -1088,11 +1066,10 @@ renderTypeSummary = function(){
   });
   const count = t => base.filter(c => c.tipoCliente === t).length;
   if($("tEspumas")) $("tEspumas").textContent = count("Espumas");
-  if($("tColchones")) $("tColchones").textContent = count("Colchones");
   if($("tMixto")) $("tMixto").textContent = count("Mixto");
   if($("tNuevo")) $("tNuevo").textContent = count("Nuevo");
   document.querySelectorAll("[data-type-card]").forEach(card => {
-    const map = { "Espumas":"espumas", "Colchones":"colchones", "Mixto":"mixto", "Nuevo":"total" };
+    const map = { "Espumas":"espumas", "Mixto":"mixto", "Nuevo":"total" };
     card.classList.toggle("active", state.businessView === map[card.dataset.typeCard]);
   });
 };
@@ -1234,11 +1211,10 @@ renderTypeSummary = function(){
   });
   const count = t => base.filter(c => c.tipoCliente === t).length;
   if($("tEspumas")) $("tEspumas").textContent = count("Espumas");
-  if($("tColchones")) $("tColchones").textContent = count("Colchones");
   if($("tMixto")) $("tMixto").textContent = count("Mixto");
   if($("tNuevo")) $("tNuevo").textContent = count("Nuevo");
   document.querySelectorAll("[data-type-card]").forEach(card => {
-    const map = { "Espumas":"espumas", "Colchones":"colchones", "Mixto":"mixto", "Nuevo":"total" };
+    const map = { "Espumas":"espumas", "Mixto":"mixto", "Nuevo":"total" };
     card.classList.toggle("active", state.businessView === map[card.dataset.typeCard]);
   });
 };
@@ -1417,11 +1393,11 @@ function monthIndexV810(m){return MONTHS_V810.indexOf(m)}
 function latestOperationalMonthV810(){return DATA.meta.latestOperationalMonth2026||DATA.meta.currentMonthName||"Mayo"}
 function monthIsAvailable2026V810(m){return monthIndexV810(m)>=0&&monthIndexV810(m)<=monthIndexV810(latestOperationalMonthV810())}
 function monthValueV810(obj,m){return Number((obj&&obj[m])||0)}
-function totalMonth2026V810(c,m,view){if(!monthIsAvailable2026V810(m))return 0;if(view==="espumas")return monthValueV810(c.ventas2026EspumasPorMes,m);if(view==="colchones")return monthValueV810(c.ventas2026ColchonesPorMes,m);return monthValueV810(c.ventas2026EspumasPorMes,m)+monthValueV810(c.ventas2026ColchonesPorMes,m)}
-function totalMonth2025V810(c,m,view){if(view==="espumas")return monthValueV810(c.ventas2025EspumasPorMes,m);if(view==="colchones")return monthValueV810(c.ventas2025ColchonesPorMes,m);return monthValueV810(c.ventas2025EspumasPorMes,m)+monthValueV810(c.ventas2025ColchonesPorMes,m)}
-function businessMatchV810(c){if(state.businessView==="total")return true;if(state.businessView==="espumas")return c.tipoCliente==="Espumas";if(state.businessView==="colchones")return c.tipoCliente==="Colchones";if(state.businessView==="mixto")return c.tipoCliente==="Mixto";return true}
+function totalMonth2026V810(c,m,view){if(!monthIsAvailable2026V810(m))return 0;return monthValueV810(c.ventas2026EspumasPorMes,m)}
+function totalMonth2025V810(c,m,view){return monthValueV810(c.ventas2025EspumasPorMes,m)}
+function businessMatchV810(c){if(state.businessView==="espumas")return c.tipoCliente==="Espumas";return true}
 typeBelongs=businessMatchV810;businessTypeMatchV85=businessMatchV810;
-businessLabel=function(){if(state.businessView==="espumas")return"Solo Espumas";if(state.businessView==="colchones")return"Solo Colchones";if(state.businessView==="mixto")return"Solo Mixto";return"Total Radar"};
+businessLabel=function(){if(state.businessView==="espumas")return"Solo Espumas";return"Total Radar"};
 applyUserProfileV84=function(){if(!currentUserV84)return;if(currentUserV84.profile==="admin"){state.profile="admin"}else{state.profile=currentUserV84.advisor;state.advisor="todos"}const ps=$("profileSelect");if(ps){ps.value=state.profile;const w=ps.closest("div");if(w)w.classList.add("profile-hidden")}const aw=$("advisorFilter")?.closest("div");if(aw)aw.style.display=currentUserV84.profile==="admin"?"":"none";const login=$("loginOverlay");if(login)login.classList.add("hidden")};
 saleCurrent=function(c){return totalMonth2026V810(c,selectedMonthV810(),state.businessView)};
 salePrev=function(c){return totalMonth2025V810(c,selectedMonthV810(),state.businessView)};
@@ -1431,11 +1407,11 @@ compliance=function(c){const g=goal(c);return g?(saleCurrent(c)/g)*100:0};missin
 filteredBase=function(){const q=String(state.search||"").toLowerCase().trim();return DATA.clientes.filter(c=>{const blocked=typeof isBlockedV87==="function"?isBlockedV87(c):false;const vip=typeof isVipGerenciaV88==="function"?isVipGerenciaV88(c):false;if(blocked){if(!(typeof isAdminV86==="function"&&isAdminV86()))return false;if(state.status!=="Bloqueado")return false}else if(state.status==="Bloqueado")return false;if(state.profile!=="admin"&&vip)return false;if(!businessMatchV810(c))return false;if(state.profile==="admin"){if(state.advisor!=="todos"&&c.asesorAsignado!==state.advisor)return false}else{if(c.asesorAsignado!==state.profile)return false}if(state.status!=="todos"&&state.status!=="Bloqueado"&&c.estado!==state.status)return false;if(q&&![c.cliente,c.nit,c.asesorAsignado,c.ciudad,c.departamento,c.tipoCliente,c.canal].join(" ").toLowerCase().includes(q))return false;return true})};
 function sortedRowsV810(arr){const copy=[...arr],sort=state.sort||"venta2025";copy.sort((a,b)=>{if(sort==="faltante")return missing(b)-missing(a);if(sort==="ventaActual")return saleCurrent(b)-saleCurrent(a);if(sort==="cumplimientoAsc")return compliance(a)-compliance(b);if(sort==="cliente")return String(a.cliente||"").localeCompare(String(b.cliente||""));return salePrev(b)-salePrev(a)});return copy}
 renderTable=function(arr){const tbody=$("routeBody");tbody.innerHTML="";$("rowCount").textContent=`${arr.length.toLocaleString("es-CO")} clientes`;sortedRowsV810(arr).forEach(c=>{const tr=document.createElement("tr");tr.className=sem(c);tr.innerHTML=`<td data-label="Cliente"><span class="client-main" title="${esc(c.cliente)}">${esc(c.cliente)}</span><span class="client-location">${esc([c.ciudad,c.departamento].filter(Boolean).join(" · "))}</span></td><td data-label="NIT" title="${esc(c.nit)}">${esc(c.nit)}</td><td data-label="Asesor">${esc(c.asesorAsignado)}</td><td data-label="Estado"><span class="status">${esc(c.estado)}</span></td><td data-label="Venta 2025">${money(salePrev(c))}</td><td data-label="Venta actual">${money(saleCurrent(c))}</td><td data-label="Meta">${money(goal(c))}</td><td data-label="Cump.">${pct(compliance(c))}</td><td data-label="Faltante">${money(missing(c))}</td><td data-label="Detalle"><button class="detail-btn" data-detail-nit="${esc(c.nit)}">Ver</button></td>`;tbody.appendChild(tr)})};
-renderKpis=function(arr){const venta=arr.reduce((s,c)=>s+saleCurrent(c),0),prev=arr.reduce((s,c)=>s+salePrev(c),0),meta=arr.reduce((s,c)=>s+goal(c),0),falt=Math.max(meta-venta,0);$("kClients").textContent=arr.length.toLocaleString("es-CO");$("kCurrentSale").textContent=money(venta);$("kPrevSale").textContent=money(prev);$("kGoal").textContent=money(meta);$("kCompliance").textContent=meta?pct(venta/meta*100):"0%";$("kMissing").textContent=money(falt);$("kClientsSub").textContent=businessLabel();$("kCurrentSaleSub").textContent=selectedMonthV810();const m=selectedMonthV810();$("bEspActual").textContent=money(arr.reduce((s,c)=>s+totalMonth2026V810(c,m,"espumas"),0));$("bColActual").textContent=money(arr.reduce((s,c)=>s+totalMonth2026V810(c,m,"colchones"),0));$("bEsp2025").textContent="2025: "+money(arr.reduce((s,c)=>s+totalMonth2025V810(c,m,"espumas"),0));$("bCol2025").textContent="2025: "+money(arr.reduce((s,c)=>s+totalMonth2025V810(c,m,"colchones"),0))};
-renderTypeSummary=function(){const base=DATA.clientes.filter(c=>{const blocked=typeof isBlockedV87==="function"?isBlockedV87(c):false;const vip=typeof isVipGerenciaV88==="function"?isVipGerenciaV88(c):false;if(blocked)return false;if(state.profile!=="admin"&&vip)return false;if(state.profile==="admin"){if(state.advisor!=="todos"&&c.asesorAsignado!==state.advisor)return false}else{if(c.asesorAsignado!==state.profile)return false}if(state.status!=="todos"&&c.estado!==state.status)return false;return true});const count=t=>base.filter(c=>c.tipoCliente===t).length;if($("tEspumas"))$("tEspumas").textContent=count("Espumas");if($("tColchones"))$("tColchones").textContent=count("Colchones");if($("tMixto"))$("tMixto").textContent=count("Mixto");if($("tNuevo"))$("tNuevo").textContent=count("Nuevo");document.querySelectorAll("[data-type-card]").forEach(card=>{const map={Espumas:"espumas",Colchones:"colchones",Mixto:"mixto",Nuevo:"total"};card.classList.toggle("active",state.businessView===map[card.dataset.typeCard])})};
+renderKpis=function(arr){const venta=arr.reduce((s,c)=>s+saleCurrent(c),0),prev=arr.reduce((s,c)=>s+salePrev(c),0),meta=arr.reduce((s,c)=>s+goal(c),0),falt=Math.max(meta-venta,0);$("kClients").textContent=arr.length.toLocaleString("es-CO");$("kCurrentSale").textContent=money(venta);$("kPrevSale").textContent=money(prev);$("kGoal").textContent=money(meta);$("kCompliance").textContent=meta?pct(venta/meta*100):"0%";$("kMissing").textContent=money(falt);$("kClientsSub").textContent=businessLabel();$("kCurrentSaleSub").textContent=selectedMonthV810();const m=selectedMonthV810();if($("bEspActual"))$("bEspActual").textContent=money(arr.reduce((s,c)=>s+totalMonth2026V810(c,m,"espumas"),0));if($("bEsp2025"))$("bEsp2025").textContent="2025: "+money(arr.reduce((s,c)=>s+totalMonth2025V810(c,m,"espumas"),0))};
+renderTypeSummary=function(){const base=DATA.clientes.filter(c=>{const blocked=typeof isBlockedV87==="function"?isBlockedV87(c):false;const vip=typeof isVipGerenciaV88==="function"?isVipGerenciaV88(c):false;if(blocked)return false;if(state.profile!=="admin"&&vip)return false;if(state.profile==="admin"){if(state.advisor!=="todos"&&c.asesorAsignado!==state.advisor)return false}else{if(c.asesorAsignado!==state.profile)return false}if(state.status!=="todos"&&c.estado!==state.status)return false;return true});const count=t=>base.filter(c=>c.tipoCliente===t).length;if($("tEspumas"))$("tEspumas").textContent=count("Espumas");if($("tMixto"))$("tMixto").textContent=count("Mixto");if($("tNuevo"))$("tNuevo").textContent=count("Nuevo")};
 function updateFilterVisibilityV810(){const aw=$("advisorFilter")?.closest("div");if(aw)aw.style.display=state.profile==="admin"?"":"none";const tw=$("typeFilter")?.closest("div");if(tw)tw.style.display="none";const vw=$("vipFilter")?.closest("div");if(vw)vw.style.display="none"}
 function updateMonthAndDateV810(){if(!state.month)state.month=realCurrentMonthV810();if($("monthSelect"))$("monthSelect").value=state.month;if($("todayBadgeV89"))$("todayBadgeV89").textContent="Fecha actual: "+new Date().toLocaleDateString("es-CO",{weekday:"long",year:"numeric",month:"long",day:"numeric"});if($("monthHelpV83"))$("monthHelpV83").textContent=monthIsAvailable2026V810(state.month)?`Usando venta real 2026 de ${state.month}`:`${state.month} aún no existe en ventas 2026: venta actual = 0; base 2025 activa`}
-render=function(){state.type="todos";state.vipFilter="todos";document.body.classList.toggle("view-espumas",state.businessView==="espumas");document.body.classList.toggle("view-colchones",state.businessView==="colchones");document.body.classList.toggle("view-total",state.businessView==="total");updateFilterVisibilityV810();updateMonthAndDateV810();const arr=filteredBase();renderKpis(arr);renderTypeSummary();renderTable(arr);const label=$("contextLabel");if(label){const note=monthIsAvailable2026V810(state.month)?"":" · Mes futuro sin venta 2026";label.textContent=`Vista: ${businessLabel()} · Mes: ${state.month}${note} · Ventas actualizadas hasta ${latestOperationalMonthV810()}`}};
+render=function(){state.type="todos";state.vipFilter="todos";document.body.classList.toggle("view-espumas",state.businessView==="espumas");document.body.classList.toggle("view-total",state.businessView==="total");updateFilterVisibilityV810();updateMonthAndDateV810();const arr=filteredBase();renderKpis(arr);renderTypeSummary();renderTable(arr);const label=$("contextLabel");if(label){const note=monthIsAvailable2026V810(state.month)?"":" · Mes futuro sin venta 2026";label.textContent=`Vista: ${businessLabel()} · Mes: ${state.month}${note} · Ventas actualizadas hasta ${latestOperationalMonthV810()}`}};
 const previousInitV810=init;init=function(){state.month=realCurrentMonthV810();previousInitV810();state.month=realCurrentMonthV810();if($("monthSelect"))$("monthSelect").value=state.month;render()};
 document.addEventListener("DOMContentLoaded",()=>{if($("monthSelect"))$("monthSelect").addEventListener("change",e=>{state.month=e.target.value;render()});if($("businessView"))$("businessView").addEventListener("change",e=>{state.businessView=e.target.value;render()});if($("advisorFilter"))$("advisorFilter").addEventListener("change",e=>{state.advisor=e.target.value;render()});if($("statusFilter"))$("statusFilter").addEventListener("change",e=>{state.status=e.target.value;render()});if($("searchInput"))$("searchInput").addEventListener("input",e=>{state.search=e.target.value;render()});if($("sortSelect"))$("sortSelect").addEventListener("change",e=>{state.sort=e.target.value;render()})});
 
@@ -1521,7 +1497,7 @@ function monthsV812(){return ["Enero","Febrero","Marzo","Abril","Mayo","Junio","
 function mvV812(obj,m){return Number((obj&&obj[m])||0);}
 function latestIdxV812(){const months=monthsV812();const latest=DATA.meta.latestOperationalMonth2026||DATA.meta.currentMonthName||"Mayo";return Math.max(0,months.indexOf(latest));}
 function availableMonthsV812(){return monthsV812().slice(0,latestIdxV812()+1);}
-function saleMonthV812(c,year,m){if(year===2025)return mvV812(c.ventas2025EspumasPorMes,m)+mvV812(c.ventas2025ColchonesPorMes,m);return mvV812(c.ventas2026EspumasPorMes,m)+mvV812(c.ventas2026ColchonesPorMes,m);}
+function saleMonthV812(c,year,m){if(year===2025)return mvV812(c.ventas2025EspumasPorMes,m);return mvV812(c.ventas2026EspumasPorMes,m);}
 function totalYtdV812(c,year){return availableMonthsV812().reduce((s,m)=>s+saleMonthV812(c,year,m),0);}
 function directorClientsV812(){return (DATA.clientes||[]).filter(c=>!(typeof isBlockedV87==="function"&&isBlockedV87(c)));}
 function pctV812(v){return Number.isFinite(v)?Math.round(v)+"%":"0%";}
@@ -1598,14 +1574,15 @@ function tendenciaProyectadaV815(m25, m26){
 // ===============================
 // V8.13 - Dashboard Director estratégico
 // ===============================
-let directorLineV813 = "espumas";
+// Línea de negocio fija en "espumas": la empresa ya no opera Colchones y no hay
+// control de UI que permita cambiar esta línea (el antiguo #directorLineToggle no existe en el DOM).
+const directorLineV813 = "espumas";
 function lineSaleMonthV813(c, year, month){
-  if(year === 2025) return directorLineV813 === "espumas" ? Number((c.ventas2025EspumasPorMes||{})[month]||0) : Number((c.ventas2025ColchonesPorMes||{})[month]||0);
-  return directorLineV813 === "espumas" ? Number((c.ventas2026EspumasPorMes||{})[month]||0) : Number((c.ventas2026ColchonesPorMes||{})[month]||0);
+  if(year === 2025) return Number((c.ventas2025EspumasPorMes||{})[month]||0);
+  return Number((c.ventas2026EspumasPorMes||{})[month]||0);
 }
 function lineClientIncludedV813(c){
-  if(directorLineV813 === "espumas") return c.tipoCliente==="Espumas"||c.tipoCliente==="Mixto"||Number(c.totalEspumas2025||0)>0||Number(c.totalEspumas2026||0)>0;
-  return c.tipoCliente==="Colchones"||c.tipoCliente==="Mixto"||Number(c.totalColchones2025||0)>0||Number(c.totalColchones2026||0)>0;
+  return c.tipoCliente==="Espumas"||c.tipoCliente==="Mixto"||Number(c.totalEspumas2025||0)>0||Number(c.totalEspumas2026||0)>0;
 }
 function directorClientsV813(){
   return (DATA.clientes||[]).filter(c=>!(typeof isBlockedV87==="function"&&isBlockedV87(c))&&lineClientIncludedV813(c));
@@ -1653,7 +1630,8 @@ function renderInsightsV813(d){
   items.push(`${d.withSale} clientes tienen venta acumulada en 2026 para la línea seleccionada.`);
   items.forEach(t=>{const li=document.createElement("li");li.textContent=t;ul.appendChild(li);});
 }
-document.addEventListener("DOMContentLoaded",()=>{const toggle=$("directorLineToggle"); if(toggle){toggle.value=directorLineV813; toggle.addEventListener("change",e=>{directorLineV813=e.target.value; renderDirectorDashboardV812();});}});
+// El selector #directorLineToggle (V8.13) fue retirado del DOM junto con el soporte de Colchones;
+// la línea de negocio del panel Director queda fija en "espumas" (ver directorLineV813 arriba).
 
 // ===============================
 // V8.14 - Salud del Portafolio de Clientes + Glosario

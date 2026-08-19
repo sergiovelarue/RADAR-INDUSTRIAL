@@ -319,11 +319,13 @@ renderKpis = function (arr) {
   if ($("kClientsSub")) $("kClientsSub").textContent = businessLabel();
   if ($("kCurrentSaleSub")) $("kCurrentSaleSub").textContent = (typeof selectedMonthV810 === "function") ? selectedMonthV810() : "";
   const m = (typeof selectedMonthV810 === "function") ? selectedMonthV810() : null;
+  // Depuración negocio único (2026-08-19): se retiró el desglose "Colchones"
+  // (bColActual/bCol2025 — el panel breakdownTotal que los contenía ya
+  // estaba oculto y esos elementos se eliminaron de index.html). Solo
+  // queda el desglose de Espumas, la única línea de negocio activa.
   if (m && typeof totalMonth2026V810 === "function") {
     if ($("bEspActual")) $("bEspActual").textContent = money(arrPresupuesto.reduce((s, c) => s + totalMonth2026V810(c, m, "espumas"), 0));
-    if ($("bColActual")) $("bColActual").textContent = money(arrPresupuesto.reduce((s, c) => s + totalMonth2026V810(c, m, "colchones"), 0));
     if ($("bEsp2025")) $("bEsp2025").textContent = "2025: " + money(arrPresupuesto.reduce((s, c) => s + totalMonth2025V810(c, m, "espumas"), 0));
-    if ($("bCol2025")) $("bCol2025").textContent = "2025: " + money(arrPresupuesto.reduce((s, c) => s + totalMonth2025V810(c, m, "colchones"), 0));
   }
 };
 
@@ -1775,9 +1777,10 @@ document.addEventListener("DOMContentLoaded", () => {
 // Reemplaza la antigua Meta S&OP (caso puntual de un solo cliente).
 // ------------------------------------------------------------
 
-// Suma de ambas líneas (Espumas + Colchones) para un cliente/año/mes.
-// Usa las mismas funciones ya existentes en app.js (saleMonthV812),
-// sin depender del filtro de línea del Dashboard (directorLineV813).
+// Venta del negocio (Espumas) para un cliente/año/mes. Usa la misma
+// función ya existente en app.js (saleMonthV812; desde la depuración
+// de negocio único del 2026-08-19 solo suma Espumas), sin depender
+// del filtro de línea del Dashboard (directorLineV813).
 function ventaMesClienteV106(c, year, mes) {
   return typeof saleMonthV812 === "function" ? saleMonthV812(c, year, mes) : 0;
 }

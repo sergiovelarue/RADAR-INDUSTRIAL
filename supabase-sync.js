@@ -192,7 +192,7 @@ applyGrowthConfigV82 = function () {
   sincronizarTodosLosClientesV94();
 };
 
-// Carga mensual de ventas por Excel (Espumas/Colchones).
+// Carga mensual de ventas por Excel (Espumas).
 const _applyDailyFilesOriginalV94 = applyDailyFiles;
 applyDailyFiles = async function () {
   await _applyDailyFilesOriginalV94();

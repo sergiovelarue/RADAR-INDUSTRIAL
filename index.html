@@ -214,7 +214,6 @@
         <div class="panel-header"><div><h3>Actualización diaria de ventas 2026</h3><p>Solo reemplaza ventas operativas. No modifica histórico 2025 ni asignación.</p></div></div>
         <div class="upload-grid">
           <article><h4>Ventas Espumas 2026</h4><input type="file" id="fileEspumas" accept=".xlsx,.xls,.csv"/></article>
-          <article style="display:none"><h4>Ventas Colchones 2026</h4><input type="file" id="fileColchones" accept=".xlsx,.xls,.csv"/></article>
         </div>
         <div class="actions"><button class="btn" id="validateBtn">Validar archivos</button><button class="btn secondary" id="applyBtn">Procesar actualización</button><button class="btn ghost" id="clearLocalBtn">Limpiar actualización local</button></div>
         <div class="update-result" id="updateResult"><strong>Estado:</strong> pendiente de carga.</div>
@@ -347,11 +346,9 @@
       </section>
       <section class="type-grid" id="statusCardsGrid"></section>
       <section class="type-grid" id="classCardsGrid"></section>
-      <span id="tColchones" hidden>0</span>
       <span id="tMixto" hidden>0</span>
       <section class="breakdown" id="breakdownTotal" style="display:none">
         <article><span>Espumas actual</span><strong id="bEspActual">$0</strong><small id="bEsp2025">2025: $0</small></article>
-        <article><span>Colchones actual</span><strong id="bColActual">$0</strong><small id="bCol2025">2025: $0</small></article>
       </section>
       <section class="table-card">
         <div class="table-header"><h3>Hoja de ruta</h3><span id="rowCount">0 clientes</span></div>
