@@ -47,3 +47,101 @@
   color:var(--muted);
   line-height:1.5;
 }
+
+/* ===============================
+   V2 Metas (2026-08-19) — Ajuste de meta por asesor, valor absoluto.
+   Tabla por asesor + selector de mes + campo "Nueva meta del mes"
+   con vista previa, confirmación de cambios grandes y animación de
+   guardado.
+   =============================== */
+.metas-ajuste-mes-selector{
+  margin-top:8px;
+}
+.metas-ajuste-mes-selector label{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  font-weight:900;
+  margin-bottom:6px;
+}
+.metas-ajuste-mes-selector select{
+  border:1px solid #d1d5db;
+  border-radius:12px;
+  padding:10px;
+  background:white;
+  min-width:220px;
+}
+
+.metas-badge-ajustada{
+  display:inline-block;
+  background:#fef3c7;
+  color:#92400e;
+  font-size:10px;
+  font-weight:900;
+  padding:2px 8px;
+  border-radius:999px;
+  margin-left:6px;
+  vertical-align:middle;
+  white-space:nowrap;
+}
+
+.metas-nueva-meta-input{
+  font-weight:700;
+}
+
+/* Vista previa del valor nuevo: pequeña y clara, debajo del campo en
+   pantallas angostas y al lado en pantallas anchas (ajuste automático
+   vía flex-wrap del contenedor de celda). */
+#metasAjusteTablaBody td[data-label="Nueva meta del mes"]{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+  gap:4px 10px;
+}
+.metas-nueva-meta-preview{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:600;
+  white-space:nowrap;
+}
+
+/* Efecto al confirmar el guardado: el valor de "Acumulado año" se
+   infla suavemente y vuelve a su tamaño normal, con un ligero
+   temblor de la letra al final del efecto. */
+@keyframes metasInflarConfirmarV2{
+  0%   { transform:scale(1) rotate(0deg); color:inherit; }
+  35%  { transform:scale(1.18) rotate(0deg); color:#16a34a; }
+  60%  { transform:scale(1.18) rotate(0deg); color:#16a34a; }
+  72%  { transform:scale(1.02) rotate(-1deg); }
+  80%  { transform:scale(1.02) rotate(1deg); }
+  88%  { transform:scale(1.0) rotate(-1deg); }
+  96%  { transform:scale(1.0) rotate(1deg); }
+  100% { transform:scale(1) rotate(0deg); color:inherit; }
+}
+.metas-anim-confirmar{
+  display:inline-block;
+  animation:metasInflarConfirmarV2 900ms ease-in-out;
+}
+@media (prefers-reduced-motion: reduce){
+  .metas-anim-confirmar{ animation:none; }
+}
+
+/* Etiqueta "Nueva Meta del mes" para el asesor, junto al KPI Meta
+   de su Hoja de ruta. Pequeña, discreta, desaparece sola. */
+@keyframes metasEtiquetaApareceV2{
+  0%   { opacity:0; transform:translateY(-2px) scale(.9); }
+  100% { opacity:1; transform:translateY(0) scale(1); }
+}
+.metas-badge-nueva-meta{
+  display:inline-block;
+  margin-top:6px;
+  background:#dbeafe;
+  color:#1d4ed8;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.02em;
+  text-transform:uppercase;
+  padding:3px 9px;
+  border-radius:999px;
+  animation:metasEtiquetaApareceV2 300ms ease-out;
+}

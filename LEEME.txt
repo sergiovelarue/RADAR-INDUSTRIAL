@@ -1,81 +1,188 @@
-RadarComercial B2B — Retiro del enlace "Actualización diaria" (menú lateral)
-Fecha de creación: 2026-08-19 15:50 (hora Colombia)
-Carpeta: Mejoras_20260819_1550
+RadarComercial B2B — Ajuste de metas por asesor (Fase 1 de 2)
+Fecha de creación: 2026-08-19 16:49 (hora Colombia)
+Carpeta: Mejoras_20260819_1649
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
 Archivos incluidos (reemplazan a los del mismo nombre en GitHub):
 1. index.html
-2. app.js
-3. mejoras-v1.js
-4. version.js (actualizado a V10.2 · 2026-08-19, siguiendo la
-   convención de versión visible establecida en la entrega anterior)
+2. metas-v1.js
+3. metas-v1.css
+4. version.js (actualizado a V11.0 · 2026-08-19)
+
+IMPORTANTE: Esta mejora también requirió una migración en la base de
+datos de Supabase, YA APLICADA directamente por mí (no requiere que
+subas ningún archivo SQL — solo confirmo aquí qué cambió, para tu
+registro).
 
 ============================================================
-QUÉ CAMBIÓ Y POR QUÉ
+CONTEXTO — ESTA ES LA FASE 1 DE 2
 ============================================================
-Diagnóstico confirmado: el enlace "Actualización diaria" en la barra
-lateral no tenía vista propia. Al hacer clic, ejecutaba exactamente
-el mismo código que "Hoja de ruta" (showViewV812("route")) — por eso
-parecía "no llevar a ninguna parte": en realidad llevaba al mismo
-sitio que ya se ve por defecto.
+Pediste una mejora grande para "Metas y presupuestos": ajuste de
+metas por asesor con animaciones, confirmación de cambios grandes,
+etiqueta al asesor, diferenciación en gráficas de Dashboard, y
+exportación a Excel del "Presupuesto Próximo Año". Acordamos dividirlo
+en 2 fases para poder entregar y validar por partes.
 
-Esto viene de una mejora anterior: el panel real de carga de archivos
-de ventas diarias (formulario para subir el Excel de Espumas del mes)
-se reubicó dentro de la pestaña "Ajustes" (solo administradores), pero
-el enlace del menú "Actualización diaria" quedó huérfano — nadie lo
-volvió a conectar a su función real ni se eliminó.
+Esta entrega (Fase 1) incluye:
+1. Tabla de ajuste de meta por asesor rediseñada por completo.
+2. Campo "Nueva meta del mes" con valor directo en pesos.
+3. Selector de mes (mes actual + meses que faltan del año).
+4. Vista previa pequeña y clara del valor nuevo antes de guardar.
+5. Confirmación obligatoria si el cambio supera 20% de la Meta
+   Inicial del asesor.
+6. Efecto visual de confirmación al guardar (inflar + temblor breve).
+7. Etiqueta "Nueva Meta del mes" en la Hoja de ruta del asesor.
 
-Se retiró el enlace "Actualización diaria" del menú lateral. El menú
-pasó de 13 a 12 pestañas, quedando más limpio y sin destinos
-duplicados/confusos.
-
-============================================================
-IMPORTANTE — LO QUE NO SE TOCÓ
-============================================================
-La función de "Actualización diaria de ventas 2026" (cargar el Excel
-de Espumas del mes, validar y procesar) SIGUE existiendo y funcionando
-exactamente igual que antes. Solo cambió de lugar en una mejora previa:
-hoy vive dentro de la pestaña "Ajustes" (visible para Administrador y
-Super Administrador), como el panel "Actualización diaria de ventas
-2026" con los mismos botones ("Validar archivos", "Procesar
-actualización", "Limpiar actualización local").
-
-Nada de esa función se eliminó ni se modificó en esta ronda — solo se
-quitó el enlace del menú que ya no llevaba a ningún lado propio.
+Pendiente para la Fase 2 (siguiente entrega):
+8. Diferenciar en las gráficas de Dashboard y de Metas y presupuestos
+   la Meta Inicial vs. la Meta Ajustada vs. la Proyección vs. el
+   "Presupuesto Próximo Año".
+9. Botón de exportar el "Presupuesto Próximo Año" a un archivo Excel
+   (tabla por asesor y mes a mes, más el total del año, y una hoja
+   con la gráfica).
 
 ============================================================
-DETALLE TÉCNICO
+QUÉ CAMBIÓ EN DETALLE (FASE 1)
 ============================================================
-- index.html: se eliminó `<a id="navUpdate">Actualización diaria</a>`
-  del menú lateral.
-- app.js: se eliminó el listener de clic sobre "navUpdate" (ya no
-  existe el elemento).
-- mejoras-v1.js: se eliminó "navUpdate" de 3 listas donde aparecía
-  (control de visibilidad para asesores, navegación general, y
-  ocultamiento de la vista de Metas al cambiar de pestaña).
+
+1) Base de datos (Supabase) — YA APLICADO
+   La tabla ajustes_meta_asesor cambió de un modelo "% o monto a
+   sumar sobre la meta base" a un valor absoluto directo:
+   - Se agregaron las columnas: meta_ajustada (el valor en pesos que
+     escribe el administrador), meta_inicial_snapshot (la Meta
+     Inicial del asesor en el momento de guardar, para poder calcular
+     el % de cambio de forma estable), visto_por_asesor y visto_en
+     (para la etiqueta del asesor).
+   - Se retiraron las columnas antiguas tipo_ajuste/valor_ajuste (la
+     tabla no tenía ninguna fila real todavía, así que no hubo
+     pérdida de datos).
+   - Se actualizó la función guardar_ajuste_meta_v1 para recibir el
+     valor absoluto en vez de %/monto.
+   - Se crearon 2 funciones nuevas: consultar_mi_ajuste_meta_v1 (el
+     asesor consulta si tiene una meta ajustada este mes — sin
+     necesitar permisos de administrador, solo ve la suya) y
+     marcar_ajuste_meta_visto_v1 (registra que el asesor ya vio el
+     aviso).
+   - Todo esto se verificó con datos de prueba reales antes de
+     confirmarlo (casos de éxito y de rechazo de seguridad), y se
+     limpió sin dejar residuos — mismo procedimiento que en todas las
+     migraciones anteriores del proyecto.
+
+2) Tabla de ajuste de meta por asesor — REDISEÑADA
+   Antes: había que elegir un asesor, luego ver una tabla de los
+   próximos 3 meses con un tipo de ajuste (% o monto) para cada uno.
+   Ahora: se elige el MES (arriba, aplica a todos los asesores a la
+   vez), y la tabla muestra de una vez TODOS los asesores en filas,
+   con estas columnas:
+   - Asesor
+   - Meta Inicial (mes): la meta definida en el sistema hoy, sin
+     ningún ajuste — de solo lectura, no se modifica desde aquí.
+   - Acumulado año: la venta real acumulada del asesor en lo que va
+     del año, en negrilla.
+   - Meta vigente del mes: la meta que aplica hoy para ese mes (la
+     ajustada si existe, si no la Meta Inicial). Si hay un ajuste
+     activo, se ve una etiqueta pequeña "Ajustada".
+   - Nueva meta del mes: campo para escribir el valor nuevo,
+     directamente en pesos.
+   - Acciones: Guardar / Quitar ajuste.
+
+3) Selector de mes
+   Solo permite elegir el mes actual o los meses que faltan del año
+   en curso (no se pueden editar meses ya pasados). El mes actual
+   aparece marcado como "(mes actual)".
+
+4) Vista previa antes de guardar
+   Mientras el administrador escribe en "Nueva meta del mes", aparece
+   debajo (o al lado, según el ancho de la pantalla) un texto pequeño
+   y en color gris claro: "Nueva meta: $X". El valor grande en
+   negrilla (Acumulado año) NO cambia todavía — solo se actualiza
+   después de guardar.
+
+5) Confirmación de cambios grandes (regla del 20%)
+   Al presionar "Guardar": si el valor nuevo se aleja MÁS del 20% de
+   la Meta Inicial del asesor (por encima o por debajo), aparece una
+   ventana emergente pidiendo confirmar el cambio, mostrando el
+   porcentaje exacto. Si el cambio es del 20% o menos, se guarda de
+   inmediato sin pedir nada.
+
+6) Efecto visual al confirmar
+   Al guardar exitosamente, el número de "Acumulado año" de esa fila
+   se agranda suavemente, cambia de color un instante, y vuelve a su
+   tamaño normal con un ligero temblor de la letra al final —
+   confirmando visualmente que el cambio se guardó. Este efecto
+   respeta la preferencia de "reducir movimiento" del sistema
+   operativo del usuario, si la tiene activada.
+
+7) Etiqueta "Nueva Meta del mes" para el asesor
+   Cuando un asesor entra a su Hoja de ruta y tiene una meta ajustada
+   para el mes actual que todavía no ha visto, aparece una etiqueta
+   pequeña y azul junto al KPI "Meta" que dice "Nueva Meta del mes".
+   Se marca como vista automáticamente en el servidor apenas aparece
+   en pantalla, y desaparece visualmente después de 8 segundos. La
+   próxima vez que el administrador guarde un nuevo ajuste para ese
+   asesor/mes, la etiqueta puede volver a aparecer.
+
+============================================================
+LO QUE NO CAMBIÓ
+============================================================
+- El sistema de metas por cliente (editable uno por uno desde la
+  ficha del cliente) sigue funcionando exactamente igual.
+- La Meta Inicial que se ve en la tabla es de solo lectura — este
+  panel nunca la modifica, solo guarda un ajuste aparte.
+- Los cálculos de "2026 planeado/proyectado/2027 propuesto" que ya
+  existían en la tabla de resumen y las gráficas de "Metas y
+  presupuestos" NO se tocaron en esta fase — eso es justamente lo que
+  cubre la Fase 2 (diferenciar ahí también la meta ajustada).
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- `node --check` en app.js y mejoras-v1.js: sin errores.
-- Parseo de index.html: sin errores.
-- Búsqueda de referencias huérfanas a "navUpdate": cero coincidencias
-  funcionales (solo un comentario explicativo que documenta el
-  cambio).
-- Prueba en navegador (Chromium headless): el menú lateral ahora
-  muestra 12 pestañas (antes 13), sin el enlace "Actualización
-  diaria"; el panel real de carga de archivos (dailyUpdatePanel)
-  sigue presente y funcional dentro de Ajustes. Sin errores de código
-  nuevos (los únicos errores en consola son los ya conocidos por la
-  falta de conexión del entorno de desarrollo hacia Supabase).
+- Supabase: migración aplicada y verificada con datos de prueba
+  reales, incluyendo casos de rechazo de seguridad (usuario no-admin
+  intentando guardar/listar, meta negativa). Limpieza confirmada sin
+  residuos.
+- `node --check` en metas-v1.js: sin errores. Parseo de index.html:
+  sin errores.
+- Prueba en navegador (Chromium headless): la tabla se renderiza
+  correctamente con 7 asesores, el selector de mes calcula bien el
+  mes actual + los que faltan del año, la vista previa aparece al
+  escribir, la lógica de confirmación al 20% se probó con casos
+  exactos (19%, 20% exacto, 20.01%, 60%) dando el resultado esperado
+  en cada uno, la animación de confirmación se aplica y se retira
+  sola, y el flujo completo de la etiqueta del asesor (aparece,
+  llama a marcar como visto, no aparece si ya fue vista, no se
+  activa para administradores) se probó con un simulador del backend
+  de Supabase, dado que el entorno de desarrollo no tiene salida de
+  red real hacia Supabase (limitación conocida y recurrente de este
+  entorno, no del código).
+
+LIMITACIÓN CONOCIDA: no fue posible probar el guardado real contra
+Supabase en vivo desde este entorno (sin conexión a internet hacia
+Supabase). La lógica se verificó exhaustivamente de forma aislada y
+con simuladores fieles a la firma real de las funciones. Se
+recomienda una prueba manual completa en producción:
+- Como Administrador, entrar a "Metas y presupuestos", elegir un mes,
+  escribir una nueva meta para un asesor y guardar (probar un cambio
+  pequeño sin confirmación, y uno grande con confirmación).
+- Confirmar que el efecto visual se ve al guardar.
+- Iniciar sesión como ese asesor y confirmar que aparece la etiqueta
+  "Nueva Meta del mes" junto al KPI Meta, y que desaparece sola tras
+  unos segundos.
+- Volver a entrar como ese asesor y confirmar que la etiqueta ya NO
+  aparece (quedó marcada como vista).
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Reemplazar en GitHub los 3 archivos listados arriba.
+1. Reemplazar en GitHub los 4 archivos listados arriba.
 2. Confirmar el commit — Netlify debe re-desplegar automáticamente.
-3. Verificar en el sitio publicado que el menú lateral ya no muestre
-   "Actualización diaria", y que la carga de archivos siga
-   funcionando normalmente desde la pestaña "Ajustes".
+3. La base de datos ya está actualizada, no requiere ninguna acción
+   adicional de tu parte.
+4. Ejecutar la verificación manual descrita arriba en el sitio ya
+   publicado.
+
+Cuando confirmes que esta Fase 1 funciona bien, seguimos con la
+Fase 2 (diferenciación en gráficas de Dashboard/Metas y exportación a
+Excel del Presupuesto Próximo Año).
