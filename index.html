@@ -195,7 +195,7 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-icon">R</div>
-        <div><h1>Radar Comercial Industria</h1><small>ConAccion · V9.8</small></div>
+        <div><h1>Radar Comercial Industria</h1><small>ConAccion · <span id="appVersionLabel">—</span></small></div>
       </div>
       <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navUpdate">Actualización diaria</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navProspeccion">Prospección</a><a id="navMetas">Metas y presupuestos</a><a id="navAlarmas">Panel de alarmas</a><a id="navRanking">Ranking</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
@@ -1220,6 +1220,7 @@
     </div>
   </div>
 
+  <script src="version.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1246,6 +1247,8 @@
   <script>
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();
+    var vl = document.getElementById("appVersionLabel");
+    if (vl && typeof window.RADAR_VERSION === "string") vl.textContent = window.RADAR_VERSION;
   </script>
 </body>
 </html>

@@ -1,155 +1,73 @@
-RadarComercial B2B — Depuración de negocio único (retiro de "Colchones")
-Fecha de creación: 2026-08-19 08:26 (hora Colombia)
-Carpeta: Mejoras_20260819_0826
+RadarComercial B2B — Número de versión visible, actualizable
+Fecha de creación: 2026-08-19 15:07 (hora Colombia)
+Carpeta: Mejoras_20260819_1507
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
-Estos son los ÚNICOS archivos que cambiaron en esta ronda. Reemplazan
-a los archivos del mismo nombre en el repositorio de GitHub / sitio
-publicado en Netlify. NO borrar ni tocar ningún otro archivo del
-proyecto — el resto permanece igual.
-
-Archivos incluidos:
+Archivos incluidos (reemplazan a los del mismo nombre en GitHub):
 1. index.html
-2. app.js
-3. data.js
-4. mejoras-v1.js
-5. styles.css
-6. supabase-sync.js
+2. version.js (ARCHIVO NUEVO — no reemplaza nada, se agrega)
 
 ============================================================
-QUÉ CAMBIÓ — CONTEXTO
+QUÉ CAMBIÓ Y POR QUÉ
 ============================================================
-La app arrastraba código y datos de una segunda línea de negocio
-histórica, "Colchones" (junto a la línea activa "Espumas"). Colchones
-ya no tiene datos reales (todos los campos estaban en cero) y la
-interfaz ya no la mostraba, pero el código seguía calculando,
-guardando y transportando esa información en cada carga de la app.
-Esto es peso y complejidad innecesarios: archivos más grandes,
-funciones más difíciles de mantener, y más superficie para errores.
+El texto de versión que se ve en la barra lateral ("ConAccion · V9.8")
+estaba escrito fijo dentro de index.html y nunca se actualizaba — quedó
+congelado en "V9.8" desde hace tiempo, aunque el código real ya había
+avanzado muchas versiones más.
 
-Se depuró TODO el soporte de "Colchones" como vertical de negocio,
-dejando la aplicación enfocada en un solo negocio (Espumas).
+Ahora ese número se lee dinámicamente desde un archivo nuevo,
+`version.js`, que declara una sola variable: `window.RADAR_VERSION`.
+La app la lee al cargar y la escribe en pantalla automáticamente.
 
-IMPORTANTE — lo que NO se tocó: 7 clientes reales tienen "COLCHONES"
-en su razón social (ej. "COLCHONES ARMONIA S.A.S.", "COLCHONES EL
-PRINCIPE LTDA"). Son empresas clientas reales que compran Espumas —
-no tienen relación con el vertical de negocio eliminado. Sus nombres
-se conservaron intactos, verificado explícitamente.
+Versión actual: V10.1 · 2026-08-19
 
 ============================================================
-DETALLE POR ARCHIVO
+CÓMO SE ACTUALIZA DE AQUÍ EN ADELANTE
 ============================================================
+Cada vez que se entregue un nuevo paquete Mejoras_*.zip con cambios
+de código, se debe actualizar la línea dentro de `version.js`:
 
-1) app.js (archivo base de la aplicación)
-   - Se eliminaron por completo varias versiones de código YA MUERTO
-     (versiones antiguas de funciones que quedaban sobrescritas por
-     versiones posteriores y nunca llegaban a ejecutarse) que contenían
-     lógica de Colchones: funciones de las series V1, V8.1, V8.5, V8.7,
-     V8.8.
-   - Se simplificaron las funciones ACTIVAS (las que sí se ejecutan hoy,
-     serie V8.10) para trabajar con un solo negocio en vez de tres
-     casos (total/espumas/colchones): cálculo de ventas por mes,
-     etiqueta de negocio, resumen por tipo de cliente, KPIs.
-   - Se eliminó la lectura del archivo Excel de carga diaria
-     "fileColchones" (ya estaba oculto en pantalla, pero el código
-     seguía intentando leerlo).
-   - Panel de "Dashboard del director" (V8.12/V8.13): se confirmó que
-     no existe ningún control visible ni funcional para alternar entre
-     líneas de negocio en esa vista — se fijó a "Espumas" de forma
-     permanente, eliminando la rama de cálculo de Colchones que nunca
-     se alcanzaba.
-   - La función que suma ventas para las proyecciones de Metas y
-     presupuestos (usada también por mejoras-v1.js) ya no depende de
-     campos de Colchones — solo suma Espumas.
+    window.RADAR_VERSION = "V10.1 · 2026-08-19";
 
-2) data.js (base de datos de los 566 clientes)
-   - Se eliminaron 7 campos por cliente que ya no se usan en ningún
-     cálculo: ventaColchones2025Mes, ventaColchones2025ProximoMes,
-     totalColchones2025, ventaColchonesActual, totalColchones2026,
-     ventas2025ColchonesPorMes, ventas2026ColchonesPorMes.
-   - Resultado: el archivo bajó de ~1.04 MB a ~0.66 MB (-37% de peso),
-     lo que ayuda directamente a que la app cargue más rápido.
-   - Se conservaron intactos los 7 nombres de empresa con "COLCHONES"
-     en su razón social (verificado uno por uno).
-   - Se actualizó un texto informativo sin efecto funcional (nombre
-     histórico de un archivo Excel de origen) para reflejar que ya
-     solo se maneja Espumas.
+Subiendo el número de consecutivo (10.1 → 10.2 → 10.3...) y la fecha
+de esa entrega. Esto se hará automáticamente como parte de cada ronda
+de mejoras futura, sin que el cliente deba pedirlo — es ahora un paso
+estándar del proceso de entrega.
 
-3) mejoras-v1.js
-   - Se retiró el desglose "Colchones actual" del panel de KPIs
-     (el panel contenedor ya estaba oculto en pantalla).
-   - Se actualizó un comentario técnico para reflejar que las
-     proyecciones de metas ahora suman solo Espumas.
-
-4) index.html
-   - Se eliminaron 3 elementos ya ocultos que ya no tienen ninguna
-     función: el campo de carga de archivo Excel de Colchones, un
-     contador oculto de clientes tipo Colchones, y la tarjeta de
-     desglose "Colchones actual" (dentro de un panel que ya estaba
-     oculto).
-
-5) styles.css
-   - Se eliminaron 2 reglas de estilo que ya no se usan (etiqueta
-     visual de tipo "Colchones" y una clase de cuerpo de página
-     relacionada).
-
-6) supabase-sync.js
-   - Se actualizó un comentario descriptivo, sin efecto funcional.
-
-============================================================
-LO QUE NO CAMBIÓ (importante)
-============================================================
-- La lógica de la línea de negocio "Espumas" (la única activa) no se
-  tocó: mismos cálculos, mismos resultados.
-- El valor "Mixto" en tipoCliente/clasificación NO se tocó — es un
-  concepto distinto (no relacionado con el vertical Colchones) y no
-  existía instrucción de eliminarlo.
-- Ningún dato de clientes reales se modificó, salvo el retiro de los
-  7 campos de Colchones (todos en cero).
-- No se tocó el esquema de la tabla `clientes` en Supabase — esta
-  depuración solo afecta los archivos locales de la aplicación. Si en
-  el futuro se quiere limpiar también columnas de Colchones en la
-  base de datos de Supabase, es un paso aparte que requiere revisar
-  el esquema de esa tabla directamente.
+Si en el futuro se hace un cambio estructural grande (una nueva etapa
+importante, no un ajuste puntual), se sube el número mayor (V10 → V11).
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- `node --check` en los 9 archivos .js del proyecto: sin errores.
-- Parseo de index.html con parser HTML estándar: sin errores.
-- Búsqueda exhaustiva de la palabra "colchon" en todos los archivos:
-  cero coincidencias funcionales — únicamente quedan (a) los 7
-  nombres de empresa reales que debían conservarse, y (b) dos
-  comentarios explicativos que documentan la depuración.
-- Búsqueda de referencias huérfanas a los elementos eliminados
-  (fileColchones, tColchones, bColActual, bCol2025): cero
-  coincidencias funcionales.
-- Prueba en navegador (Chromium headless): la app carga, los 566
-  clientes se leen correctamente con el nuevo esquema de datos (sin
-  campos de Colchones), y las funciones clave (render, actualización
-  de datos) siguen operativas. Los únicos errores en consola son los
-  esperados por la falta de conexión a internet del entorno de
-  desarrollo hacia Supabase — no relacionados con esta depuración.
-
-LIMITACIÓN CONOCIDA: el entorno de desarrollo no tiene salida de red
-hacia Supabase, por lo que no fue posible probar login ni sincronización
-de datos en vivo. Se recomienda una prueba manual en producción:
-- Confirmar que el Dashboard, Hoja de ruta, y Metas y presupuestos
-  cargan y calculan correctamente los mismos totales que antes de
-  esta depuración (deberían ser idénticos, ya que Colchones siempre
-  sumaba cero).
-- Confirmar que la carga diaria de archivos Excel (Espumas) sigue
-  funcionando normalmente.
-- Revisar que no aparezcan errores nuevos en la consola del navegador.
+- `node --check version.js`: sin errores.
+- Parseo de `index.html`: sin errores.
+- Prueba en navegador (Chromium headless): el texto en pantalla
+  ("ConAccion · V10.1 · 2026-08-19") se pinta correctamente al cargar
+  la app, leyendo la variable desde version.js. Sin errores de código
+  nuevos (los únicos errores en consola son los ya conocidos por la
+  falta de conexión del entorno de desarrollo hacia Supabase).
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Reemplazar en GitHub los 6 archivos listados arriba (mismo
-   nombre, misma ubicación en el repositorio).
-2. Confirmar el commit — Netlify debe re-desplegar automáticamente
-   si el despliegue está conectado al repositorio.
-3. Ejecutar la verificación manual descrita arriba en el sitio ya
-   publicado.
+1. Subir a GitHub el archivo NUEVO `version.js` (en la misma carpeta
+   raíz que index.html, app.js, etc.).
+2. Reemplazar `index.html` con el de este paquete.
+3. Confirmar el commit — Netlify debe re-desplegar automáticamente.
+4. Verificar en el sitio publicado que la barra lateral ahora muestre
+   "ConAccion · V10.1 · 2026-08-19" en vez de "V9.8".
+
+============================================================
+NOTA SOBRE EL AVISO "PELIGROSA" EN LA BARRA DE DIRECCIONES
+============================================================
+Este cambio NO está relacionado con ese aviso. Esa alerta la genera
+Chrome/Google Safe Browsing sobre el subdominio compartido de Netlify
+(*.netlify.app), no sobre el código de la aplicación — se revisó el
+código completo y no hay nada que apunte a dominios sospechosos (solo
+CDNs legítimos: jsdelivr y el proyecto real de Supabase). La
+recomendación para resolverlo de forma definitiva es asignar un
+dominio propio al sitio en Netlify (Site settings → Domain
+management), en vez de depender del subdominio gratuito compartido.
