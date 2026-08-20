@@ -1,84 +1,128 @@
-RadarComercial B2B — V15.2: HOTFIX — Paneles administrativos visibles en pestañas equivocadas
-Fecha de creación: 2026-08-20 12:19 (hora Colombia)
-Carpeta: Mejoras_20260820_1219
+RadarComercial B2B — V15.3: Paginación de "Hoja de ruta" + tarjeta compacta en celular
+Fecha de creación: 2026-08-20 13:32 (hora Colombia)
+Carpeta: Mejoras_20260820_1332
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
-Archivos incluidos (reemplazan a los del mismo nombre en GitHub):
-1. ajustes-v1.js
-2. sistema-v1.js
-3. version.js (actualizado a V15.2 · 2026-08-20)
+Archivos incluidos:
+1. index.html      (modificado — nuevo bloque de paginación + nuevo script)
+2. styles.css       (modificado — estilos de paginación y tarjeta móvil)
+3. hoja-ruta-v15.js (NUEVO — lógica de paginación y expandir/colapsar)
+4. version.js       (actualizado a V15.3 · 2026-08-20)
 
 ============================================================
-POR QUÉ SE HIZO ESTE PAQUETE
+QUÉ PEDISTE
 ============================================================
-Compartiste una captura de pantalla mostrando que, estando en la
-pestaña "Hoja de ruta", aparecían visibles los paneles "Actualización
-diaria de ventas 2026" y "Configuración comercial por clasificación"
-— paneles que, según el documento aprobado, deben vivir exclusivamente
-en "Ajustes" y "Sistema".
-
-CAUSA RAÍZ (preexistente, NO introducida por el trabajo de V15.0/V15.1):
-en el HTML, estos 5 paneles administrativos (Actualización diaria de
-ventas, Configuración comercial por clasificación, Modelo de cálculo,
-Estadísticas de uso Radar, Sincronización de datos) NO están anidados
-dentro de ninguna pestaña específica — viven sueltos, colgando
-directamente del contenedor principal de la página, sin la marca que
-los oculta por defecto. La única razón por la que normalmente no se
-ven ahí es que un mecanismo en JavaScript los "recoge" y los mueve
-físicamente dentro de Ajustes/Sistema — pero ese mecanismo SOLO se
-disparaba la primera vez que el usuario entraba a esas dos pestañas.
-Si el usuario (como Administrador o Super Administrador) nunca las
-visitaba en esa sesión, los 5 paneles quedaban visibles en cualquier
-pestaña, incluida "Hoja de ruta" — exactamente lo que capturaste.
-
-No es inestabilidad de la aplicación ni un problema de datos: es un
-problema de secuencia de inicialización de la interfaz. No afecta
-cálculos, permisos de fondo ni información de clientes/ventas/metas —
-solo la posición visual de estos paneles administrativos antes de
-visitar sus pestañas correctas.
+1) Paginar la tabla "Hoja de ruta" para que tanto Administrador/Super
+   Administrador como Asesor la vean paginada.
+2) Revisar si conviene una vista tipo lista en celular, con los datos
+   clave visibles y el resto oculto hasta tocar la tarjeta, conservando
+   el botón "Ver" que abre el detalle completo/editable que ya existía.
 
 ============================================================
-QUÉ CAMBIÓ
+QUÉ SE HIZO
 ============================================================
-Se adelantó la reubicación de los 5 paneles al momento de cargar la
-página (una sola vez, al iniciar), en vez de esperar a que el usuario
-visite "Ajustes" o "Sistema" por primera vez. Con este cambio, los
-paneles quedan siempre dentro de su pestaña correcta desde el primer
-segundo, sin importar qué pestaña visite primero el usuario.
+1) PAGINACIÓN (50 clientes por página)
+   - Se agregó una barra de paginación debajo de la tabla, con:
+     "Mostrando X–Y de Z clientes", botones "Anterior/Siguiente" y
+     "Página N de M".
+   - Funciona igual para Administrador, Super Administrador y Asesor —
+     cada uno pagina sobre el conjunto de clientes que ya le
+     corresponde ver (la paginación no cambia ningún permiso, solo
+     corta en páginas de 50 lo que cada rol ya podía ver).
+   - Al cambiar cualquier filtro (mes, asesor, estado, clasificación,
+     tipo de negocio, búsqueda), la vista regresa automáticamente a la
+     página 1. Al cambiar solo el orden ("Ordenar por"), se mantiene la
+     página en la que estabas, ya que sigue siendo el mismo conjunto de
+     clientes.
+   - Al pasar de página, la vista hace scroll automático hasta el
+     inicio de la tabla para que sea claro que cambió el contenido.
+
+2) VISTA MÓVIL DE "HOJA DE RUTA" (solo en pantallas ≤760px, es decir
+   celular; en computador y tablet grande la tabla se ve exactamente
+   igual que antes)
+   - Cada cliente se muestra como una tarjeta compacta con SOLO tres
+     datos visibles de entrada: Cliente (con ciudad/departamento),
+     Estado y Cumplimiento — con una flecha (▾) que indica que se puede
+     tocar.
+   - Al tocar la tarjeta, se expande dentro de la misma tarjeta (no
+     abre nada nuevo) mostrando el resto de columnas: NIT, Asesor,
+     Venta 2025, Venta actual, Meta, Faltante — y, al final, el botón
+     "Ver" que abre el mismo modal de detalle completo/editable que ya
+     existía antes de este cambio (no se tocó esa función).
+   - Tocar el botón "Ver" abre el modal directamente y NO expande o
+     colapsa la tarjeta — son dos acciones independientes.
+   - Se conserva el color de fondo de la fila (verde/amarillo/rojo)
+     que ya existía como semáforo de cumplimiento.
 
 ============================================================
 LO QUE NO CAMBIÓ
 ============================================================
-- Ninguna fórmula, dato ni regla de permisos se modificó.
-- El comportamiento de "Ajustes" y "Sistema" al visitarlos sigue
-  siendo exactamente el mismo (se verificó que la navegación a ambas
-  pestañas sigue funcionando sin errores).
-- Los demás archivos del proyecto no se tocaron en este paquete.
+- Ningún permiso, filtro de datos ni fórmula se modificó. Un Asesor
+  sigue viendo exactamente los mismos clientes que veía antes de este
+  cambio — solo ahora los ve en páginas de 50 en vez de todos de una
+  vez.
+- El modal de detalle completo ("Ver") es el mismo de siempre, sin
+  cambios en sus campos ni su lógica de guardado.
+- La vista de computador/tablet grande de "Hoja de ruta" no cambia
+  visualmente — la tabla se ve igual que antes, solo con la barra de
+  paginación nueva debajo.
+- Ningún otro módulo (Dashboard, Ajustes, Sistema, motores RED/RTE/EWS,
+  etc.) se tocó en este paquete.
+
+============================================================
+HALLAZGO ADICIONAL (no corregido en este paquete — para que lo tengas
+en el radar)
+============================================================
+Durante esta revisión se encontró que dos mejoras antiguas de la Hoja
+de Ruta —la etiqueta "Bloqueado" y la etiqueta "VIP Gerencia" que se
+agregaban sobre cada fila— quedaron inactivas desde antes de esta
+ronda de trabajo: una versión posterior del renderizado de la tabla
+(anterior a este paquete) reemplazó por completo la función en vez de
+construir sobre la versión que traía esas etiquetas, así que dejaron
+de aplicarse silenciosamente. No afecta los datos de bloqueo ni de VIP
+Gerencia en sí (esos campos siguen guardándose y usándose donde
+corresponde, por ejemplo, para excluir clientes bloqueados de otros
+cálculos) — solo la etiqueta visual en la fila de la tabla dejó de
+mostrarse. Si quieres, lo dejamos listo para la próxima entrega.
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- `node --check` en ajustes-v1.js y sistema-v1.js: sin errores.
-- Prueba automatizada en navegador (Chromium headless): simulando un
-  Super Administrador que NUNCA visita Ajustes ni Sistema, se confirmó
-  que los 5 paneles ya están correctamente ubicados dentro de sus
-  contenedores (ajustesPanelsHost / sistemaPanelsHost) desde el primer
-  render — ninguno queda suelto.
-- Segunda prueba: se confirmó que, tras este cambio, navegar
-  manualmente a "Ajustes" y "Sistema" sigue funcionando sin errores de
-  consola ni de JavaScript.
+- `node --check` en hoja-ruta-v15.js: sin errores.
+- Prueba automatizada en navegador (Chromium headless) con 130
+  clientes sintéticos:
+  · Página 1 muestra 50 filas, página 2 muestra 50, página 3 (última)
+    muestra las 30 restantes; botón "Siguiente" se deshabilita en la
+    última página.
+  · Cambiar el filtro de asesor reinicia correctamente a la página 1.
+  · Simulando un Asesor (viendo solo sus propios clientes, tal como ya
+    filtraba la app antes de este cambio) la paginación funciona igual
+    que para Administrador.
+  · Tocar una tarjeta agrega/quita el estado "expandida"; tocar el
+    botón "Ver" NO expande la tarjeta (abre el modal, como debe ser).
+- Prueba visual (capturas de pantalla en resolución de celular,
+  390×844) confirmando el diseño de tarjeta compacta, la tarjeta
+  expandida con todos los campos y el botón "Ver", y la barra de
+  paginación al final de la lista.
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Reemplazar en GitHub los 2 archivos (ajustes-v1.js, sistema-v1.js)
-   más version.js.
+1. Reemplazar en GitHub los 3 archivos existentes (index.html,
+   styles.css, version.js) y agregar el archivo nuevo
+   (hoja-ruta-v15.js) en la misma carpeta raíz del proyecto.
 2. Confirmar el commit — Netlify debe re-desplegar automáticamente.
 3. No requiere ningún cambio en Supabase.
-4. Verificación manual recomendada: recargar la app desde cero (sin
-   caché) como Administrador o Super Administrador, y confirmar que
-   "Hoja de ruta" ya NO muestra "Actualización diaria de ventas 2026"
-   ni "Configuración comercial por clasificación" — solo deben
-   aparecer al entrar a "Ajustes" y "Sistema" respectivamente.
+4. Verificación manual recomendada:
+   - En computador: entrar a "Hoja de ruta" con más de 50 clientes
+     filtrados y confirmar que aparece la barra de paginación al
+     final, y que "Anterior/Siguiente" cambian el contenido.
+   - En celular (o achicando la ventana del navegador a menos de
+     760px): confirmar que cada cliente se ve como tarjeta compacta
+     (Cliente + Estado + Cumplimiento) y que al tocarla se expande
+     mostrando el resto de datos y el botón "Ver".
+   - Repetir ambas pruebas también con un usuario Asesor, para
+     confirmar que ve paginación y tarjeta móvil igual que
+     Administrador, pero solo con su propia cartera de clientes.
