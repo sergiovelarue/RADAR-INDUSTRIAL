@@ -1,187 +1,175 @@
-RadarComercial B2B — Selector de modelo de cálculo (Proyección y
-Presupuesto Próximo Año)
-Fecha de creación: 2026-08-19 17:53 (hora Colombia)
-Carpeta: Mejoras_20260819_1753
+RadarComercial B2B — Unificación de nomenclatura oficial de datos
+(antes de subir la versión de versionado de metas)
+Fecha de creación: 2026-08-19 19:27 (hora Colombia)
+Carpeta: Mejoras_20260819_1927
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
 Archivos incluidos (reemplazan a los del mismo nombre en GitHub):
-1. mejoras-v1.js
-2. index.html
-3. metas-v1.css
-4. supabase-sync.js
-5. version.js (actualizado a V13.0 · 2026-08-19)
-
-NO requirió migración de Supabase — se reutilizó la tabla
-"configuracion" que ya existía (usada hoy para canales/zonas, perfiles
-de asesor y % de crecimiento por clasificación), agregando 2 claves
-nuevas: modeloProyeccion y modeloPresupuesto.
+1. index.html
+2. mejoras-v1.js
+3. metas-v1.js
+4. version.js (actualizado a V14.1 · 2026-08-20)
 
 ============================================================
-CONTEXTO — ESTE ES EL PRIMERO DE 2 PAQUETES DE UN PEDIDO MÁS GRANDE
+POR QUÉ SE HIZO ESTE PAQUETE
 ============================================================
-Pediste dos cosas relacionadas con "Metas y presupuestos":
-
-(B) — ENTREGADO EN ESTE PAQUETE: que el Super Administrador pueda
-elegir el modelo de cálculo (Porcentual, Lineal, Índice/factor
-estacional, Mínimos cuadrados) tanto para la proyección de los meses
-que faltan del año actual como para el Presupuesto Próximo Año, y que
-esto sea configurable desde la pestaña Sistema.
-
-(A) — PENDIENTE, PRÓXIMA ENTREGA: el sistema de versionado de metas
-(Meta Inicial fija al principio del año + Meta Actual + Forecast 1, 2,
-3... cada vez que se cargue una meta nueva vía Excel). Acordamos
-contigo entregar primero (B) por ser más autónomo, y trabajar (A) con
-calma después porque redefine qué es "Meta Inicial" en toda la app y
-requiere una pantalla de carga masiva nueva + otra migración de
-Supabase.
+Pediste dejar clara la nomenclatura OFICIAL de los datos que usa la
+app para calcular y mostrar a cada rol, ANTES de subir el paquete de
+versionado de metas (Mejoras_20260819_1905, V14.0) que aún no habías
+subido a producción. Este paquete aplica esa nomenclatura sobre TODO
+el texto visible (tablas, gráficas, botones, exportaciones CSV/Excel,
+alertas) y agrega una regla nueva de negocio que confirmaste: tope de
+Forecast 11.
 
 ============================================================
-ACLARACIÓN DE DISEÑO — CONFIRMADA CONTIGO ANTES DE CONSTRUIR
+NOMENCLATURA OFICIAL (confirmada contigo)
 ============================================================
-Se definieron las 4 fórmulas exactas contigo (quedan documentadas en
-el código, no solo aquí):
+- Venta 2025 (año anterior)
+- Venta 2026 real (año actual, meses ya transcurridos)
+- Venta proyectada 2026 (año actual, meses que faltan)
+- Presupuesto venta 2027 (próximo año)
+- Meta Inicial (la meta cargada al principio del año actual; se
+  congela y no se sobrescribe nunca)
+- Forecast N (N = 1 hasta 11; cada carga/ajuste posterior a la Meta
+  Inicial para un mismo asesor/mes/año)
+- Meta Ajustada (Meta visible para Asesores)
 
-1. Porcentual (el más simple): cada mes futuro = mismo mes del año
-   anterior × (1 + % de crecimiento). Es el modelo que YA EXISTÍA antes
-   de esta entrega para el Presupuesto Próximo Año (usa el % de
-   crecimiento por clasificación de cliente A/B/C/E/N, definido en
-   "Configuración comercial por clasificación").
-
-2. Lineal: se calcula la tasa de crecimiento PROMEDIO entre los meses
-   ya transcurridos del año (diferencia mes a mes, promediada), y se
-   va sumando esa tasa fija, de forma acumulativa, a cada mes futuro
-   sucesivo.
-
-3. Índice/factor estacional (el que YA EXISTÍA antes de esta entrega
-   para la proyección del resto del año, sin cambios de fórmula):
-   promedio real transcurrido del año actual × factor estacional de
-   cada mes futuro (venta del año anterior en ese mes, dividida entre
-   el promedio del año anterior en los mismos meses transcurridos).
-
-4. Mínimos cuadrados (el más complejo): regresión lineal estadística
-   real (ajusta la mejor línea recta a los meses ya transcurridos del
-   año actual) y extrapola esa recta a los meses futuros.
-
-Los 4 modelos quedaron verificados con datos numéricos de prueba
-conocidos (no solo con datos reales de tu app) para confirmar que cada
-fórmula da el resultado matemático esperado, antes de conectarlos a la
-aplicación.
+REGLA CONFIRMADA: "Meta Ajustada" es el ÚNICO nombre oficial para la
+meta vigente que ve el asesor — ya sea que esa meta vigente sea, en
+este momento, la Meta Inicial (si nunca se ha ajustado), o el último
+Forecast/ajuste guardado (el más reciente por fecha/hora). Ya NO existe
+un concepto separado de "Meta Actual": "Meta Ajustada" ES la Meta
+Actual. Esto reemplaza nombres anteriores usados en pantalla como
+"Meta vigente del mes" o "VIGENTE (Meta Actual)".
 
 ============================================================
 QUÉ CAMBIÓ EN DETALLE
 ============================================================
 
-1) Nuevo panel "Modelo de cálculo — Proyección y Presupuesto"
-   (pestaña Sistema, junto al panel de "Configuración comercial por
-   clasificación"). SOLO VISIBLE Y EDITABLE PARA SUPER ADMINISTRADOR
-   (más restrictivo que el panel de % de crecimiento, que sí ve
-   cualquier Administrador) — así lo pediste explícitamente.
-   Tiene 2 selectores independientes:
-   - "Proyección resto del año actual"
-   - "Presupuesto Próximo Año"
-   Cada uno con las 4 opciones, en el orden que definiste (de menos a
-   más complejo): Porcentual → Lineal → Índice/factor estacional →
-   Mínimos cuadrados. Un botón "Aplicar modelo de cálculo" guarda la
-   selección y recalcula automáticamente la tabla y las gráficas de
-   "Metas y presupuestos" (si esa vista está abierta) y del Dashboard
-   (si está abierto).
+1) index.html
+   - Sección "Metas y presupuestos": encabezado, botón de exportar
+     Excel, encabezados/descripciones de ambas gráficas, y encabezado
+     de la tabla — todo actualizado a la nomenclatura oficial.
+   - Pestaña Sistema → panel "Modelo de cálculo": título y etiquetas de
+     los 2 selectores (Venta proyectada 2026 / Presupuesto venta 2027)
+     actualizados.
 
-2) Los modelos aplican a TODA la organización (no por asesor ni por
-   cliente individual) — confirmaste que así lo prefieres, por
-   simplicidad y para que las gráficas/tabla sigan siendo comparables
-   entre asesores.
+2) mejoras-v1.js
+   - Tabla y ambas gráficas (barras por asesor, línea mensual
+     organización) de "Metas y presupuestos": encabezados/leyendas
+     actualizados a Venta 2025, Venta 2026 real, Meta Inicial, Meta
+     Ajustada, Venta proyectada 2026, Presupuesto venta 2027.
+   - Exportación CSV ("Exportar CSV"): encabezados de columna
+     actualizados.
+   - Exportación Excel ("Exportar Presupuesto venta 2027"): comentarios
+     y encabezado de la hoja "Datos gráfica" actualizados. (Los nombres
+     de archivo descargado y el nombre interno de la primera hoja de
+     Excel se dejaron igual —"Presupuesto 2027"— por ser nombres de
+     archivo/hoja técnicos, no texto de nomenclatura de negocio.)
+   - Alerta al aplicar el modelo de cálculo (pestaña Sistema):
+     actualizada a "Venta proyectada 2026" y "Presupuesto venta 2027".
+   - Los objetos internos que devuelven los cálculos
+     (serieMensualOrganizacionV106, resumenMetasAsesorV106) ahora
+     incluyen también los nombres de campo nuevos (venta2025,
+     venta2026Real, metaInicial, metaAjustada, ventaProyectada2026,
+     presupuestoVenta2027) MANTENIENDO los nombres anteriores como
+     alias, para no romper ningún código existente que aún los use.
 
-3) Persistencia compartida entre administradores
-   La selección se guarda en la tabla "configuracion" de Supabase
-   (igual mecanismo que el % de crecimiento por clasificación), así
-   que cualquier Super Administrador que entre desde cualquier
-   computador ve la misma configuración vigente — no depende del
-   navegador de cada quien. Como respaldo inmediato también se guarda
-   en el navegador (localStorage), por si la sincronización a Supabase
-   tarda un instante.
+3) metas-v1.js
+   - Panel de ajuste manual: encabezado de tabla "Meta vigente del mes"
+     → "Meta Ajustada (mes)"; mismo cambio en la celda de cada fila y
+     en el texto explicativo del panel.
+   - Botón "Ver historial": el marcador de la versión vigente cambió de
+     "VIGENTE (Meta Actual)" a "VIGENTE (Meta Ajustada)".
+   - Gráfica del Dashboard general (serie que agrega
+     metasDashboardAgregarSerieAjustadaV1): la leyenda cambió de "Meta
+     Ajustada 2026" a "Meta Ajustada".
 
-4) Todo el cálculo de proyección/presupuesto ahora pasa por el modelo
-   elegido
-   Se unificó el cálculo en 4 "motores" reutilizables (uno por
-   fórmula). Todos los lugares que antes calculaban proyección o
-   Presupuesto Próximo Año (tabla de "Metas y presupuestos", gráfica
-   anual, gráfica mensual, resumen por asesor, exportación a CSV,
-   exportación a Excel) ahora usan el modelo configurado, en vez de la
-   fórmula fija que había antes.
+4) NUEVO: tope de Forecast en 11 (Supabase, ya aplicado)
+   Confirmaste que el límite de Forecast N = 11 corresponde a "un
+   forecast posible por cada mes restante del año" (Meta Inicial ocupa
+   el primer "slot", quedan 11 meses restantes de Feb a Dic), y que el
+   sistema debía advertir o bloquear un intento de Forecast 12.
+
+   Se implementó como BLOQUEO DURO (no solo advertencia), directamente
+   en la función guardar_ajuste_meta_v1 de Supabase — así cubre los 2
+   caminos que existen hoy para cargar meta nueva (ajuste manual y
+   carga masiva por Excel) sin duplicar la validación en el frontend:
+   - Si ya existe Forecast 11 guardado para un asesor/año/mes y se
+     intenta guardar uno más, la base de datos rechaza la operación con
+     el mensaje: "Límite alcanzado: no se puede registrar Forecast 12
+     para <asesor> · <mes> <año>. El máximo permitido es Forecast 11
+     (ya existe Forecast 11 guardado)."
+   - En el panel de ajuste manual, ese mensaje aparece tal cual en el
+     área de mensajes del panel.
+   - En la carga masiva por Excel, como cada asesor/mes se procesa de
+     forma independiente, ese mensaje aparece en la lista de errores
+     puntuales sin detener el resto de la carga (los demás
+     asesores/meses sí se guardan).
+
+   VERIFICADO con datos de prueba reales en Supabase: se guardaron
+   Forecast 1 a 11 sin problema, se confirmó que Forecast 11 queda
+   como la versión vigente, se intentó guardar un Forecast 12 y fue
+   bloqueado correctamente con el mensaje esperado, se confirmó que
+   quedaron exactamente 12 filas (Meta Inicial + Forecast 1-11, ninguna
+   de más), y se limpiaron los datos de prueba sin dejar residuos
+   (mismo patrón de verificación de siempre en este proyecto).
 
 ============================================================
 LO QUE NO CAMBIÓ
 ============================================================
-- La Fase 1 (ajuste de metas por asesor) y la Fase 2 anterior (Meta
-  Ajustada en gráficas/Dashboard, exportación a Excel) siguen
-  funcionando exactamente igual — solo se les conectó el nuevo motor
-  de cálculo configurable en vez de la fórmula fija que tenían.
-- Por defecto (sin que nadie toque el panel nuevo), el comportamiento
-  es IDÉNTICO al que ya tenías: modelo "Índice/factor estacional" para
-  la proyección, y "Porcentual" para el Presupuesto Próximo Año — son
-  los valores por defecto, elegidos a propósito para que nadie note un
-  cambio de cifras hasta que el Super Administrador decida
-  explícitamente usar otro modelo.
-- El sistema de versionado de metas (Meta Inicial/Actual/Forecast) NO
-  está incluido aquí — ver la sección de contexto arriba.
+- Ninguna fórmula de cálculo se tocó. Este paquete es SOLO nomenclatura
+  visible + la regla nueva de tope de Forecast 11 (que es una regla de
+  negocio, no una fórmula).
+- La estructura de datos en Supabase no cambió (solo se modificó la
+  lógica interna de guardar_ajuste_meta_v1 para agregar la validación
+  del tope; no se agregaron ni quitaron columnas ni tablas).
+- Los nombres de archivo descargados (CSV, Excel, PNG) y los nombres
+  técnicos de hoja de Excel no se tocaron, por no ser texto de
+  nomenclatura de negocio visible en la interfaz.
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- node --check en mejoras-v1.js y supabase-sync.js: sin errores.
-- Verificación matemática aislada (Node.js puro, sin navegador) de los
-  4 modelos con datos de prueba conocidos: se confirmó que cada
-  fórmula da exactamente el resultado esperado a mano (por ejemplo,
-  con una tasa de crecimiento conocida de 10 en el modelo Lineal, se
-  confirmó que cada mes futuro suma exactamente esa tasa al anterior;
-  con Mínimos cuadrados sobre datos perfectamente lineales, dio el
-  mismo resultado que el modelo Lineal, como matemáticamente debe
-  ocurrir en ese caso particular).
-- Prueba en navegador (Chromium headless) con datos reales de tu copia
-  de data.js y un simulador fiel del backend de Supabase (el entorno
-  de desarrollo no tiene salida de red real hacia Supabase ni hacia el
-  CDN de Chart.js — limitación conocida y recurrente de este entorno,
-  no del código, ya documentada en entregas anteriores):
-  - Confirmado que el panel es visible para Super Administrador y NO
-    visible para un Administrador normal.
-  - Confirmado que al cambiar de modelo y presionar "Aplicar", el
-    total de "2026 proyectado" cambia de forma coherente (en la
-    prueba: de $30.018 MM con el modelo estacional por defecto, a
-    $26.426 MM al cambiar a porcentual — una diferencia real y
-    esperada, no un error).
-  - Confirmado que la tabla y las gráficas (metasChart,
-    metasMensualChart) se refrescan automáticamente tras aplicar el
-    nuevo modelo, sin necesidad de recargar la página.
-  - Confirmado que la selección se guarda en localStorage como
-    respaldo.
-  - Sin errores de JavaScript en consola en ninguna prueba.
+- `node --check` en index.html, mejoras-v1.js y metas-v1.js: sin
+  errores.
+- Supabase: verificación con datos de prueba reales del tope de
+  Forecast 11 (detallada arriba), limpieza confirmada sin residuos.
+- Revisión cruzada de app.js: no se encontraron ocurrencias de la
+  nomenclatura anterior en ese archivo (ya usaba términos que
+  coinciden con el estándar nuevo, por ejemplo "Venta 2025").
 
-LIMITACIÓN CONOCIDA: no fue posible probar el guardado/lectura real
-contra Supabase desde este entorno (sin salida de red real hacia
-Supabase). Se recomienda una prueba manual completa en producción:
-- Entrar como Super Administrador a la pestaña Sistema y confirmar que
-  aparece el panel "Modelo de cálculo — Proyección y Presupuesto"
-  (y que un Administrador normal NO lo ve).
-- Cambiar ambos selectores y presionar "Aplicar modelo de cálculo".
-- Ir a "Metas y presupuestos" y confirmar que la tabla/gráficas
-  cambiaron los valores de "2026 proyectado" y "Presupuesto Próximo
-  Año" de forma coherente con el modelo elegido.
-- Cerrar sesión, volver a entrar (o entrar desde otro navegador/
-  computador) como Super Administrador y confirmar que el modelo
-  elegido sigue guardado (prueba de que quedó en Supabase, no solo en
-  el navegador local).
+PENDIENTE (no incluido en este paquete, requiere tu decisión aparte):
+las "pruebas duras" de efectividad de fórmulas que mencionaste que
+harías más adelante — este paquete no las incluye, solo prepara el
+terreno con nomenclatura consistente para que esas pruebas sean más
+claras de interpretar.
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Reemplazar en GitHub los 5 archivos listados arriba.
+1. Reemplazar en GitHub los 4 archivos (index.html, mejoras-v1.js,
+   metas-v1.js, version.js). Recomendado: subir este paquete ANTES o
+   JUNTO con Mejoras_20260819_1905 (V14.0, versionado de metas), ya
+   que este paquete depende de metas-v1.js y lo reemplaza con la
+   versión más reciente (incluye tanto el versionado como esta
+   unificación de nombres).
 2. Confirmar el commit — Netlify debe re-desplegar automáticamente.
-3. No requiere ninguna acción en Supabase.
-4. Ejecutar la verificación manual descrita arriba en el sitio ya
-   publicado.
+3. La base de datos ya está actualizada (tope de Forecast 11), no
+   requiere ninguna acción adicional de tu parte.
+4. Verificar en el sitio publicado que los textos de "Metas y
+   presupuestos" y del panel de ajuste manual usan la nomenclatura
+   nueva, y que un intento de Forecast 12 (si llegas a probarlo) queda
+   bloqueado con el mensaje explicado arriba.
 
-Cuando confirmes que esto funciona bien, seguimos con la parte (A)
-pendiente: el sistema de versionado de metas (Meta Inicial fija,
-Meta Actual, Forecast 1/2/3... por carga masiva de Excel).
+IMPORTANTE: la carpeta Mejoras_20260819_1905 (V14.0) que generé antes
+NO incluye estos cambios de nomenclatura — quedó con los nombres
+anteriores en metas-v1.js. Este paquete (Mejoras_20260819_1927)
+reemplaza completamente ese metas-v1.js con la versión ya unificada,
+así que si vas a subir ambos, basta con subir este último (V14.1) y no
+hace falta aplicar V14.0 por separado para metas-v1.js — sí segurías
+necesitando aplicar la migración de Supabase de V14.0 si aún no la
+habías aplicado (esa ya quedó aplicada por mí directamente, ver el
+LEEME de esa entrega).

@@ -89,6 +89,198 @@ function metasAcumuladoAnioAsesorV2(nombreAsesor) {
 
 let metasAjustesCacheV2 = [];
 
+// ============================================================
+// Fase 6 (2026-08-20) — Carga masiva de meta nueva por Excel.
+// ------------------------------------------------------------
+// Cada carga registra una nueva versión (Forecast N) para cada
+// asesor/mes que traiga el archivo con datos (columnas en blanco/0 no
+// tocan la versión existente de ese mes — carga parcial permitida).
+// La primera vez que se guarda algo para un asesor/mes (por esta vía
+// o por el ajuste manual de arriba) queda marcada version_tipo=inicial
+// automáticamente por guardar_ajuste_meta_v1 (ver migración Supabase).
+// Solo Administrador y Super Administrador (mismo permiso que el
+// ajuste manual — es_admin_v1 en el backend).
+// ============================================================
+
+function metasCargaExcelInsertarPanelV1() {
+  if ($("metasCargaExcelPanel")) return;
+  const referencia = $("metasAjustePanel") || document.querySelector("#metasView .chart-grid") || $("metasView");
+  if (!referencia || !referencia.parentNode) return;
+
+  const panel = document.createElement("section");
+  panel.className = "admin-panel";
+  panel.id = "metasCargaExcelPanel";
+  panel.innerHTML = `
+    <div class="panel-header">
+      <div>
+        <h3>Cargar meta nueva por Excel (masivo)</h3>
+        <p>Administrador y Super Administrador. Sube un archivo con la meta de cada asesor por mes. Cada carga registra una nueva versión de meta (Meta Inicial la primera vez para cada asesor/mes; Forecast 1, 2, 3... las siguientes). Solo se actualizan los meses que traiga el archivo con un valor — los demás meses no se tocan.</p>
+      </div>
+    </div>
+    <div class="upload-grid">
+      <article>
+        <h4>Meta nueva por asesor y mes</h4>
+        <input type="file" id="metasCargaExcelFile" accept=".xlsx,.xls,.csv"/>
+      </article>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="metasCargaExcelPlantillaBtn">Descargar plantilla vacía</button>
+      <button class="btn ghost" id="metasCargaExcelValidarBtn">Validar archivo</button>
+      <button class="btn" id="metasCargaExcelAplicarBtn">Cargar meta nueva</button>
+    </div>
+    <div class="update-result" id="metasCargaExcelResult"><strong>Estado:</strong> pendiente de carga.</div>
+  `;
+  referencia.parentNode.insertBefore(panel, referencia);
+}
+
+// Genera y descarga la plantilla vacía: una fila por asesor, columnas
+// Enero-Diciembre, para que el administrador la diligencie y la vuelva
+// a subir. Usa la librería XLSX (SheetJS) ya cargada en index.html.
+function metasCargaExcelDescargarPlantillaV1() {
+  if (typeof XLSX === "undefined") {
+    alert("No se pudo cargar la librería de Excel (XLSX). Verifica tu conexión a internet e intenta de nuevo.");
+    return;
+  }
+  const meses = METAS_MESES_V1;
+  const asesores = (DATA.meta && DATA.meta.asesores) || [];
+  const filas = [["Asesor", ...meses]];
+  asesores.forEach(a => filas.push([a, ...meses.map(() => "")]));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(filas);
+  ws["!cols"] = [{ wch: 26 }, ...meses.map(() => ({ wch: 12 }))];
+  XLSX.utils.book_append_sheet(wb, ws, "Meta nueva");
+  XLSX.writeFile(wb, "radar_plantilla_meta_nueva.xlsx");
+}
+
+// Lee el archivo cargado y devuelve { filas: [{asesor, valores:{mes:valor}}], nombreArchivo }.
+// Solo cuenta como "valor a cargar" una celda numérica > 0 o un texto
+// numérico; celdas vacías, "0" explícito o no numéricas se ignoran
+// (carga parcial: ese mes no se toca para ese asesor).
+async function metasCargaExcelLeerArchivoV1() {
+  const input = $("metasCargaExcelFile");
+  if (!input || !input.files.length) throw new Error("Selecciona un archivo primero.");
+  const file = input.files[0];
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  const sh = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sh, { defval: "" });
+
+  const asesoresValidos = new Set((DATA.meta && DATA.meta.asesores) || []);
+  const meses = METAS_MESES_V1;
+  const filas = [];
+  const asesoresNoReconocidos = [];
+
+  rows.forEach(row => {
+    const keys = Object.keys(row);
+    const asesorKey = keys.find(k => String(k).trim().toLowerCase() === "asesor") || keys[0];
+    const asesor = String(row[asesorKey] || "").trim().toUpperCase();
+    if (!asesor) return;
+
+    const valores = {};
+    let algunValor = false;
+    meses.forEach(m => {
+      const key = keys.find(k => String(k).trim().toLowerCase() === m.toLowerCase());
+      if (!key) return;
+      const raw = row[key];
+      if (raw === "" || raw === null || raw === undefined) return;
+      const n = Number(String(raw).replace(/[^0-9.-]/g, ""));
+      if (!Number.isFinite(n) || n <= 0) return;
+      valores[m] = n;
+      algunValor = true;
+    });
+
+    if (!algunValor) return;
+    if (!asesoresValidos.has(asesor)) { asesoresNoReconocidos.push(asesor); return; }
+    filas.push({ asesor, valores });
+  });
+
+  return { filas, nombreArchivo: file.name, asesoresNoReconocidos: [...new Set(asesoresNoReconocidos)] };
+}
+
+async function metasCargaExcelValidarV1() {
+  const r = $("metasCargaExcelResult");
+  if (!r) return;
+  try {
+    const { filas, nombreArchivo, asesoresNoReconocidos } = await metasCargaExcelLeerArchivoV1();
+    const totalMeses = filas.reduce((s, f) => s + Object.keys(f.valores).length, 0);
+    let aviso = "";
+    if (asesoresNoReconocidos.length) {
+      aviso = `<p style="color:#b45309"><strong>Atención:</strong> ${asesoresNoReconocidos.length} nombre(s) de asesor en el archivo no coinciden con ningún asesor registrado en el sistema y serán IGNORADOS: ${esc(asesoresNoReconocidos.join(", "))}. Revisa que el nombre esté escrito exactamente igual.</p>`;
+    }
+    r.className = "update-result " + (filas.length ? "ok" : "error");
+    r.innerHTML = `<strong>Validación:</strong><div class="summary-grid"><article><span>Asesores con datos</span><strong>${filas.length}</strong></article><article><span>Meses a actualizar (total)</span><strong>${totalMeses}</strong></article></div><p>${esc(nombreArchivo)}</p>${aviso}${filas.length ? "" : "<p>No se encontraron valores válidos para cargar. Revisa el archivo.</p>"}`;
+  } catch (err) {
+    r.className = "update-result error";
+    r.innerHTML = `<strong>Error:</strong> ${esc(err.message)}`;
+  }
+}
+
+async function metasCargaExcelAplicarV1() {
+  const r = $("metasCargaExcelResult");
+  if (!r) return;
+  const cred = metasAjusteCredencialesV1();
+  if (!cred.email || typeof supabaseClientV94 === "undefined") {
+    r.className = "update-result error";
+    r.innerHTML = "<strong>Error:</strong> no se pudo identificar el usuario o la conexión a la base de datos.";
+    return;
+  }
+
+  let filas, nombreArchivo;
+  try {
+    ({ filas, nombreArchivo } = await metasCargaExcelLeerArchivoV1());
+  } catch (err) {
+    r.className = "update-result error";
+    r.innerHTML = `<strong>Error:</strong> ${esc(err.message)}`;
+    return;
+  }
+
+  if (!filas.length) {
+    r.className = "update-result error";
+    r.innerHTML = "<strong>Error:</strong> no hay valores válidos para cargar en este archivo.";
+    return;
+  }
+
+  const totalOperaciones = filas.reduce((s, f) => s + Object.keys(f.valores).length, 0);
+  const confirmado = confirm(`Vas a cargar meta nueva para ${filas.length} asesor(es), ${totalOperaciones} mes(es) en total. Cada mes con valor queda registrado como una nueva versión (Meta Inicial la primera vez, Forecast N las siguientes). ¿Confirmas?`);
+  if (!confirmado) return;
+
+  r.className = "update-result";
+  r.innerHTML = "<strong>Cargando…</strong> por favor espera, esto puede tardar unos segundos.";
+
+  const anio = metasAjusteAnioV1();
+  let exitosos = 0;
+  const errores = [];
+
+  for (const fila of filas) {
+    const metaInicial = metasBaseAsesorV1(fila.asesor);
+    for (const mes of Object.keys(fila.valores)) {
+      try {
+        const { error } = await supabaseClientV94.rpc("guardar_ajuste_meta_v1", {
+          p_admin_email: cred.email,
+          p_admin_telefono: cred.telefono || null,
+          p_asesor: fila.asesor,
+          p_anio: anio,
+          p_mes: mes,
+          p_meta_ajustada: fila.valores[mes],
+          p_meta_inicial_snapshot: metaInicial,
+          p_origen: "carga_excel"
+        });
+        if (error) { errores.push(`${fila.asesor} / ${mes}: ${error.message}`); }
+        else { exitosos++; }
+      } catch (e) {
+        errores.push(`${fila.asesor} / ${mes}: fallo de conexión (${e.message})`);
+      }
+    }
+  }
+
+  r.className = "update-result " + (errores.length ? "error" : "ok");
+  r.innerHTML = `<strong>Carga aplicada:</strong> ${exitosos} versión(es) de meta guardadas correctamente.` +
+    (errores.length ? `<p style="color:#b91c1c">${errores.length} error(es):<br>${errores.map(e => esc(e)).join("<br>")}</p>` : "") +
+    `<p>${esc(nombreArchivo)}</p>`;
+
+  await metasAjusteCargarV1();
+}
+
 function metasInsertarPanelV1() {
   if ($("metasAjustePanel")) return;
   // V1 Mejoras (2026-08-19): metasConfigPanel se eliminó (su contenido
@@ -105,7 +297,7 @@ function metasInsertarPanelV1() {
     <div class="panel-header">
       <div>
         <h3>Ajuste de metas por asesor</h3>
-        <p>Administrador y Super Administrador. Escribe la nueva meta del mes para cada asesor, en pesos. La Meta Inicial (definida en el sistema) no se modifica ni se sobrescribe — el ajuste queda registrado aparte y es lo que se usa como meta vigente del mes elegido.</p>
+        <p>Administrador y Super Administrador. Escribe la nueva meta del mes para cada asesor, en pesos. La Meta Inicial (definida en el sistema) no se modifica ni se sobrescribe — el ajuste queda registrado aparte y pasa a ser la Meta Ajustada (la meta vigente que ve el asesor) para el mes elegido.</p>
       </div>
       <div class="metas-ajuste-mes-selector">
         <label>Mes a ajustar
@@ -120,7 +312,7 @@ function metasInsertarPanelV1() {
             <th>Asesor</th>
             <th>Meta Inicial (mes)</th>
             <th>Acumulado año</th>
-            <th>Meta vigente del mes</th>
+            <th>Meta Ajustada (mes)</th>
             <th>Nueva meta del mes</th>
             <th>Acciones</th>
           </tr>
@@ -205,7 +397,7 @@ function metasAjusteRenderTablaV1() {
           <td data-label="Asesor">${esc(asesor)}</td>
           <td data-label="Meta Inicial (mes)">${money(metaInicial)}</td>
           <td data-label="Acumulado año"><strong class="metas-acumulado-valor">${money(acumuladoAnio)}</strong></td>
-          <td data-label="Meta vigente del mes">${money(metaVigente)}${ajuste ? ' <span class="metas-badge-ajustada" title="Meta ajustada manualmente">Ajustada</span>' : ""}</td>
+          <td data-label="Meta Ajustada (mes)">${money(metaVigente)}${ajuste ? ' <span class="metas-badge-ajustada" title="Meta ajustada manualmente">Ajustada</span>' : ""}</td>
           <td data-label="Nueva meta del mes">
             <input type="number" class="metas-nueva-meta-input" placeholder="${Number(metaVigente).toFixed(0)}" step="any" min="0"/>
             <div class="metas-nueva-meta-preview" hidden></div>
@@ -213,6 +405,7 @@ function metasAjusteRenderTablaV1() {
           <td data-label="Acciones">
             <button class="btn ghost small-btn" data-accion="guardar-meta-asesor" data-asesor="${esc(asesor)}">Guardar</button>
             ${ajuste ? `<button class="btn ghost small-btn" data-accion="quitar-meta-asesor" data-asesor="${esc(asesor)}">Quitar ajuste</button>` : ""}
+            <button class="btn ghost small-btn" data-accion="ver-historial-meta-asesor" data-asesor="${esc(asesor)}">Ver historial</button>
           </td>
         </tr>`;
       } catch (eFila) {
@@ -343,8 +536,47 @@ async function metasAjusteQuitarAsesorV2(asesor) {
   }
 }
 
+// Muestra el historial completo de versiones (Meta Inicial → Forecast
+// 1, 2, 3...) de un asesor en el mes seleccionado, usando la función
+// historial_ajuste_meta_v1 (Fase 6). Se muestra con alert() de texto
+// formateado, igual patrón que el resto de confirmaciones del
+// proyecto, para no introducir un componente de modal nuevo solo para
+// esta consulta de solo lectura.
+async function metasVerHistorialAsesorV1(asesor) {
+  const cred = metasAjusteCredencialesV1();
+  if (!asesor || typeof supabaseClientV94 === "undefined") return;
+  const mes = $("metasAjusteMesSelect")?.value || metasMesActualV2();
+  if (!mes) return;
+
+  try {
+    const { data, error } = await supabaseClientV94.rpc("historial_ajuste_meta_v1", {
+      p_admin_email: cred.email, p_admin_telefono: cred.telefono || null,
+      p_asesor: asesor, p_anio: metasAjusteAnioV1(), p_mes: mes
+    });
+    if (error) { alert("No se pudo consultar el historial: " + error.message); return; }
+    if (!data || !data.length) { alert(`${asesor} · ${mes}: no hay ninguna versión de meta guardada todavía (se está usando la Meta Inicial calculada del sistema).`); return; }
+
+    const lineas = data.map((v, i) => {
+      const etiqueta = v.version_tipo === "inicial" ? "Meta Inicial" : `Forecast ${v.version_numero}`;
+      const origen = v.origen === "carga_excel" ? "carga masiva Excel" : "ajuste manual";
+      const fecha = v.actualizado_en ? new Date(v.actualizado_en).toLocaleString("es-CO") : "";
+      const vigente = i === data.length - 1 ? "  ← VIGENTE (Meta Ajustada)" : "";
+      return `${etiqueta} — ${money(Number(v.meta_ajustada))} — ${origen} — ${v.creado_por || ""} — ${fecha}${vigente}`;
+    });
+    alert(`Historial de ${asesor} · ${mes} ${metasAjusteAnioV1()}:\n\n${lineas.join("\n")}`);
+  } catch (e) {
+    console.error("[Radar-Metas] Fallo de conexión consultando historial:", e);
+    alert("No se pudo conectar con el servidor para consultar el historial.");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   metasInsertarPanelV1();
+  metasCargaExcelInsertarPanelV1();
+
+  if ($("metasCargaExcelPlantillaBtn")) $("metasCargaExcelPlantillaBtn").addEventListener("click", metasCargaExcelDescargarPlantillaV1);
+  if ($("metasCargaExcelValidarBtn")) $("metasCargaExcelValidarBtn").addEventListener("click", metasCargaExcelValidarV1);
+  if ($("metasCargaExcelAplicarBtn")) $("metasCargaExcelAplicarBtn").addEventListener("click", metasCargaExcelAplicarV1);
 
   if ($("metasAjusteMesSelect")) {
     $("metasAjusteMesSelect").addEventListener("change", metasAjusteRenderTablaV1);
@@ -363,6 +595,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const accion = btn.getAttribute("data-accion");
     if (accion === "guardar-meta-asesor") metasAjusteGuardarAsesorV2(asesor);
     if (accion === "quitar-meta-asesor") metasAjusteQuitarAsesorV2(asesor);
+    if (accion === "ver-historial-meta-asesor") metasVerHistorialAsesorV1(asesor);
   });
 
   // showMetasViewV106 ya existe (mejoras-v1.js); se envuelve para
@@ -510,10 +743,10 @@ function metasDashboardAgregarSerieAjustadaV1() {
 
   const chart = (typeof dashboardChartsV812 !== "undefined") ? dashboardChartsV812["monthlySalesChart"] : null;
   if (!chart) return;
-  const yaExiste = chart.data.datasets.some(d => d.label === "Meta Ajustada 2026");
+  const yaExiste = chart.data.datasets.some(d => d.label === "Meta Ajustada");
   if (yaExiste) return;
   chart.data.datasets.push({
-    label: "Meta Ajustada 2026",
+    label: "Meta Ajustada",
     data: serieMetaAjustada,
     tension: .25,
     borderColor: "#f59e0b",

@@ -1803,7 +1803,7 @@ function ventaMesClienteV106(c, year, mes) {
 // y devuelve la serie completa de 12 meses (real en los transcurridos,
 // proyectado en los futuros). Se usan tanto para "proyección resto del
 // año actual" (serieAnioBase=2025, serieAnioActualTranscurrida=2026)
-// como para "Presupuesto Próximo Año" (serieAnioBase=serie2026 ya
+// como para "Presupuesto venta 2027" (serieAnioBase=serie2026 ya
 // completa —real+proyectada—, aplicando el modelo sobre ella con
 // mesesTranscurridosIdx = todos los 12 meses, es decir, tratando 2026
 // completo como "lo ya transcurrido" del cálculo hacia 2027).
@@ -1968,7 +1968,7 @@ function serieMensual2026ClienteV106(c) {
   return calcularSerieConModeloV2(modelo, serie2025, serie2026Transcurrida, idxTranscurridos, 0);
 }
 
-// Presupuesto Próximo Año para UN cliente: aplica el modelo
+// Presupuesto venta 2027 para UN cliente: aplica el modelo
 // configurado sobre la serie 2026 (real+proyectada) ya calculada,
 // tratándola como "año base transcurrido completo" (los 12 meses
 // cuentan como transcurridos para el cálculo hacia el año siguiente).
@@ -1997,7 +1997,7 @@ function serieMensualPresupuestoProximoAnioClienteV2(c, serie2026) {
 }
 
 // Serie mes a mes de la organización completa: año base (2025) real,
-// año actual real+proyectado, y Presupuesto Próximo Año (según los
+// año actual real+proyectado, y Presupuesto venta 2027 (según los
 // modelos configurados por el Super Administrador).
 function serieMensualOrganizacionV106() {
   const meses = monthsV812();
@@ -2033,7 +2033,20 @@ function serieMensualOrganizacionV106() {
     });
   });
 
-  return { meses, serie2025, serie2026, serie2027, serieMetaInicial, serieMetaAjustada };
+  // Nombres de campo alineados al estándar de nomenclatura oficial
+  // definido por el usuario (2026-08-20): Venta 2025, Venta 2026 real
+  // + proyectada, Presupuesto venta 2027, Meta Inicial, Meta Ajustada.
+  return {
+    meses,
+    ventaVenta2025: serie2025,
+    ventaVenta2026RealProyectada: serie2026,
+    presupuestoVenta2027: serie2027,
+    metaInicial: serieMetaInicial,
+    metaAjustada: serieMetaAjustada,
+    // Alias retrocompatibles (nombres anteriores) por si algún llamador
+    // externo no listado en este archivo aún los referencia.
+    serie2025, serie2026, serie2027, serieMetaInicial, serieMetaAjustada
+  };
 }
 
 // Meta ajustada vigente de UN asesor en UN mes/año: si hay un ajuste
@@ -2096,7 +2109,22 @@ function resumenMetasAsesorV106(nombreAsesor) {
     });
   }
 
-  return { asesor: nombreAsesor || "TOTAL ORGANIZACIÓN", real2025, real2026, planeado2026, ajustado2026, proyectado2026, presupuestoProximoAnio };
+  // Nombres de campo alineados al estándar oficial (2026-08-20):
+  // Venta 2025, Venta 2026 real, Venta proyectada 2026, Meta Inicial,
+  // Meta Ajustada, Presupuesto venta 2027. Se mantienen también los
+  // nombres anteriores (real2025, real2026, planeado2026, ajustado2026,
+  // proyectado2026, presupuestoProximoAnio) como alias retrocompatibles.
+  return {
+    asesor: nombreAsesor || "TOTAL ORGANIZACIÓN",
+    venta2025: real2025,
+    venta2026Real: real2026,
+    metaInicial: planeado2026,
+    metaAjustada: ajustado2026,
+    ventaProyectada2026: proyectado2026,
+    presupuestoVenta2027: presupuestoProximoAnio,
+    // Alias retrocompatibles:
+    real2025, real2026, planeado2026, ajustado2026, proyectado2026, presupuestoProximoAnio
+  };
 }
 
 function renderMetasViewV106() {
@@ -2135,13 +2163,13 @@ function renderMetasViewV106() {
     const estilo = resaltar ? ' style="font-weight:800;background:var(--panel-alt,#f4f6fb)"' : "";
     return `<tr${estilo}>
       <td data-label="Asesor">${esc(r.asesor)}</td>
-      <td data-label="2025 real">${money(r.real2025)}</td>
-      <td data-label="2026 real">${money(r.real2026)}</td>
-      <td data-label="Meta Inicial 2026">${money(r.planeado2026)}</td>
-      <td data-label="Meta Ajustada 2026">${money(r.ajustado2026)}${tieneAjuste ? ' <span class="metas-badge-ajustada" title="Incluye ajustes manuales guardados">Ajustada</span>' : ""}</td>
-      <td data-label="2026 proyectado">${money(r.proyectado2026)}</td>
+      <td data-label="Venta 2025">${money(r.real2025)}</td>
+      <td data-label="Venta 2026 real">${money(r.real2026)}</td>
+      <td data-label="Meta Inicial">${money(r.planeado2026)}</td>
+      <td data-label="Meta Ajustada">${money(r.ajustado2026)}${tieneAjuste ? ' <span class="metas-badge-ajustada" title="Incluye ajustes/Forecast guardados posteriores a la Meta Inicial">Ajustada</span>' : ""}</td>
+      <td data-label="Venta proyectada 2026">${money(r.proyectado2026)}</td>
       <td data-label="Cumplimiento proyectado">${pct(cumplProyectado)}</td>
-      <td data-label="Presupuesto Próximo Año">${money(r.presupuestoProximoAnio)}</td>
+      <td data-label="Presupuesto venta 2027">${money(r.presupuestoProximoAnio)}</td>
     </tr>`;
   };
 
@@ -2153,11 +2181,11 @@ function renderMetasViewV106() {
       data: {
         labels: asesores,
         datasets: [
-          { label: "2025 real", data: resumenes.map(r => r.real2025) },
-          { label: "Meta Inicial 2026", data: resumenes.map(r => r.planeado2026) },
-          { label: "Meta Ajustada 2026", data: resumenes.map(r => r.ajustado2026) },
-          { label: "2026 proyectado", data: resumenes.map(r => r.proyectado2026) },
-          { label: "Presupuesto Próximo Año", data: resumenes.map(r => r.presupuestoProximoAnio) }
+          { label: "Venta 2025", data: resumenes.map(r => r.real2025) },
+          { label: "Meta Inicial", data: resumenes.map(r => r.planeado2026) },
+          { label: "Meta Ajustada", data: resumenes.map(r => r.ajustado2026) },
+          { label: "Venta proyectada 2026", data: resumenes.map(r => r.proyectado2026) },
+          { label: "Presupuesto venta 2027", data: resumenes.map(r => r.presupuestoProximoAnio) }
         ]
       },
       options: { responsive: true, plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true } } }
@@ -2170,11 +2198,11 @@ function renderMetasViewV106() {
       data: {
         labels: mensual.meses,
         datasets: [
-          { label: "2025 real", data: mensual.serie2025, borderColor: "#94a3b8", backgroundColor: "#94a3b8", tension: .25 },
-          { label: "Meta Inicial 2026", data: mensual.serieMetaInicial, borderColor: "#a855f7", backgroundColor: "#a855f7", tension: .25, borderDash: [2, 2] },
-          { label: "Meta Ajustada 2026", data: mensual.serieMetaAjustada, borderColor: "#f59e0b", backgroundColor: "#f59e0b", tension: .25 },
+          { label: "Venta 2025", data: mensual.serie2025, borderColor: "#94a3b8", backgroundColor: "#94a3b8", tension: .25 },
+          { label: "Meta Inicial", data: mensual.serieMetaInicial, borderColor: "#a855f7", backgroundColor: "#a855f7", tension: .25, borderDash: [2, 2] },
+          { label: "Meta Ajustada", data: mensual.serieMetaAjustada, borderColor: "#f59e0b", backgroundColor: "#f59e0b", tension: .25 },
           {
-            label: "2026 real + proyectado",
+            label: "Venta 2026 real + proyectada",
             data: mensual.serie2026,
             borderColor: "#2563eb",
             backgroundColor: "#2563eb",
@@ -2183,7 +2211,7 @@ function renderMetasViewV106() {
               borderDash: ctx => ctx.p0DataIndex >= idxUltimoTranscurrido ? [6, 4] : undefined
             }
           },
-          { label: "Presupuesto Próximo Año", data: mensual.serie2027, borderColor: "#16a34a", backgroundColor: "#16a34a", tension: .25, borderDash: [3, 3] }
+          { label: "Presupuesto venta 2027", data: mensual.serie2027, borderColor: "#16a34a", backgroundColor: "#16a34a", tension: .25, borderDash: [3, 3] }
         ]
       },
       options: { responsive: true, plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true } } }
@@ -2200,7 +2228,7 @@ function exportarMetasCSVV106() {
     proyectado2026: acc.proyectado2026 + r.proyectado2026, presupuestoProximoAnio: acc.presupuestoProximoAnio + r.presupuestoProximoAnio
   }), { real2025: 0, real2026: 0, planeado2026: 0, ajustado2026: 0, proyectado2026: 0, presupuestoProximoAnio: 0 });
 
-  const rows = [["Asesor", "2025 real (MM)", "2026 real (MM)", "Meta Inicial 2026 (MM)", "Meta Ajustada 2026 (MM)", "2026 proyectado (MM)", "Presupuesto Próximo Año (MM)"]];
+  const rows = [["Asesor", "Venta 2025 (MM)", "Venta 2026 real (MM)", "Meta Inicial (MM)", "Meta Ajustada (MM)", "Venta proyectada 2026 (MM)", "Presupuesto venta 2027 (MM)"]];
   rows.push(["TOTAL ORGANIZACIÓN", total.real2025.toFixed(1), total.real2026.toFixed(1), total.planeado2026.toFixed(1), total.ajustado2026.toFixed(1), total.proyectado2026.toFixed(1), total.presupuestoProximoAnio.toFixed(1)]);
   resumenes.forEach(r => rows.push([r.asesor, r.real2025.toFixed(1), r.real2026.toFixed(1), r.planeado2026.toFixed(1), r.ajustado2026.toFixed(1), r.proyectado2026.toFixed(1), r.presupuestoProximoAnio.toFixed(1)]));
 
@@ -2209,7 +2237,7 @@ function exportarMetasCSVV106() {
   }
 }
 
-// Exportación a Excel (.xlsx) del "Presupuesto Próximo Año": hoja 1 con
+// Exportación a Excel (.xlsx) del "Presupuesto venta 2027": hoja 1 con
 // la tabla completa (por asesor, mes a mes, más el total del año
 // siguiente); hoja 2 con los mismos datos organizados para graficar
 // fácilmente en Excel (Insertar > Gráfico, con los datos ya listos).
@@ -2232,7 +2260,7 @@ function exportarPresupuestoProximoAnioExcelV1() {
   const meses = monthsV812();
   const anioSiguiente = (typeof metasAjusteAnioV1 === "function" ? metasAjusteAnioV1() : 2026) + 1;
 
-  // Tabla 1: por asesor, mes a mes. Presupuesto Próximo Año calculado
+  // Tabla 1: por asesor, mes a mes. Presupuesto venta 2027 calculado
   // con el modelo configurado por el Super Administrador (pestaña
   // Sistema) — ver serieMensualPresupuestoProximoAnioClienteV2.
   const encabezado = ["Asesor", ...meses, "Total " + anioSiguiente];
@@ -2262,10 +2290,10 @@ function exportarPresupuestoProximoAnioExcelV1() {
   ws1["!cols"] = [{ wch: 26 }, ...meses.map(() => ({ wch: 12 })), { wch: 14 }];
   XLSX.utils.book_append_sheet(wb, ws1, "Presupuesto " + anioSiguiente);
 
-  // Hoja 2: total mensual de la organización (2025 real, 2026
-  // real+proyectado, Presupuesto Próximo Año), en columnas simples
+  // Hoja 2: total mensual de la organización (Venta 2025, Venta 2026
+  // real + proyectada, Presupuesto venta 2027), en columnas simples
   // listas para seleccionar e Insertar > Gráfico en Excel.
-  const filasGrafica = [["Mes", "2025 real", "2026 real + proyectado", "Presupuesto " + anioSiguiente]];
+  const filasGrafica = [["Mes", "Venta 2025", "Venta 2026 real + proyectada", "Presupuesto venta " + anioSiguiente]];
   meses.forEach((m, i) => {
     filasGrafica.push([m, Math.round(mensual.serie2025[i]), Math.round(mensual.serie2026[i]), Math.round(mensual.serie2027[i])]);
   });
@@ -2428,7 +2456,7 @@ function applyModeloCalculoV2() {
   localStorage.setItem("radarModeloPresupuestoV2", modeloPresupuesto);
 
   if (typeof saveDataV93 === "function") saveDataV93();
-  alert("Modelo de cálculo aplicado. La proyección y el Presupuesto Próximo Año se recalculan automáticamente en 'Metas y presupuestos' y el Dashboard.");
+  alert("Modelo de cálculo aplicado. La Venta proyectada 2026 y el Presupuesto venta 2027 se recalculan automáticamente en 'Metas y presupuestos' y el Dashboard.");
 
   if (typeof renderMetasViewV106 === "function" && $("metasView") && !$("metasView").classList.contains("hidden-view")) {
     renderMetasViewV106();
