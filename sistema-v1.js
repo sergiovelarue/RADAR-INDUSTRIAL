@@ -6,9 +6,13 @@
 //      auto-alta de "Administrador" y usando el registro
 //      autorizado en la nube en vez de localStorage.
 //   2) Crea la pestaña "Sistema", exclusiva de Super
-//      Administrador: Configuración comercial por clasificación
-//      y Ponderación del score (reubicadas), panel de
+//      Administrador: Configuración comercial por clasificación,
+//      Modelo de cálculo (Venta proyectada y Presupuesto) y
+//      Ponderación del score (reubicados), panel de
 //      administradores, y contador/reset del log de eventos.
+//      (2026-08-20: modeloCalculoPanel se integró a
+//      SISTEMA_PANEL_IDS_V1 — antes vivía huérfano en la Hoja de
+//      Ruta con su propio mecanismo de visibilidad paralelo.)
 //
 // Requiere que ya se hayan aplicado, del lado de Supabase, las
 // funciones SECURITY DEFINER de la migración
@@ -157,7 +161,7 @@ if (typeof attemptLoginV84 === "function") {
 // 2) Pestaña "Sistema" — exclusiva Super Administrador
 // ------------------------------------------------------------
 
-const SISTEMA_PANEL_IDS_V1 = ["growthConfigPanel", "pesosScorePanel"];
+const SISTEMA_PANEL_IDS_V1 = ["growthConfigPanel", "modeloCalculoPanel", "pesosScorePanel"];
 
 function sistemaEsSuperAdminV1() {
   return typeof isSuperAdminV93 === "function" && isSuperAdminV93();
@@ -197,7 +201,7 @@ function sistemaInsertarVistaV1() {
     <div class="dashboard-title">
       <div>
         <h2>Sistema</h2>
-        <p>Exclusivo Super Administrador: configuración comercial, ponderación del score, administradores y log de eventos.</p>
+        <p>Exclusivo Super Administrador: configuración comercial, modelo de cálculo, ponderación del score, administradores y log de eventos.</p>
       </div>
     </div>
     <div class="sistema-panels" id="sistemaPanelsHost"></div>

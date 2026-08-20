@@ -1437,8 +1437,9 @@ function applyAdminVisibilityV811(){
     if(el) el.classList.toggle("admin-only-panel-hidden", !admin);
   });
 
-  // Exclusivo Super Administrador: configuración de crecimiento y estadísticas de uso.
-  ["growthConfigPanel", "usageAdminPanel"].forEach(id => {
+  // Exclusivo Super Administrador: configuración de crecimiento, modelo de
+  // cálculo y estadísticas de uso.
+  ["growthConfigPanel", "modeloCalculoPanel", "usageAdminPanel"].forEach(id => {
     const el = $(id);
     if(el) el.classList.toggle("superadmin-only-hidden", !superAdmin);
   });
@@ -1987,7 +1988,7 @@ function fmtDateV93(iso){
 
 function hideAllPrimaryViewsV93(){
   document.querySelectorAll(".filters,.kpi-grid,.type-grid,.breakdown,.table-card").forEach(el => el.classList.add("hidden-view"));
-  ["dailyUpdatePanel","growthConfigPanel","usageAdminPanel","masterDataAdminPanel","syncAdminPanel"].forEach(id => {
+  ["dailyUpdatePanel","growthConfigPanel","modeloCalculoPanel","usageAdminPanel","masterDataAdminPanel","syncAdminPanel"].forEach(id => {
     const el = $(id); if(el) el.classList.add("hidden-view");
   });
   const dash = $("directorDashboardView"); if(dash) dash.classList.add("hidden-view");

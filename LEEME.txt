@@ -1,175 +1,138 @@
-RadarComercial B2B — Unificación de nomenclatura oficial de datos
-(antes de subir la versión de versionado de metas)
-Fecha de creación: 2026-08-19 19:27 (hora Colombia)
-Carpeta: Mejoras_20260819_1927
+RadarComercial B2B — Corrección de visibilidad: panel "Modelo de
+cálculo" ahora vive dentro de la pestaña Sistema (exclusiva
+Super Administrador)
+Fecha de creación: 2026-08-20 08:42 (hora Colombia)
+Carpeta: Mejoras_20260820_0842
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
 Archivos incluidos (reemplazan a los del mismo nombre en GitHub):
-1. index.html
+1. app.js
 2. mejoras-v1.js
-3. metas-v1.js
-4. version.js (actualizado a V14.1 · 2026-08-20)
+3. sistema-v1.js
+4. version.js (actualizado a V14.2 · 2026-08-20)
 
 ============================================================
-POR QUÉ SE HIZO ESTE PAQUETE
+POR QUÉ SE HIZO ESTE PAQUETE — INCOHERENCIA ENCONTRADA
 ============================================================
-Pediste dejar clara la nomenclatura OFICIAL de los datos que usa la
-app para calcular y mostrar a cada rol, ANTES de subir el paquete de
-versionado de metas (Mejoras_20260819_1905, V14.0) que aún no habías
-subido a producción. Este paquete aplica esa nomenclatura sobre TODO
-el texto visible (tablas, gráficas, botones, exportaciones CSV/Excel,
-alertas) y agrega una regla nueva de negocio que confirmaste: tope de
-Forecast 11.
+Pediste optimizar la app y revisar que el panel "Modelo de cálculo —
+Venta proyectada y Presupuesto" solo fuera visible dentro de la
+pestaña Sistema, y que esa pestaña completa (con todo su contenido)
+fuera exclusiva de Super Administrador.
 
-============================================================
-NOMENCLATURA OFICIAL (confirmada contigo)
-============================================================
-- Venta 2025 (año anterior)
-- Venta 2026 real (año actual, meses ya transcurridos)
-- Venta proyectada 2026 (año actual, meses que faltan)
-- Presupuesto venta 2027 (próximo año)
-- Meta Inicial (la meta cargada al principio del año actual; se
-  congela y no se sobrescribe nunca)
-- Forecast N (N = 1 hasta 11; cada carga/ajuste posterior a la Meta
-  Inicial para un mismo asesor/mes/año)
-- Meta Ajustada (Meta visible para Asesores)
+Auditoría completa realizada (index.html, app.js, mejoras-v1.js,
+sistema-v1.js): se encontró UNA incoherencia real, que ya se corrigió.
 
-REGLA CONFIRMADA: "Meta Ajustada" es el ÚNICO nombre oficial para la
-meta vigente que ve el asesor — ya sea que esa meta vigente sea, en
-este momento, la Meta Inicial (si nunca se ha ajustado), o el último
-Forecast/ajuste guardado (el más reciente por fecha/hora). Ya NO existe
-un concepto separado de "Meta Actual": "Meta Ajustada" ES la Meta
-Actual. Esto reemplaza nombres anteriores usados en pantalla como
-"Meta vigente del mes" o "VIGENTE (Meta Actual)".
+**El bloqueo de permiso del panel "Modelo de cálculo" YA era correcto
+(exigía Super Administrador, con la función isSuperAdminV93()). El
+problema era de UBICACIÓN, no de permiso**: el panel nunca se
+trasladaba físicamente dentro de la pestaña "Sistema" — se quedaba
+huérfano en la Hoja de Ruta (Dashboard), con su propio mecanismo de
+visibilidad paralelo (clase "hidden-by-profile") que ningún otro
+módulo de navegación conocía ni sincronizaba con el resto de paneles
+de Sistema.
+
+Consecuencia práctica de la incoherencia (antes de esta corrección):
+- El texto del propio panel de "Metas y presupuestos" le decía al
+  Super Administrador que el modelo de cálculo se configura en la
+  "pestaña Sistema" — pero al entrar a Sistema, el panel NO aparecía
+  ahí. Solo aparecía si volvía a la Hoja de Ruta.
+- El panel podía quedar visible simultáneamente en la Hoja de Ruta
+  mientras el Super Administrador navegaba a otras vistas (Clientes,
+  Asesores, Sistema, etc.), porque ningún mecanismo de ocultamiento de
+  esas vistas lo conocía.
+
+No se encontraron otras incoherencias de permisos dentro de la
+pestaña Sistema: los demás paneles (Configuración comercial por
+clasificación, Ponderación del score, Administradores, Log de
+eventos) ya exigían correctamente Super Administrador tanto para
+mostrarse dentro de Sistema como para ver el botón "Sistema" en el
+menú.
 
 ============================================================
 QUÉ CAMBIÓ EN DETALLE
 ============================================================
 
-1) index.html
-   - Sección "Metas y presupuestos": encabezado, botón de exportar
-     Excel, encabezados/descripciones de ambas gráficas, y encabezado
-     de la tabla — todo actualizado a la nomenclatura oficial.
-   - Pestaña Sistema → panel "Modelo de cálculo": título y etiquetas de
-     los 2 selectores (Venta proyectada 2026 / Presupuesto venta 2027)
-     actualizados.
+1) sistema-v1.js
+   - `SISTEMA_PANEL_IDS_V1` ahora incluye "modeloCalculoPanel" junto a
+     "growthConfigPanel" y "pesosScorePanel". Esto hace que, al entrar
+     a la pestaña Sistema, el panel se traslade automáticamente dentro
+     de ella (mismo mecanismo ya usado para los otros 2 paneles) y se
+     le remuevan las clases de ocultamiento correspondientes.
+   - Textos descriptivos de la pestaña Sistema actualizados para
+     mencionar explícitamente "modelo de cálculo".
 
-2) mejoras-v1.js
-   - Tabla y ambas gráficas (barras por asesor, línea mensual
-     organización) de "Metas y presupuestos": encabezados/leyendas
-     actualizados a Venta 2025, Venta 2026 real, Meta Inicial, Meta
-     Ajustada, Venta proyectada 2026, Presupuesto venta 2027.
-   - Exportación CSV ("Exportar CSV"): encabezados de columna
-     actualizados.
-   - Exportación Excel ("Exportar Presupuesto venta 2027"): comentarios
-     y encabezado de la hoja "Datos gráfica" actualizados. (Los nombres
-     de archivo descargado y el nombre interno de la primera hoja de
-     Excel se dejaron igual —"Presupuesto 2027"— por ser nombres de
-     archivo/hoja técnicos, no texto de nomenclatura de negocio.)
-   - Alerta al aplicar el modelo de cálculo (pestaña Sistema):
-     actualizada a "Venta proyectada 2026" y "Presupuesto venta 2027".
-   - Los objetos internos que devuelven los cálculos
-     (serieMensualOrganizacionV106, resumenMetasAsesorV106) ahora
-     incluyen también los nombres de campo nuevos (venta2025,
-     venta2026Real, metaInicial, metaAjustada, ventaProyectada2026,
-     presupuestoVenta2027) MANTENIENDO los nombres anteriores como
-     alias, para no romper ningún código existente que aún los use.
+2) app.js
+   - `applyAdminVisibilityV811()`: "modeloCalculoPanel" se agregó a la
+     lista de paneles exclusivos de Super Administrador (misma lista
+     donde ya estaba "growthConfigPanel"), usando la clase
+     "superadmin-only-hidden".
+   - `hideAllPrimaryViewsV93()`: "modeloCalculoPanel" se agregó a la
+     lista de paneles que se ocultan al navegar a cualquier vista
+     principal (Clientes, Asesores, Prospección, etc.), igual que ya
+     ocurría con "growthConfigPanel".
 
-3) metas-v1.js
-   - Panel de ajuste manual: encabezado de tabla "Meta vigente del mes"
-     → "Meta Ajustada (mes)"; mismo cambio en la celda de cada fila y
-     en el texto explicativo del panel.
-   - Botón "Ver historial": el marcador de la versión vigente cambió de
-     "VIGENTE (Meta Actual)" a "VIGENTE (Meta Ajustada)".
-   - Gráfica del Dashboard general (serie que agrega
-     metasDashboardAgregarSerieAjustadaV1): la leyenda cambió de "Meta
-     Ajustada 2026" a "Meta Ajustada".
-
-4) NUEVO: tope de Forecast en 11 (Supabase, ya aplicado)
-   Confirmaste que el límite de Forecast N = 11 corresponde a "un
-   forecast posible por cada mes restante del año" (Meta Inicial ocupa
-   el primer "slot", quedan 11 meses restantes de Feb a Dic), y que el
-   sistema debía advertir o bloquear un intento de Forecast 12.
-
-   Se implementó como BLOQUEO DURO (no solo advertencia), directamente
-   en la función guardar_ajuste_meta_v1 de Supabase — así cubre los 2
-   caminos que existen hoy para cargar meta nueva (ajuste manual y
-   carga masiva por Excel) sin duplicar la validación en el frontend:
-   - Si ya existe Forecast 11 guardado para un asesor/año/mes y se
-     intenta guardar uno más, la base de datos rechaza la operación con
-     el mensaje: "Límite alcanzado: no se puede registrar Forecast 12
-     para <asesor> · <mes> <año>. El máximo permitido es Forecast 11
-     (ya existe Forecast 11 guardado)."
-   - En el panel de ajuste manual, ese mensaje aparece tal cual en el
-     área de mensajes del panel.
-   - En la carga masiva por Excel, como cada asesor/mes se procesa de
-     forma independiente, ese mensaje aparece en la lista de errores
-     puntuales sin detener el resto de la carga (los demás
-     asesores/meses sí se guardan).
-
-   VERIFICADO con datos de prueba reales en Supabase: se guardaron
-   Forecast 1 a 11 sin problema, se confirmó que Forecast 11 queda
-   como la versión vigente, se intentó guardar un Forecast 12 y fue
-   bloqueado correctamente con el mensaje esperado, se confirmó que
-   quedaron exactamente 12 filas (Meta Inicial + Forecast 1-11, ninguna
-   de más), y se limpiaron los datos de prueba sin dejar residuos
-   (mismo patrón de verificación de siempre en este proyecto).
+3) mejoras-v1.js
+   - Se ELIMINÓ el mecanismo de visibilidad paralelo e independiente
+     que tenía "modeloCalculoPanel" (wraps propios de
+     applyUserProfileV84 y showViewV812, con una clase CSS distinta
+     "hidden-by-profile"). Ahora el panel usa exactamente el mismo
+     mecanismo que "growthConfigPanel": clases "superadmin-only-hidden"
+     y "hidden-view", gestionadas centralmente por app.js y
+     sistema-v1.js. Se dejó un comentario explicando el cambio para
+     quien continúe el desarrollo.
 
 ============================================================
 LO QUE NO CAMBIÓ
 ============================================================
-- Ninguna fórmula de cálculo se tocó. Este paquete es SOLO nomenclatura
-  visible + la regla nueva de tope de Forecast 11 (que es una regla de
-  negocio, no una fórmula).
-- La estructura de datos en Supabase no cambió (solo se modificó la
-  lógica interna de guardar_ajuste_meta_v1 para agregar la validación
-  del tope; no se agregaron ni quitaron columnas ni tablas).
-- Los nombres de archivo descargados (CSV, Excel, PNG) y los nombres
-  técnicos de hoja de Excel no se tocaron, por no ser texto de
-  nomenclatura de negocio visible en la interfaz.
+- El permiso en sí (Super Administrador) no cambió — ya era correcto.
+- Ningún otro panel de Sistema (Configuración comercial, Ponderación
+  del score, Administradores, Log de eventos) se tocó — ya estaban
+  correctamente restringidos.
+- Ninguna fórmula de cálculo se tocó.
+- El texto "Solo Administrador" en "Metas y presupuestos" se dejó
+  igual (decisión tuya): esa sección SÍ es visible tanto para
+  Administrador como para Super Administrador, y así se mantiene.
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- `node --check` en index.html, mejoras-v1.js y metas-v1.js: sin
+- `node --check` en app.js, mejoras-v1.js y sistema-v1.js: sin
   errores.
-- Supabase: verificación con datos de prueba reales del tope de
-  Forecast 11 (detallada arriba), limpieza confirmada sin residuos.
-- Revisión cruzada de app.js: no se encontraron ocurrencias de la
-  nomenclatura anterior en ese archivo (ya usaba términos que
-  coinciden con el estándar nuevo, por ejemplo "Venta 2025").
-
-PENDIENTE (no incluido en este paquete, requiere tu decisión aparte):
-las "pruebas duras" de efectividad de fórmulas que mencionaste que
-harías más adelante — este paquete no las incluye, solo prepara el
-terreno con nomenclatura consistente para que esas pruebas sean más
-claras de interpretar.
+- Prueba automatizada en navegador (Chromium headless, con stubs de
+  Supabase/Chart.js/XLSX por la limitación de red ya documentada de
+  este entorno) con 11 verificaciones, TODAS exitosas:
+  1. Login como Super Administrador establece el tier correcto.
+  2. El botón "Sistema" es visible para Super Administrador.
+  3. La vista Sistema se muestra al hacer clic.
+  4. El panel "Modelo de cálculo" queda como hijo real del contenedor
+     de paneles de Sistema tras entrar a la pestaña.
+  5. El panel "Modelo de cálculo" queda visible (sin ninguna clase de
+     ocultamiento) dentro de Sistema para Super Administrador.
+  6. Lo mismo se confirmó para "growthConfigPanel" como control.
+  7. El panel sigue visible al navegar a la Hoja de Ruta (mismo
+     comportamiento que growthConfigPanel, que también vive ahí).
+  8. El panel queda oculto correctamente en el Dashboard Director.
+  9. El botón "Sistema" queda OCULTO para un Administrador normal
+     (no Super Administrador).
+  10. Si se intenta forzar la función que abre Sistema directamente
+      (simulando manipulación por consola/URL) con un Administrador
+      normal, la vista permanece oculta — el bloqueo interno de la
+      función también protege, no solo el botón del menú.
+  11. El panel "Modelo de cálculo" queda marcado como oculto
+      (superadmin-only-hidden) para un Administrador normal.
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Reemplazar en GitHub los 4 archivos (index.html, mejoras-v1.js,
-   metas-v1.js, version.js). Recomendado: subir este paquete ANTES o
-   JUNTO con Mejoras_20260819_1905 (V14.0, versionado de metas), ya
-   que este paquete depende de metas-v1.js y lo reemplaza con la
-   versión más reciente (incluye tanto el versionado como esta
-   unificación de nombres).
+1. Reemplazar en GitHub los 4 archivos (app.js, mejoras-v1.js,
+   sistema-v1.js, version.js).
 2. Confirmar el commit — Netlify debe re-desplegar automáticamente.
-3. La base de datos ya está actualizada (tope de Forecast 11), no
-   requiere ninguna acción adicional de tu parte.
-4. Verificar en el sitio publicado que los textos de "Metas y
-   presupuestos" y del panel de ajuste manual usan la nomenclatura
-   nueva, y que un intento de Forecast 12 (si llegas a probarlo) queda
-   bloqueado con el mensaje explicado arriba.
-
-IMPORTANTE: la carpeta Mejoras_20260819_1905 (V14.0) que generé antes
-NO incluye estos cambios de nomenclatura — quedó con los nombres
-anteriores en metas-v1.js. Este paquete (Mejoras_20260819_1927)
-reemplaza completamente ese metas-v1.js con la versión ya unificada,
-así que si vas a subir ambos, basta con subir este último (V14.1) y no
-hace falta aplicar V14.0 por separado para metas-v1.js — sí segurías
-necesitando aplicar la migración de Supabase de V14.0 si aún no la
-habías aplicado (esa ya quedó aplicada por mí directamente, ver el
-LEEME de esa entrega).
+3. No requiere ningún cambio en Supabase.
+4. Verificación manual recomendada en producción: entrar como Super
+   Administrador, hacer clic en "Sistema", y confirmar que el panel
+   "Modelo de cálculo — Venta proyectada y Presupuesto" aparece ahí
+   junto con "Configuración comercial por clasificación". Confirmar
+   también que un usuario Administrador (no Super Administrador) no ve
+   el botón "Sistema" en el menú.

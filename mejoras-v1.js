@@ -2466,27 +2466,14 @@ function applyModeloCalculoV2() {
   }
 }
 
-// El panel modeloCalculoPanel se muestra/oculta igual que
-// growthConfigPanel pero restringido a Super Administrador
-// (isSuperAdminV93), no a cualquier Administrador.
-const _previousApplyProfileModeloV2 = applyUserProfileV84;
-if (typeof _previousApplyProfileModeloV2 === "function") {
-  applyUserProfileV84 = function (...args) {
-    const r = _previousApplyProfileModeloV2.apply(this, args);
-    const panel = $("modeloCalculoPanel");
-    if (panel) panel.classList.toggle("hidden-by-profile", !(typeof isSuperAdminV93 === "function" && isSuperAdminV93()));
-    return r;
-  };
-}
-// El Dashboard también oculta/muestra growthConfigPanel al entrar/salir
-// (ver app.js showViewV812/showGlossaryV814); se replica aquí para
-// modeloCalculoPanel envolviendo esas mismas funciones.
-if (typeof showViewV812 === "function") {
-  const _previousShowViewModeloV2 = showViewV812;
-  showViewV812 = function (view) {
-    const r = _previousShowViewModeloV2(view);
-    const panel = $("modeloCalculoPanel");
-    if (panel) panel.classList.toggle("hidden-view", view === "dashboard");
-    return r;
-  };
-}
+// El panel modeloCalculoPanel (2026-08-20, optimización de
+// visibilidad): dejó de tener un mecanismo propio de visibilidad
+// (clase "hidden-by-profile" + wrap independiente de showViewV812).
+// Ahora es un panel más de la pestaña "Sistema" (ver sistema-v1.js,
+// SISTEMA_PANEL_IDS_V1) y usa exactamente el mismo control que
+// growthConfigPanel: la clase "superadmin-only-hidden" gestionada por
+// applyAdminVisibilityV811() (app.js) y "hidden-view" gestionada por
+// hideAllPrimaryViewsV93()/showSistemaV1(). Esto elimina la
+// incoherencia donde el panel vivía físicamente en la Hoja de Ruta en
+// vez de la pestaña Sistema, pese a que su propio texto decía
+// "pestaña Sistema".
