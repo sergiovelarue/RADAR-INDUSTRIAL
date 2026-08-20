@@ -1,128 +1,74 @@
-RadarComercial B2B — V15.3: Paginación de "Hoja de ruta" + tarjeta compacta en celular
-Fecha de creación: 2026-08-20 13:32 (hora Colombia)
-Carpeta: Mejoras_20260820_1332
+RadarComercial B2B — V15.5: Logo real de la app en vez de la "R" sobre fondo azul
+Fecha de creación: 2026-08-20 13:51 (hora Colombia)
+Carpeta: Mejoras_20260820_1351
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
 Archivos incluidos:
-1. index.html      (modificado — nuevo bloque de paginación + nuevo script)
-2. styles.css       (modificado — estilos de paginación y tarjeta móvil)
-3. hoja-ruta-v15.js (NUEVO — lógica de paginación y expandir/colapsar)
-4. version.js       (actualizado a V15.3 · 2026-08-20)
+1. index.html   (modificado — 2 líneas)
+2. styles.css    (modificado — reglas de recorte de imagen)
+3. version.js    (actualizado a V15.5 · 2026-08-20)
+
+No se agrega ningún archivo de imagen nuevo: se usa el archivo
+"android-chrome-512x512.png" que YA está publicado en el sitio (es el
+mismo icono que se instala en la pantalla de inicio de iPhone/Android
+cuando alguien "agrega la app" desde el navegador). Confirmé que ese
+archivo ya responde 200 OK en el sitio en producción antes de armar
+este paquete, así que no hay riesgo de que la imagen no cargue.
 
 ============================================================
 QUÉ PEDISTE
 ============================================================
-1) Paginar la tabla "Hoja de ruta" para que tanto Administrador/Super
-   Administrador como Asesor la vean paginada.
-2) Revisar si conviene una vista tipo lista en celular, con los datos
-   clave visibles y el resto oculto hasta tocar la tarjeta, conservando
-   el botón "Ver" que abre el detalle completo/editable que ya existía.
+Reemplazar la "R" sobre fondo azul plano (que aparece en la pantalla
+de acceso y en la barra lateral) por el logo real de Radar Comercial
+B2B — el mismo que se usa como ícono al instalar la app en un iPhone.
 
 ============================================================
-QUÉ SE HIZO
+QUÉ CAMBIÓ
 ============================================================
-1) PAGINACIÓN (50 clientes por página)
-   - Se agregó una barra de paginación debajo de la tabla, con:
-     "Mostrando X–Y de Z clientes", botones "Anterior/Siguiente" y
-     "Página N de M".
-   - Funciona igual para Administrador, Super Administrador y Asesor —
-     cada uno pagina sobre el conjunto de clientes que ya le
-     corresponde ver (la paginación no cambia ningún permiso, solo
-     corta en páginas de 50 lo que cada rol ya podía ver).
-   - Al cambiar cualquier filtro (mes, asesor, estado, clasificación,
-     tipo de negocio, búsqueda), la vista regresa automáticamente a la
-     página 1. Al cambiar solo el orden ("Ordenar por"), se mantiene la
-     página en la que estabas, ya que sigue siendo el mismo conjunto de
-     clientes.
-   - Al pasar de página, la vista hace scroll automático hasta el
-     inicio de la tabla para que sea claro que cambió el contenido.
-
-2) VISTA MÓVIL DE "HOJA DE RUTA" (solo en pantallas ≤760px, es decir
-   celular; en computador y tablet grande la tabla se ve exactamente
-   igual que antes)
-   - Cada cliente se muestra como una tarjeta compacta con SOLO tres
-     datos visibles de entrada: Cliente (con ciudad/departamento),
-     Estado y Cumplimiento — con una flecha (▾) que indica que se puede
-     tocar.
-   - Al tocar la tarjeta, se expande dentro de la misma tarjeta (no
-     abre nada nuevo) mostrando el resto de columnas: NIT, Asesor,
-     Venta 2025, Venta actual, Meta, Faltante — y, al final, el botón
-     "Ver" que abre el mismo modal de detalle completo/editable que ya
-     existía antes de este cambio (no se tocó esa función).
-   - Tocar el botón "Ver" abre el modal directamente y NO expande o
-     colapsa la tarjeta — son dos acciones independientes.
-   - Se conserva el color de fondo de la fila (verde/amarillo/rojo)
-     que ya existía como semáforo de cumplimiento.
+- En la pantalla de acceso (login) y en la barra lateral/encabezado,
+  el círculo con la letra "R" se reemplazó por el ícono real de la
+  app: el marco en forma de "R", la lupa con el signo de pesos y el
+  texto "B2B", con su degradado azul.
+- El ícono se recorta con CSS para que se vea perfectamente ajustado
+  al cuadro redondeado existente (mismo tamaño y esquinas
+  redondeadas de siempre), sin bordes blancos ni cuadrado visible
+  detrás, tanto sobre el fondo blanco de la pantalla de acceso como
+  sobre el fondo oscuro de la barra lateral.
+- Se probó en celular y en computador, y en ambos casos se ve limpio.
 
 ============================================================
 LO QUE NO CAMBIÓ
 ============================================================
-- Ningún permiso, filtro de datos ni fórmula se modificó. Un Asesor
-  sigue viendo exactamente los mismos clientes que veía antes de este
-  cambio — solo ahora los ve en páginas de 50 en vez de todos de una
-  vez.
-- El modal de detalle completo ("Ver") es el mismo de siempre, sin
-  cambios en sus campos ni su lógica de guardado.
-- La vista de computador/tablet grande de "Hoja de ruta" no cambia
-  visualmente — la tabla se ve igual que antes, solo con la barra de
-  paginación nueva debajo.
-- Ningún otro módulo (Dashboard, Ajustes, Sistema, motores RED/RTE/EWS,
-  etc.) se tocó en este paquete.
-
-============================================================
-HALLAZGO ADICIONAL (no corregido en este paquete — para que lo tengas
-en el radar)
-============================================================
-Durante esta revisión se encontró que dos mejoras antiguas de la Hoja
-de Ruta —la etiqueta "Bloqueado" y la etiqueta "VIP Gerencia" que se
-agregaban sobre cada fila— quedaron inactivas desde antes de esta
-ronda de trabajo: una versión posterior del renderizado de la tabla
-(anterior a este paquete) reemplazó por completo la función en vez de
-construir sobre la versión que traía esas etiquetas, así que dejaron
-de aplicarse silenciosamente. No afecta los datos de bloqueo ni de VIP
-Gerencia en sí (esos campos siguen guardándose y usándose donde
-corresponde, por ejemplo, para excluir clientes bloqueados de otros
-cálculos) — solo la etiqueta visual en la fila de la tabla dejó de
-mostrarse. Si quieres, lo dejamos listo para la próxima entrega.
+- Ningún dato, permiso, fórmula ni otro módulo se tocó.
+- El tamaño y la posición del ícono son los mismos de siempre — solo
+  cambió la imagen que se muestra adentro.
+- Los demás íconos de la app (favicon del navegador, ícono al
+  instalar en el celular) no se modificaron — siguen siendo los
+  mismos que ya estaban.
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- `node --check` en hoja-ruta-v15.js: sin errores.
-- Prueba automatizada en navegador (Chromium headless) con 130
-  clientes sintéticos:
-  · Página 1 muestra 50 filas, página 2 muestra 50, página 3 (última)
-    muestra las 30 restantes; botón "Siguiente" se deshabilita en la
-    última página.
-  · Cambiar el filtro de asesor reinicia correctamente a la página 1.
-  · Simulando un Asesor (viendo solo sus propios clientes, tal como ya
-    filtraba la app antes de este cambio) la paginación funciona igual
-    que para Administrador.
-  · Tocar una tarjeta agrega/quita el estado "expandida"; tocar el
-    botón "Ver" NO expande la tarjeta (abre el modal, como debe ser).
-- Prueba visual (capturas de pantalla en resolución de celular,
-  390×844) confirmando el diseño de tarjeta compacta, la tarjeta
-  expandida con todos los campos y el botón "Ver", y la barra de
-  paginación al final de la lista.
+- Se confirmó con una petición directa al sitio en producción que
+  "android-chrome-512x512.png" ya existe y responde 200 OK (215.351
+  bytes, coincide con el archivo local).
+- Prueba automatizada en navegador (Chromium headless): se
+  renderizaron y capturaron la pantalla de acceso, la barra lateral
+  en celular y la barra lateral en computador, confirmando visualmente
+  que el logo se ve completo, sin bordes blancos ni recortes raros,
+  en las tres ubicaciones.
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Reemplazar en GitHub los 3 archivos existentes (index.html,
-   styles.css, version.js) y agregar el archivo nuevo
-   (hoja-ruta-v15.js) en la misma carpeta raíz del proyecto.
+1. Reemplazar en GitHub los 3 archivos (index.html, styles.css,
+   version.js). No hay archivos de imagen nuevos que subir.
 2. Confirmar el commit — Netlify debe re-desplegar automáticamente.
 3. No requiere ningún cambio en Supabase.
-4. Verificación manual recomendada:
-   - En computador: entrar a "Hoja de ruta" con más de 50 clientes
-     filtrados y confirmar que aparece la barra de paginación al
-     final, y que "Anterior/Siguiente" cambian el contenido.
-   - En celular (o achicando la ventana del navegador a menos de
-     760px): confirmar que cada cliente se ve como tarjeta compacta
-     (Cliente + Estado + Cumplimiento) y que al tocarla se expande
-     mostrando el resto de datos y el botón "Ver".
-   - Repetir ambas pruebas también con un usuario Asesor, para
-     confirmar que ve paginación y tarjeta móvil igual que
-     Administrador, pero solo con su propia cartera de clientes.
+4. Verificación manual recomendada: entrar a la app (pantalla de
+   acceso) y confirmar que se ve el logo completo de Radar Comercial
+   B2B en vez de la "R" simple; luego iniciar sesión y confirmar lo
+   mismo en la barra lateral/encabezado, tanto en computador como en
+   celular.

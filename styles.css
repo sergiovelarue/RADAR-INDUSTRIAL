@@ -1,6 +1,6 @@
 :root{--bg:#f4f6f9;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--dark:#0f172a;--blue:#2563eb}*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--ink)}
 input,select,textarea{font-size:16px}
-.app{display:flex;min-height:100vh}.sidebar{width:260px;background:var(--dark);color:white;padding:24px;position:sticky;top:0;height:100vh}.brand{display:flex;gap:12px;align-items:center;margin-bottom:28px}.brand-icon{width:42px;height:42px;border-radius:14px;background:#2563eb;display:flex;align-items:center;justify-content:center;font-weight:900}.brand h1{font-size:17px;margin:0}.brand small{color:#cbd5e1}nav a{display:block;padding:12px 14px;border-radius:12px;color:#cbd5e1;margin-bottom:6px}nav a.active{background:#1e293b;color:white}.main{flex:1;padding:24px;max-width:1600px;margin:0 auto}.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:16px}.topbar h2{margin:0;font-size:30px}.topbar p{margin:4px 0 0;color:var(--muted)}.btn{border:none;background:var(--dark);color:white;padding:11px 16px;border-radius:12px;font-weight:800;cursor:pointer}.btn.secondary{background:#2563eb}.btn.ghost{background:white;color:var(--dark);border:1px solid var(--line)}.admin-panel,.table-card{background:white;border:1px solid var(--line);border-radius:22px;padding:20px;margin-bottom:18px}.panel-header h3{margin:0;font-size:22px}.panel-header p{margin:5px 0 0;color:var(--muted)}.upload-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:16px}.upload-grid article{background:#f9fafb;border:1px solid var(--line);border-radius:16px;padding:16px}.upload-grid h4{margin:0 0 10px}.upload-grid input{width:100%}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.update-result{margin-top:14px;border:1px dashed #cbd5e1;background:#f8fafc;border-radius:14px;padding:14px;color:#334155}.update-result.ok{background:#ecfdf5;border-color:#a7f3d0}.update-result.error{background:#fff1f2;border-color:#fecdd3}.filters{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:12px;background:white;border:1px solid var(--line);border-radius:22px;padding:16px;margin-bottom:18px}.filters label{display:block;font-size:12px;color:var(--muted);font-weight:900;margin-bottom:6px}.filters select,.filters input{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:10px;background:white}.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}.kpi-grid article,.type-grid article,.breakdown article{background:white;border:1px solid var(--line);border-radius:18px;padding:16px}.kpi-grid span,.type-grid span,.breakdown span{display:block;color:var(--muted);font-size:12px;font-weight:900}.kpi-grid strong,.type-grid strong,.breakdown strong{display:block;font-size:24px;margin-top:5px}.kpi-grid small,.breakdown small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:14px}.type-grid article{cursor:pointer}.type-grid article.active{border:2px solid var(--dark)}.breakdown{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}body.view-espumas .breakdown{display:none}.table-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.table-header h3{margin:0;font-size:22px}.table-header span{color:var(--muted);font-weight:800}
+.app{display:flex;min-height:100vh}.sidebar{width:260px;background:var(--dark);color:white;padding:24px;position:sticky;top:0;height:100vh}.brand{display:flex;gap:12px;align-items:center;margin-bottom:28px}.brand-icon{width:42px;height:42px;border-radius:14px;background:#2563eb;display:flex;align-items:center;justify-content:center;font-weight:900;position:relative;overflow:hidden}.brand-icon img{position:absolute;top:-10%;left:-10%;width:120%;height:120%;object-fit:cover;display:block}.brand h1{font-size:17px;margin:0}.brand small{color:#cbd5e1}nav a{display:block;padding:12px 14px;border-radius:12px;color:#cbd5e1;margin-bottom:6px}nav a.active{background:#1e293b;color:white}.main{flex:1;padding:24px;max-width:1600px;margin:0 auto}.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:16px}.topbar h2{margin:0;font-size:30px}.topbar p{margin:4px 0 0;color:var(--muted)}.btn{border:none;background:var(--dark);color:white;padding:11px 16px;border-radius:12px;font-weight:800;cursor:pointer}.btn.secondary{background:#2563eb}.btn.ghost{background:white;color:var(--dark);border:1px solid var(--line)}.admin-panel,.table-card{background:white;border:1px solid var(--line);border-radius:22px;padding:20px;margin-bottom:18px}.panel-header h3{margin:0;font-size:22px}.panel-header p{margin:5px 0 0;color:var(--muted)}.upload-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:16px}.upload-grid article{background:#f9fafb;border:1px solid var(--line);border-radius:16px;padding:16px}.upload-grid h4{margin:0 0 10px}.upload-grid input{width:100%}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.update-result{margin-top:14px;border:1px dashed #cbd5e1;background:#f8fafc;border-radius:14px;padding:14px;color:#334155}.update-result.ok{background:#ecfdf5;border-color:#a7f3d0}.update-result.error{background:#fff1f2;border-color:#fecdd3}.filters{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:12px;background:white;border:1px solid var(--line);border-radius:22px;padding:16px;margin-bottom:18px}.filters label{display:block;font-size:12px;color:var(--muted);font-weight:900;margin-bottom:6px}.filters select,.filters input{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:10px;background:white}.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}.kpi-grid article,.type-grid article,.breakdown article{background:white;border:1px solid var(--line);border-radius:18px;padding:16px}.kpi-grid span,.type-grid span,.breakdown span{display:block;color:var(--muted);font-size:12px;font-weight:900}.kpi-grid strong,.type-grid strong,.breakdown strong{display:block;font-size:24px;margin-top:5px}.kpi-grid small,.breakdown small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:14px}.type-grid article{cursor:pointer}.type-grid article.active{border:2px solid var(--dark)}.breakdown{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}body.view-espumas .breakdown{display:none}.table-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.table-header h3{margin:0;font-size:22px}.table-header span{color:var(--muted);font-weight:800}
 .route-pagination{display:none;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 .route-pagination .pagination-info{color:var(--muted);font-size:12px;font-weight:800}
 .route-pagination .pagination-controls{display:flex;align-items:center;gap:10px}
@@ -47,6 +47,26 @@ input,select,textarea{font-size:16px}
   .main{padding:14px}
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .type-grid,.breakdown{grid-template-columns:repeat(2,1fr)}
+
+  /* V15.4 - En celular/tablet, "Actualizar datos / usuario / Cerrar
+     sesión" se saca del bloque fijo (sticky) superior — ver
+     topbar-movil-v154.js. Antes quedaba pegado en pantalla ocupando
+     hasta ~220px permanentemente y tapando los filtros/contenido al
+     hacer scroll. Con esta clase, ese bloque pasa a ser una fila
+     normal debajo del encabezado fijo (que ahora solo contiene el
+     logo y las pestañas), y se desplaza junto con el resto de la
+     página como cualquier otro contenido. */
+  .sidebar-footer.sidebar-footer-mobile-v154{
+    position:static;
+    width:100%;
+    box-sizing:border-box;
+    background:var(--dark);
+    color:white;
+    padding:10px 16px 14px;
+    display:block;
+    z-index:auto;
+  }
+  .sidebar-footer.sidebar-footer-mobile-v154 #refreshDataBtn{margin-bottom:8px}
 }
 @media(max-width:760px){
   .topbar{flex-direction:column;align-items:flex-start}
@@ -200,6 +220,18 @@ input,select,textarea{font-size:16px}
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-icon img {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+  display: block;
 }
 
 .login-brand h1 {
