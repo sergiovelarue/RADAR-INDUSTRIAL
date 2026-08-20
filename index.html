@@ -394,7 +394,6 @@
       <section class="director-dashboard hidden-view" id="directorDashboardView">
         <div class="dashboard-title">
           <div>
-            <h2>Dashboard</h2>
             <p id="dashboardSubtitle">Vista ejecutiva para analizar evolución, composición, asesores y clientes Pareto.</p>
           </div>
           <div class="dashboard-actions"><button class="btn ghost" id="exportDashboardBtn">Exportar resumen CSV</button></div>
@@ -549,7 +548,7 @@
 
     
       <section class="log-view hidden-view" id="seguimientoView">
-        <div class="dashboard-title"><div><h2>Seguimiento diario</h2><p>Próximas acciones ordenadas cronológicamente, con la fecha actual como referencia: <strong id="seguimientoHoyLabel">—</strong>.</p></div></div>
+        <div class="dashboard-title"><div><p>Próximas acciones ordenadas cronológicamente, con la fecha actual como referencia: <strong id="seguimientoHoyLabel">—</strong>.</p></div></div>
 
         <section class="table-card" id="metaDiariaPanel">
           <div class="table-header">
@@ -651,7 +650,7 @@
       </section>
 
       <section class="log-view hidden-view" id="logView">
-        <div class="dashboard-title"><div><h2>Log de cambios</h2><p>Registro de eventos relevantes del equipo comercial: accesos, cambios de datos, canales/zonas, transferencias, bloqueos y cargas de ventas.</p></div></div>
+        <div class="dashboard-title"><div><p>Registro de eventos relevantes del equipo comercial: accesos, cambios de datos, canales/zonas, transferencias, bloqueos y cargas de ventas.</p></div></div>
         <div class="log-toolbar">
           <label>Ver últimos
             <select id="logRangeSelect">
@@ -679,7 +678,7 @@
       </section>
 
       <section class="glossary-view hidden-view" id="glossaryView">
-        <div class="dashboard-title"><div><h2>Glosario Comercial Radar</h2><p>Definiciones prácticas para leer correctamente la Hoja de Ruta y el Dashboard.</p></div></div>
+        <div class="dashboard-title"><div><p>Definiciones prácticas para leer correctamente la Hoja de Ruta y el Dashboard.</p></div></div>
         <section class="glossary-grid">
           <article><h3>Estados comerciales</h3><p><strong>Activo:</strong> facturó en el mes actual o mes anterior.</p><p><strong>Inactivo:</strong> lleva 2 meses sin facturar.</p><p><strong>PB / Posible Baja:</strong> lleva 3 meses sin facturar; requiere gestión especial.</p><p><strong>Baja:</strong> lleva 4 o más meses sin facturar; requiere recuperación.</p><p><strong>Reingreso:</strong> estaba en PB o Baja y volvió a facturar.</p><p><strong>Nuevo:</strong> compra por primera vez o tiene menos de 3 meses de historia.</p><p><strong>Bloqueado:</strong> no gestionable hasta que un administrador lo desbloquee.</p></article>
           <article><h3>Clasificación A-B-C-E-N</h3><p><strong>A:</strong> alto valor + alta consecutividad.</p><p><strong>B:</strong> bajo valor + alta consecutividad.</p><p><strong>C:</strong> bajo valor + baja consecutividad.</p><p><strong>E:</strong> alto valor + baja consecutividad.</p><p><strong>N:</strong> cliente nuevo.</p></article>
@@ -692,7 +691,7 @@
 
       <section class="clients-mgmt-view hidden-view" id="prospeccionView">
         <div class="dashboard-title">
-          <div><h2>Prospección</h2><p>Registro y gestión de leads comerciales. Administrador ve todos los leads; cada asesor ve solo los suyos.</p></div>
+          <div><p>Registro y gestión de leads comerciales. Administrador ve todos los leads; cada asesor ve solo los suyos.</p></div>
           <div class="dashboard-actions">
             <button class="btn ghost" id="leadShareBtn">Compartir / QR</button>
             <button class="btn" id="leadNuevoBtn">+ Nuevo lead</button>
@@ -810,7 +809,7 @@
 
       <section class="clients-mgmt-view hidden-view" id="metasView">
         <div class="dashboard-title">
-          <div><h2>Metas y presupuestos</h2><p>Ventas totales, por asesor y por mes: Venta 2025, Venta 2026 real, Meta Inicial, Meta Ajustada, Venta proyectada 2026, y Presupuesto venta 2027. Solo Administrador.</p></div>
+          <div><p>Ventas totales, por asesor y por mes: Venta 2025, Venta 2026 real, Meta Inicial, Meta Ajustada, Venta proyectada 2026, y Presupuesto venta 2027. Solo Administrador.</p></div>
           <div class="dashboard-actions">
             <button class="btn ghost" id="metasExportBtn">Exportar CSV</button>
             <button class="btn" id="metasExportExcelBtn">Exportar Presupuesto venta 2027 (Excel)</button>
@@ -846,8 +845,7 @@
       <section class="clients-mgmt-view hidden-view" id="alarmasView">
         <div class="dashboard-title">
           <div>
-            <h2>Panel de alarmas — Motor EWS</h2>
-            <p>Alertas tempranas de ritmo, cartera, ticket, clientes activos, venta y concentración. Administrador: vista consolidada por asesor. Asesor: su propio panel.</p>
+            <p>Alertas tempranas de ritmo, cartera, ticket, clientes activos, venta y concentración (Motor EWS). Administrador: vista consolidada por asesor. Asesor: su propio panel.</p>
           </div>
           <div class="dashboard-actions">
             <select id="alarmasAsesorSelect" style="display:none"></select>
@@ -906,8 +904,7 @@
       <section class="clients-mgmt-view hidden-view" id="rankingView">
         <div class="dashboard-title">
           <div>
-            <h2>Ranking — Motor RAC</h2>
-            <p>Rendimiento · Actividad · Cumplimiento. Puntaje = 70% cumplimiento de meta + 30% actividad comercial. Ranking semanal (resetea cada lunes) y acumulado mensual.</p>
+            <p>Rendimiento · Actividad · Cumplimiento (Motor RAC). Puntaje = 70% cumplimiento de meta + 30% actividad comercial. Ranking semanal (resetea cada lunes) y acumulado mensual.</p>
           </div>
           <div class="dashboard-actions" id="rankingCerrarSemanaWrap" style="display:none">
             <button class="btn ghost" id="rankingCerrarSemanaBtn">Cerrar semana</button>
@@ -945,7 +942,7 @@
 
       <section class="clients-mgmt-view hidden-view" id="clientsManagementView">
         <div class="dashboard-title">
-          <div><h2>Gestión de Clientes</h2><p>Asignación de asesor por cliente, historial de asesor y datos maestros. Solo Administrador y Super Administrador.</p></div>
+          <div><p>Asignación de asesor por cliente, historial de asesor y datos maestros. Solo Administrador y Super Administrador.</p></div>
           <div class="dashboard-actions">
             <button class="btn" id="mgmtDownloadAssignBtn">Descargar asignación actualizada</button>
             <button class="btn ghost" id="mgmtDownloadLogBtn">Descargar historial de cambios</button>
@@ -1004,7 +1001,7 @@
 
       <section class="advisors-mgmt-view hidden-view" id="advisorsManagementView">
         <div class="dashboard-title">
-          <div><h2>Gestión de Asesores</h2><p>Datos de asesores comerciales y aprobación de asesores nuevos. Solo Administrador y Super Administrador.</p></div>
+          <div><p>Datos de asesores comerciales y aprobación de asesores nuevos. Solo Administrador y Super Administrador.</p></div>
           <div class="dashboard-actions">
             <button class="btn" id="advisorAddBtn">Agregar asesor</button>
             <button class="btn ghost" id="advisorsDownloadTemplateBtn">Descargar plantilla</button>

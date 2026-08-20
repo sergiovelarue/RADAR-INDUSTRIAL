@@ -200,7 +200,6 @@ function sistemaInsertarVistaV1() {
   section.innerHTML = `
     <div class="dashboard-title">
       <div>
-        <h2>Sistema</h2>
         <p>Exclusivo Super Administrador: configuración comercial, modelo de cálculo, ponderación del score, administradores y log de eventos.</p>
       </div>
     </div>

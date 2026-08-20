@@ -1,89 +1,93 @@
-RadarComercial B2B — Título "Acciones Planeadas" en Seguimiento diario
-+ título de la topbar sincronizado con la pestaña activa
-Fecha de creación: 2026-08-20 09:00 (hora Colombia)
-Carpeta: Mejoras_20260820_0900
+RadarComercial B2B — Corrección: título duplicado en cada pestaña
+Fecha de creación: 2026-08-20 09:15 (hora Colombia)
+Carpeta: Mejoras_20260820_0915
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
 Archivos incluidos (reemplazan a los del mismo nombre en GitHub):
 1. index.html
-2. mejoras-v1.js
-3. version.js (actualizado a V14.3 · 2026-08-20)
+2. sistema-v1.js
+3. ajustes-v1.js
+4. version.js (actualizado a V14.4 · 2026-08-20)
 
 ============================================================
-QUÉ CAMBIÓ — MEJORA 1: título "Acciones Planeadas"
+POR QUÉ SE HIZO ESTE PAQUETE
 ============================================================
-En la pestaña "Seguimiento diario", se agregó el título "Acciones
-Planeadas" entre la tabla de venta diaria/semanal requerida y el lugar
-donde se define el rango (Vencidas/Semana pasada/Semana
-actual/Semana siguiente/Todas) y el filtro de asesor.
+Señalaste (con captura de pantalla) que, tras la mejora anterior que
+sincronizó el título de arriba (topbar) con la pestaña activa, quedó
+el título DUPLICADO en cada pestaña: el de arriba (topbar, nuevo,
+dinámico) y el título propio que cada vista ya traía debajo (por
+ejemplo, en "Metas y presupuestos" aparecía "Metas y presupuestos" dos
+veces seguidas).
 
 ============================================================
-QUÉ CAMBIÓ — MEJORA 2: título de la topbar sincronizado con la pestaña
+QUÉ CAMBIÓ
 ============================================================
-Encontramos que el título superior ("Hoja de Ruta del Mes") estaba
-escrito de forma FIJA en el encabezado principal de la app y se veía
-SIEMPRE, sin importar en qué pestaña estuviera el usuario — daba la
-impresión de seguir en "Hoja de ruta" incluso estando en Seguimiento
-diario, Dashboard, Metas y presupuestos, etc.
+Se eliminó el título `<h2>` propio de cada vista (el de abajo),
+dejando SOLO el título de la topbar (el de arriba), tal como pediste.
+El párrafo descriptivo debajo de cada título (la línea de contexto,
+por ejemplo "Ventas totales, por asesor y por mes: Venta 2025...") se
+CONSERVÓ en todos los casos — solo se quitó el `<h2>` duplicado, no la
+información.
 
-Se corrigió para que el título de arriba cambie automáticamente según
-la pestaña activa en el menú lateral:
-- "Hoja de ruta" → "Hoja de Ruta del Mes" (se mantiene el título largo
-  original, ya que es la pestaña "principal" de la app).
-- Cualquier otra pestaña → el nombre exacto de esa pestaña tal como
-  aparece en el menú (ej. "Seguimiento diario", "Dashboard",
-  "Prospección", "Metas y presupuestos", "Panel de alarmas",
-  "Ranking", "Gestión de clientes", "Gestión de asesores", "Log de
-  cambios", "Glosario comercial", "Sistema", "Ajustes").
+Pestañas corregidas:
+- Dashboard
+- Seguimiento diario
+- Log de cambios
+- Glosario Comercial Radar
+- Prospección
+- Metas y presupuestos
+- Panel de alarmas (el texto "— Motor EWS" se conservó, movido al
+  párrafo descriptivo para no perder esa información)
+- Ranking (el texto "— Motor RAC" se conservó, movido al párrafo
+  descriptivo)
+- Gestión de Clientes
+- Gestión de Asesores
+- Sistema (pestaña insertada en tiempo de ejecución por sistema-v1.js)
+- Ajustes (pestaña insertada en tiempo de ejecución por ajustes-v1.js)
 
-Esta corrección se implementó de forma centralizada (un único
-mecanismo que observa cuál pestaña del menú tiene la clase "active"),
-en vez de modificar cada función de navegación por separado — así
-queda automáticamente correcto para cualquier pestaña nueva que se
-agregue en el futuro, sin necesidad de acordarse de tocar el título
-cada vez.
+El título "Acciones Planeadas" (agregado en la entrega anterior, en
+Seguimiento diario) NO se tocó — no es un duplicado, es un título
+distinto para esa sección específica dentro de la pestaña.
+
+El encabezado "Hoja de ruta" de la tabla principal (dentro de la
+pestaña Hoja de Ruta) tampoco se tocó — es el nombre de esa tabla en
+particular, no un duplicado exacto del título de la topbar ("Hoja de
+Ruta del Mes").
 
 ============================================================
 LO QUE NO CAMBIÓ
 ============================================================
-- Ninguna fórmula de cálculo ni estructura de datos se tocó.
-- El badge de "Fecha actual" (junto al título) no se modificó — sigue
-  visible igual que antes.
-- El resto del contenido de "Seguimiento diario" (tabla de venta
-  diaria/semanal, selector de rango, tabla de acciones recomendadas)
-  no se modificó, solo se agregó el título nuevo.
+- El mecanismo de sincronización del título de la topbar (entregado
+  en el paquete anterior, Mejoras_20260820_0900) no se tocó — sigue
+  funcionando igual, cambiando el título según la pestaña activa.
+- Ninguna fórmula de cálculo ni estructura de datos se modificó.
+- Ningún párrafo descriptivo se eliminó, solo los encabezados `<h2>`
+  duplicados.
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- `node --check` en mejoras-v1.js: sin errores.
-- Prueba automatizada en navegador (Chromium headless, con stubs de
-  Supabase/Chart.js/XLSX por la limitación de red ya documentada de
-  este entorno) con 9 verificaciones, TODAS exitosas:
-  1. Título inicial correcto ("Hoja de Ruta del Mes").
-  2. Título cambia a "Seguimiento diario" al entrar a esa pestaña.
-  3. El título "Acciones Planeadas" existe en el DOM de Seguimiento
-     diario.
-  4. Está ubicado DESPUÉS de la tabla de venta diaria/semanal.
-  5. Está ubicado ANTES del selector de Rango/Asesor.
-  6. Título cambia a "Dashboard" en esa pestaña.
-  7. Título cambia a "Gestión de clientes" en esa pestaña.
-  8. Título vuelve correctamente a "Hoja de Ruta del Mes" al regresar
-     a Hoja de ruta.
-  9. Título cambia a "Sistema" en esa pestaña (confirma que también
-     funciona para pestañas insertadas en tiempo de ejecución, no solo
-     las que ya existen en el HTML original).
+- `node --check` en sistema-v1.js y ajustes-v1.js: sin errores.
+- Prueba automatizada en navegador (Chromium headless, con los mismos
+  stubs de Supabase/Chart.js/XLSX usados en entregas anteriores) con
+  15 verificaciones, TODAS exitosas: se confirmó, pestaña por pestaña
+  (Seguimiento diario, Metas y presupuestos, Log de cambios, Glosario,
+  Gestión de Clientes, Gestión de Asesores, Sistema, Prospección,
+  Dashboard), que el título de la topbar es correcto Y que ya NO
+  existe un `<h2>` duplicado dentro del contenido de la vista. También
+  se confirmó que el párrafo descriptivo de "Metas y presupuestos" se
+  conserva completo, y que "Acciones Planeadas" sigue existiendo sin
+  cambios.
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Reemplazar en GitHub los 3 archivos (index.html, mejoras-v1.js,
-   version.js).
+1. Reemplazar en GitHub los 4 archivos (index.html, sistema-v1.js,
+   ajustes-v1.js, version.js).
 2. Confirmar el commit — Netlify debe re-desplegar automáticamente.
 3. No requiere ningún cambio en Supabase.
-4. Verificación manual recomendada: navegar entre varias pestañas y
-   confirmar que el título de arriba cambia correctamente en cada una,
-   y que "Acciones Planeadas" aparece en el lugar correcto dentro de
-   Seguimiento diario.
+4. Verificación manual recomendada: navegar por cada pestaña y
+   confirmar que el título aparece UNA sola vez arriba, sin repetirse
+   más abajo.

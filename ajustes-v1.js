@@ -60,7 +60,6 @@ function ajustesInsertarVistaV1() {
   section.innerHTML = `
     <div class="dashboard-title">
       <div>
-        <h2>Ajustes</h2>
         <p>Actualización de ventas, estadísticas de uso, soporte y sincronización de datos. Visible para Administrador y Super Administrador.</p>
       </div>
     </div>
