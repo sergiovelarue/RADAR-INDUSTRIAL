@@ -623,20 +623,19 @@ cargarConfiguracionDesdeSupabaseV97 = async function () {
 };
 
 // ------------------------------------------------------------
-// El Dashboard (Director/Gerencial) no filtraba por asesor: un
-// asesor entrando ahí veía la venta y el ranking de TODA la
-// empresa, incluyendo a los demás asesores. directorClientsV813()
-// es la función base que alimenta todos los gráficos e insights
-// del Dashboard (venta, pareto, ranking de asesores, salud de
-// cartera, evolución por clasificación) — filtrándola aquí se
-// corrige de una sola vez en todas partes.
-const _directorClientsOriginalV102 = directorClientsV813;
-directorClientsV813 = function () {
-  const base = _directorClientsOriginalV102();
-  if (state.profile === "admin") return base;
-  if (!state.profile) return base;
-  return base.filter(c => c.asesorAsignado === state.profile);
-};
+// V15.0 — HALLAZGO CRÍTICO CORREGIDO (Ago 20, revisión post-entrega):
+// este bloque (fase V102, anterior a esta versión) intentaba filtrar
+// el Dashboard por asesor, pero con un bug que lo dejaba INEFECTIVO:
+// comparaba c.asesorAsignado === state.profile, y state.profile NUNCA
+// contiene el nombre del asesor (es el filtro de "Tipo de negocio" de
+// la Hoja de ruta, con valor por defecto "admin" — ver app.js:2).
+// Como además esta redefinición se carga DESPUÉS de app.js, pisaba por
+// completo el fix correcto ya aplicado en directorClientsV813()
+// (app.js), que sí filtra por currentUserV84.advisor con el mismo
+// criterio usado en toda la app (isAdvisorAllowedToEditV86, etc.).
+// Se elimina esta capa duplicada y rota: la definición de
+// directorClientsV813() en app.js queda como única fuente de verdad.
+// ------------------------------------------------------------
 
 // El nav de "Gestión de clientes" y "Gestión de asesores" son
 // funciones exclusivas de administrador (ya estaban bloqueadas por

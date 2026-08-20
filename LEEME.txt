@@ -1,154 +1,89 @@
-RadarComercial B2B — V15.0: Estructura de pantallas y permisos por rol
-Fecha de creación: 2026-08-20 11:49 (hora Colombia)
-Carpeta: Mejoras_20260820_1149
+RadarComercial B2B — V15.1: HOTFIX — Dashboard seguía sin filtrar por asesor
+Fecha de creación: 2026-08-20 12:05 (hora Colombia)
+Carpeta: Mejoras_20260820_1205
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
 Archivos incluidos (reemplazan a los del mismo nombre en GitHub):
-1. index.html
-2. app.js
-3. mejoras-v1.js
-4. ajustes-v1.js
-5. sistema-v1.js
-6. modulo_05_ui_motores.js
-7. version.js (actualizado a V15.0 · 2026-08-20)
+1. mejoras-v1.js
+2. version.js (actualizado a V15.1 · 2026-08-20)
 
 ============================================================
-POR QUÉ SE HIZO ESTE PAQUETE
+POR QUÉ SE HIZO ESTE PAQUETE — ERROR DETECTADO EN MI PROPIA REVISIÓN
 ============================================================
-Después de la auditoría completa de estructura de pantallas y permisos
-(entregada como documento el 2026-08-20), revisaste cada hallazgo uno
-por uno y diste instrucciones concretas para 6 ajustes. Este paquete
-implementa esas 6 decisiones, ya documentadas y aprobadas en:
-- claude/estructura-pantallas-permisos-20260820.md
-- claude/motores-analisis-probabilidad-cumplimiento-20260820.md
+Reportaste que, al revisar el sitio publicado, no veías que el punto 1
+del documento aprobado (Dashboard filtrado por asesor) estuviera
+funcionando. Investigué el sitio en producción
+(radar-com-conaccion-ind242f09.netlify.app) leyendo el código
+realmente servido, y confirmaste el problema: tenías razón.
+
+CAUSA RAÍZ: mi corrección del V15.0 (en app.js) SÍ quedó bien escrita,
+pero existía una segunda función en mejoras-v1.js —agregada en una
+fase anterior (V102), antes de mi trabajo— que REDEFINE
+directorClientsV813() después de que se carga app.js. Como los scripts
+se cargan en orden y mejoras-v1.js se carga DESPUÉS de app.js, esa
+redefinición vieja ganaba y anulaba por completo mi corrección.
+
+Además, esa función vieja tenía su propio bug: comparaba
+`c.asesorAsignado === state.profile`, pero state.profile nunca
+contiene el nombre de un asesor (es el filtro de "Tipo de negocio" de
+otra pantalla, con valor por defecto "admin"). Es decir, aunque mi fix
+no hubiera sido pisado, esa capa vieja tampoco habría funcionado nunca
+— estaba rota desde antes de esta ronda de mejoras y nadie la había
+detectado.
+
+Esto se me escapó en la verificación del V15.0 porque probé
+directorClientsV813() de forma aislada (cargando solo los archivos que
+edité) y no reproduje el orden de carga completo de todos los archivos
+de la app tal como ocurre en producción. Fue un error de mi proceso de
+verificación, no un problema en el análisis o en la decisión que
+tomaste — la corrección que aprobaste era la correcta, solo faltaba
+quitar del camino esta capa vieja que la bloqueaba.
 
 ============================================================
-QUÉ CAMBIÓ — LOS 6 AJUSTES
+QUÉ CAMBIÓ
 ============================================================
-
-1. DASHBOARD — FILTRADO POR ROL [CRÍTICO]
-   Antes: cualquier Asesor veía la venta total de la organización, el
-   ranking de todos los asesores y el Pareto de toda la empresa (bug:
-   directorClientsV813() no filtraba por asesorAsignado).
-   Ahora: un Asesor ve el mismo diseño de Dashboard, pero filtrado a su
-   propia cartera. Se ocultan para el rol Asesor las secciones que solo
-   tienen sentido comparando entre asesores o mirando la organización
-   completa: gráfico "Venta por asesor", "Segmentos Comerciales",
-   "Salud del Portafolio de Clientes" y "Top 10 por asesor". El resto
-   del Dashboard (KPIs, venta mensual, clasificación, estado, Top 15
-   Pareto, lectura estratégica) sigue visible, ya filtrado a su cartera.
-   Administrador y Super Administrador: sin cambios, ven la
-   organización completa — base de reportes a gerencia general.
-
-2. MODELO DE PROBABILIDAD DE CUMPLIMIENTO DE META (nuevo)
-   Antes: el panel "Ponderación del score de recomendación" (4 pesos %
-   configurables: faltante, clasificación, continuidad, urgencia) ya
-   estaba oculto en la práctica (forzado a display:none), pero el
-   código y el HTML seguían presentes.
-   Ahora: se reemplaza por completo por un selector de 3 motores de
-   ORDENAMIENTO POR NIVELES (no promedio ponderado), visible
-   únicamente en la pestaña Sistema, exclusivo de Super Administrador:
-     - Potencial: ordena de mayor a menor faltante de venta del mes.
-     - CF: prioriza clasificación del cliente (A > B > E > C/N), y
-       dentro de cada nivel, por faltante.
-     - CFE: prioriza primero el estado del cliente (Activos > Inactivos
-       > Posible Baja; excluye Baja y Bloqueado), luego clasificación,
-       luego faltante.
-   El motor elegido determina el orden de "Acciones recomendadas" para
-   todos los asesores. Queda como un valor agregado configurable según
-   lo que se acuerde comercialmente con la empresa contratante.
-
-3. PANEL DE ALARMAS — CORRECCIÓN DE BUG + SELECTOR DE ASESOR
-   Antes: el código usaba una variable inexistente (currentUserV86) al
-   calcular las alarmas de un Asesor, por lo que el filtro nunca se
-   aplicaba y el Asesor veía alarmas de toda la organización en vez de
-   las propias.
-   Ahora: corregido a la variable real (currentUserV84.advisor). Además,
-   se activó el selector de asesor (antes existía en el HTML pero
-   estaba forzado a oculto) para que Administrador y Super Administrador
-   puedan filtrar el detalle de alarmas por un asesor específico desde
-   la vista consolidada.
-
-4. LOG DE CAMBIOS — RESTRICCIÓN DE ACCESO
-   El backend ya estaba protegido correctamente. Se agregó una
-   verificación adicional al inicio de la función que abre la pantalla
-   (defensa en profundidad): si el usuario no es Administrador ni Super
-   Administrador, la pantalla no se abre, sin depender únicamente de
-   que el botón del menú esté oculto.
-
-5. ESTADÍSTICAS DE USO RADAR — VISIBILIDAD UNIFICADA
-   Antes: dos piezas de código con criterios distintos (una decía "solo
-   Super Administrador", otra decía "Administrador y Super
-   Administrador") competían sobre el mismo panel, dando un resultado
-   inconsistente según el orden de ejecución.
-   Ahora: unificado — visible y descargable por Administrador y Super
-   Administrador, sin contradicciones.
-
-6. LIMPIEZA TÉCNICA
-   Se eliminó una función duplicada (isAdminProfileV811, idéntica a
-   isAdminV86) y se dejó una sola función como fuente de verdad para
-   "es Administrador o Super Administrador", sin cambiar el
-   comportamiento para ningún rol.
+Se eliminó la redefinición vieja y rota de directorClientsV813() en
+mejoras-v1.js (líneas ~625-639 de la versión anterior). La definición
+de app.js —la que sí filtra correctamente por
+currentUserV84.advisor, el mismo criterio usado en toda la app— queda
+ahora como única fuente de verdad, sin nada que la pise después.
 
 ============================================================
 LO QUE NO CAMBIÓ
 ============================================================
-- Ninguna fórmula de Motor RED, Motor RTE o Motor EWS se modificó.
-- El sistema de "Modelo de cálculo — Venta proyectada y Presupuesto"
-  (4 motores: porcentual, lineal, estacional, mínimos cuadrados) no se
-  tocó — sigue funcionando igual, en Sistema.
-- El sistema de Ajuste de metas por asesor (Meta Inicial/Meta Ajustada,
-  versionado, carga Excel) no se tocó.
-- Ningún dato de clientes, ventas ni metas se modificó — solo reglas de
-  visibilidad, un bug de filtrado, y el criterio de ordenamiento de
-  "Acciones recomendadas".
+- Los otros 5 ajustes del paquete V15.0 (Modelo de Probabilidad de
+  Cumplimiento de Meta, Panel de alarmas, Log de cambios, Estadísticas
+  de uso Radar, limpieza de función duplicada) SÍ estaban correctamente
+  aplicados en el sitio publicado — se verificaron uno por uno leyendo
+  el código fuente real servido por Netlify y quedaron confirmados.
+  Ningún otro archivo se modifica en este paquete.
+- Ninguna fórmula de motor ni dato de clientes/ventas/metas se tocó.
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- `node --check` en los 7 archivos modificados: sin errores.
-- Prueba automatizada en navegador (Chromium headless, con stubs
-  completos de Supabase/Chart.js/XLSX) con 16 verificaciones, TODAS
-  exitosas, cubriendo los 6 ajustes:
-  1. Dashboard filtra correctamente por asesor cuando el rol es Asesor.
-  2. Dashboard oculta las 4 secciones gerenciales para el rol Asesor.
-  3. Panel de alarmas ya no referencia la variable inexistente.
-  4. Motor RTE (panel) corregido con el mismo criterio.
-  5. Selector de asesor del Panel de alarmas se activa para Admin.
-  6. Log de cambios NO se abre para el rol Asesor.
-  7. Log de cambios SÍ se abre para el rol Administrador.
-  8. Estadísticas de uso Radar visible para Administrador (ambas
-     clases de visibilidad, antes contradictorias, ahora alineadas).
-  9. Función duplicada isAdminProfileV811 eliminada; isAdminV86 sigue
-     funcionando.
-  10. Panel "Modelo de Probabilidad de Cumplimiento de Meta" existe y
-      es visible en Sistema, con las 3 opciones correctas.
-  11. Panel viejo de pesos porcentuales eliminado del HTML.
-  12-14. Los 3 motores (Potencial/CF/CFE) ordenan correctamente un
-      set de clientes de prueba según su lógica de niveles.
-  15. Sin errores de consola inesperados durante la prueba completa.
+- `node --check` en mejoras-v1.js: sin errores.
+- Prueba automatizada en navegador (Chromium headless): confirmado que
+  directorClientsV813() ya NO contiene la comparación rota con
+  state.profile, y que al simular un usuario Asesor filtra
+  correctamente a 1 solo cliente (el suyo) de 2 cargados; al simular
+  Administrador, ve los 2 clientes completos.
+- Auditoría directa del sitio en producción (fetch de cada archivo
+  .js servido, comparado carácter por carácter contra lo entregado)
+  para confirmar que los otros 5 ajustes del V15.0 sí están
+  correctamente desplegados y no tienen el mismo problema de doble
+  redefinición.
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Reemplazar en GitHub los 7 archivos (index.html, app.js,
-   mejoras-v1.js, ajustes-v1.js, sistema-v1.js,
-   modulo_05_ui_motores.js, version.js).
+1. Reemplazar en GitHub los 2 archivos (mejoras-v1.js, version.js).
 2. Confirmar el commit — Netlify debe re-desplegar automáticamente.
-3. No requiere ningún cambio en Supabase (no se tocó ninguna tabla,
-   RPC ni política RLS).
-4. Verificación manual recomendada:
-   - Iniciar sesión como Asesor: confirmar que el Dashboard muestra
-     solo su cartera y que las 4 secciones gerenciales no aparecen.
-   - Iniciar sesión como Asesor: confirmar que el Panel de alarmas
-     muestra solo sus propias alertas (antes aparecían todas).
-   - Iniciar sesión como Asesor: confirmar que "Log de cambios" no es
-     accesible.
-   - Iniciar sesión como Administrador: confirmar que "Estadísticas de
-     uso Radar" es visible y descargable.
-   - Iniciar sesión como Super Administrador: en Sistema, confirmar que
-     aparece "Modelo de Probabilidad de Cumplimiento de Meta" con los
-     3 motores, cambiar de motor y verificar que "Acciones
-     recomendadas" (Seguimiento diario) reordena la lista.
+3. No requiere ningún cambio en Supabase.
+4. Verificación manual recomendada (la misma que quedó pendiente del
+   paquete anterior): iniciar sesión como Asesor y confirmar que el
+   Dashboard muestra solo su cartera, con las 4 secciones gerenciales
+   (Venta por asesor, Segmentos Comerciales, Salud del Portafolio,
+   Top 10 por asesor) ocultas.
