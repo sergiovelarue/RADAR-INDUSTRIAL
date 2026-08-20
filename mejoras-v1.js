@@ -863,6 +863,13 @@ function exportarLogAExcelV98() {
 }
 
 function showLogViewV98() {
+  // V15.0: defensa en profundidad (decisión del cliente, Ago 20) — el
+  // backend (cargarLogEventosV98/listar_historial_cambios_v1) ya
+  // validaba el rol, pero showLogViewV98() en sí no lo revalidaba y
+  // dependía solo de que el botón de menú estuviera oculto para el
+  // Asesor. Ahora corta de inmediato si no es Administrador/Super
+  // Administrador, igual patrón que el resto de pantallas admin.
+  if (!(typeof isAdminV86 === "function" && isAdminV86())) return;
   if (typeof hideAllPrimaryViewsV93 === "function") hideAllPrimaryViewsV93();
   const lv = $("logView");
   if (lv) lv.classList.remove("hidden-view");
@@ -1176,53 +1183,61 @@ function renderMetaDiariaSeguimientoV101() {
 }
 
 // ------------------------------------------------------------
-// Acciones recomendadas: score de probabilidad de éxito por
-// cliente, para sugerir a quién contactar y ayudar a cumplir el
-// presupuesto diario/semanal. El asesor decide y planea la acción
-// (fecha + tipo); solo al hacerlo el cliente pasa a "planeadas".
+// Acciones recomendadas: orden de prioridad de gestión por cliente,
+// para sugerir a quién contactar y ayudar a cumplir el presupuesto
+// diario/semanal. El asesor decide y planea la acción (fecha + tipo);
+// solo al hacerlo el cliente pasa a "planeadas".
+//
+// V15.0 (decisión del cliente, Ago 20): el sistema de 4 pesos
+// porcentuales configurables (faltante/clasificación/continuidad/
+// urgencia, sumando 100%) se REEMPLAZA por completo por el "Modelo de
+// Probabilidad de Cumplimiento de Meta" — un selector de 3 motores de
+// ORDENAMIENTO POR NIVELES (no promedio ponderado), exclusivo de Super
+// Administrador, ubicado únicamente en la pestaña Sistema. Ver
+// claude/motores-analisis-probabilidad-cumplimiento-20260820.md para
+// el detalle de negocio completo de cada motor.
 // ------------------------------------------------------------
-const PESOS_SCORE_DEFAULT_V102 = { faltante: 25, clasificacion: 25, continuidad: 25, urgencia: 25 };
+const MODELO_PROB_CUMPLIMIENTO_DEFAULT_V15 = "potencial";
 
-function getPesosScoreV102() {
-  const saved = localStorage.getItem("radarPesosScoreV102");
-  if (saved) {
-    try { return { ...PESOS_SCORE_DEFAULT_V102, ...JSON.parse(saved) }; } catch (e) {}
-  }
-  return { ...PESOS_SCORE_DEFAULT_V102 };
+function getModeloProbabilidadCumplimientoV15() {
+  if (DATA.meta && DATA.meta.modeloProbabilidadCumplimiento) return DATA.meta.modeloProbabilidadCumplimiento;
+  const saved = localStorage.getItem("radarModeloProbabilidadCumplimientoV15");
+  if (saved) return saved;
+  return MODELO_PROB_CUMPLIMIENTO_DEFAULT_V15;
 }
 
-function setPesosScoreInputsV102() {
-  const p = getPesosScoreV102();
-  if ($("pesoFaltante")) $("pesoFaltante").value = p.faltante;
-  if ($("pesoClasificacion")) $("pesoClasificacion").value = p.clasificacion;
-  if ($("pesoContinuidad")) $("pesoContinuidad").value = p.continuidad;
-  if ($("pesoUrgencia")) $("pesoUrgencia").value = p.urgencia;
+function setModeloProbabilidadCumplimientoInputV15() {
+  const sel = $("modeloProbabilidadCumplimientoSelect");
+  if (sel) sel.value = getModeloProbabilidadCumplimientoV15();
 }
 
-function aplicarPesosScoreV102() {
-  const p = {
-    faltante: Number($("pesoFaltante")?.value || 0),
-    clasificacion: Number($("pesoClasificacion")?.value || 0),
-    continuidad: Number($("pesoContinuidad")?.value || 0),
-    urgencia: Number($("pesoUrgencia")?.value || 0)
-  };
-  const suma = p.faltante + p.clasificacion + p.continuidad + p.urgencia;
-  const warn = $("pesosScoreSumaWarn");
-  if (suma !== 100) {
-    if (warn) warn.textContent = `La suma actual es ${suma}%. Debe ser 100% para guardar.`;
-    return;
+// Persistencia: localStorage por ahora (mismo patrón inicial que el
+// resto de "Modelo de cálculo" en Sistema — modeloProyeccion/
+// modeloPresupuesto ya migraron a Supabase vía DATA.meta; este selector
+// sigue la misma ruta cuando se conecte esa migración, sin requerir
+// cambios en esta función).
+function aplicarModeloProbabilidadCumplimientoV15() {
+  const sel = $("modeloProbabilidadCumplimientoSelect");
+  const modelo = sel ? sel.value : MODELO_PROB_CUMPLIMIENTO_DEFAULT_V15;
+  localStorage.setItem("radarModeloProbabilidadCumplimientoV15", modelo);
+  if (DATA.meta) DATA.meta.modeloProbabilidadCumplimiento = modelo;
+  const msg = $("modeloProbabilidadCumplimientoMsg");
+  if (msg) {
+    msg.textContent = "Motor aplicado.";
+    setTimeout(() => { if (msg) msg.textContent = ""; }, 4000);
   }
-  if (warn) warn.textContent = "";
-  localStorage.setItem("radarPesosScoreV102", JSON.stringify(p));
   recomendadasStateV102.page = 1;
   renderAccionesRecomendadasV102();
 }
 
 // Puntaje 0-100 por clasificación A-B-C-E-N (alto valor pesa más que
 // alta consecutividad, siguiendo el glosario comercial de la app).
+// Se conserva para el motor CF/CFE (ordenamiento por niveles).
 const SCORE_CLASIFICACION_V102 = { A: 100, E: 75, B: 60, C: 35, N: 20 };
-// Puntaje 0-100 por estado comercial del cliente.
-const SCORE_ESTADO_V102 = { Activo: 100, Reingreso: 85, "Posible Baja": 50, Inactivo: 35, Nuevo: 25, Baja: 10 };
+// Orden de prioridad de nivel del motor CFE — Activos > Inactivos >
+// Posible Baja; Baja y Bloqueado se excluyen antes de llegar aquí
+// (ver candidatosRecomendadosV102, que ya descarta Baja/bloqueados).
+const NIVEL_ESTADO_CFE_V15 = { Activo: 3, Reingreso: 3, Nuevo: 3, Inactivo: 2, "Posible Baja": 1 };
 
 function diasSinGestionV102(c) {
   // Días desde el último seguimiento marcado como ejecutado (fechaSeguimiento
@@ -1258,29 +1273,54 @@ function candidatosRecomendadosV102(nombreAsesor) {
   });
 }
 
+// V15.0: ordenamiento por niveles jerárquicos (Modelo de Probabilidad de
+// Cumplimiento de Meta), NO promedio ponderado. Cada motor devuelve los
+// mismos candidatos pero en distinto orden; "score" se conserva en el
+// resultado como una posición 0-100 solo para mostrar en la columna
+// "Score" de la tabla (100 = primero en la cola de prioridad, no una
+// probabilidad estadística — ver Motor RTE para eso).
+function ordenarPotencialV15(clientes, faltantes) {
+  return clientes
+    .map((c, i) => ({ c, faltante: faltantes[i] }))
+    .sort((a, b) => b.faltante - a.faltante);
+}
+
+function ordenarCFV15(clientes, faltantes) {
+  return clientes
+    .map((c, i) => ({ c, faltante: faltantes[i], nivelClasif: SCORE_CLASIFICACION_V102[c.clasificacion] ?? 20 }))
+    .sort((a, b) => (b.nivelClasif - a.nivelClasif) || (b.faltante - a.faltante));
+}
+
+function ordenarCFEV15(clientes, faltantes) {
+  return clientes
+    .map((c, i) => ({
+      c,
+      faltante: faltantes[i],
+      nivelEstado: NIVEL_ESTADO_CFE_V15[c.estado] ?? 0,
+      nivelClasif: SCORE_CLASIFICACION_V102[c.clasificacion] ?? 20
+    }))
+    .sort((a, b) => (b.nivelEstado - a.nivelEstado) || (b.nivelClasif - a.nivelClasif) || (b.faltante - a.faltante));
+}
+
 function calcularScoresV102(clientes) {
-  const p = getPesosScoreV102();
+  const modelo = getModeloProbabilidadCumplimientoV15();
   const faltantes = clientes.map(c => (typeof missing === "function" ? missing(c) : 0));
-  const maxFaltante = Math.max(...faltantes, 0);
-
   const dias = clientes.map(diasSinGestionV102);
-  const diasValidos = dias.filter(d => d !== null);
-  const maxDias = diasValidos.length ? Math.max(...diasValidos) : 0;
 
-  return clientes.map((c, i) => {
-    const faltanteNorm = maxFaltante > 0 ? (faltantes[i] / maxFaltante) * 100 : 0;
-    const clasifNorm = SCORE_CLASIFICACION_V102[c.clasificacion] ?? 20;
-    const estadoNorm = SCORE_ESTADO_V102[c.estado] ?? 35;
-    const consecutividad = Math.min(Number(c.mesesCompraAnioActual || c.mesesCompraAnioAnterior || c.mesesCompra2025 || 0), 12) / 12 * 100;
-    const continuidadNorm = estadoNorm * 0.7 + consecutividad * 0.3;
-    // Sin historial de gestión = trato como máxima urgencia (100); si hay
-    // fecha, entre más días sin gestión, más urgente (normalizado contra el peor caso del grupo).
-    const urgenciaNorm = dias[i] === null ? 100 : (maxDias > 0 ? (dias[i] / maxDias) * 100 : 0);
+  let ordenados;
+  if (modelo === "cf") ordenados = ordenarCFV15(clientes, faltantes);
+  else if (modelo === "cfe") ordenados = ordenarCFEV15(clientes, faltantes);
+  else ordenados = ordenarPotencialV15(clientes, faltantes);
 
-    const score = (faltanteNorm * p.faltante + clasifNorm * p.clasificacion + continuidadNorm * p.continuidad + urgenciaNorm * p.urgencia) / 100;
-
-    return { c, score, faltante: faltantes[i], dias: dias[i] };
-  }).sort((a, b) => b.score - a.score);
+  const n = ordenados.length;
+  return ordenados.map((item, posicion) => {
+    const idxOriginal = clientes.indexOf(item.c);
+    // "Score" mostrado en pantalla: posición relativa dentro de la cola
+    // de prioridad de este motor (100 = primero, 0 = último), no una
+    // probabilidad — evita que se confunda con el % de Motor RTE.
+    const score = n > 1 ? Math.round(((n - 1 - posicion) / (n - 1)) * 100) : 100;
+    return { c: item.c, score, faltante: item.faltante, dias: dias[idxOriginal] };
+  });
 }
 
 const recomendadasStateV102 = { page: 1, pageSize: 10 };
@@ -1304,13 +1344,12 @@ function renderAccionesRecomendadasV102() {
   if (!body) return;
 
   const esAdmin = typeof isAdminV86 === "function" ? isAdminV86() : false;
-  // V1 Sistema (2026-08-18): Ponderación del score se mueve a la pestaña
-  // Sistema y pasa a ser exclusiva de Super Administrador (antes era
-  // visible para cualquier Administrador). El panel suelto que vivía aquí
-  // ya no se muestra desde este flujo: sistema-v1.js lo reubica y controla
-  // su visibilidad.
-  const pesosPanel = $("pesosScorePanel");
-  if (pesosPanel) pesosPanel.style.display = "none";
+  // V15.0: el panel "Modelo de Probabilidad de Cumplimiento de Meta"
+  // (antes "Ponderación del score de recomendación") vive exclusivamente
+  // en la pestaña Sistema, exclusivo de Super Administrador — no se
+  // muestra ni se oculta desde este flujo. sistema-v1.js controla su
+  // visibilidad con el mismo criterio que growthConfigPanel/
+  // modeloCalculoPanel (superadmin-only-hidden).
 
   const avisoBox = $("sinAsignarAvisoBox");
   if (avisoBox) {
@@ -2438,7 +2477,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAccionesRecomendadasV102();
   });
   if ($("seguimientoOcultarEjecutadas")) $("seguimientoOcultarEjecutadas").addEventListener("change", renderSeguimientoView);
-  if ($("aplicarPesosScoreBtn")) $("aplicarPesosScoreBtn").addEventListener("click", aplicarPesosScoreV102);
+  if ($("aplicarModeloProbabilidadCumplimientoBtn")) $("aplicarModeloProbabilidadCumplimientoBtn").addEventListener("click", aplicarModeloProbabilidadCumplimientoV15);
   if ($("irAsignarClientesBtn")) $("irAsignarClientesBtn").addEventListener("click", () => {
     if (typeof showClientsManagementV93 === "function") showClientsManagementV93();
     if (typeof setClientsFilterV93 === "function") setClientsFilterV93("sinAsignacion");

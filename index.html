@@ -410,7 +410,7 @@
 
         <section class="chart-grid">
           <article class="chart-card wide"><div class="chart-header"><h3>Venta mensual 2025 vs 2026</h3><p>Comparativo mes a mes por valor vendido.</p></div><canvas id="monthlySalesChart"></canvas></article>
-          <article class="chart-card"><div class="chart-header"><h3>Venta por asesor 2025 vs 2026</h3><p>Comparativo acumulado al mes disponible.</p></div><canvas id="advisorSalesChart"></canvas></article>
+          <article class="chart-card" id="advisorSalesChartCard"><div class="chart-header"><h3>Venta por asesor 2025 vs 2026</h3><p>Comparativo acumulado al mes disponible.</p></div><canvas id="advisorSalesChart"></canvas></article>
           <article class="chart-card"><div class="chart-header"><h3>Clasificación: clientes y facturación</h3><p>Número de clientes y participación en facturación del mes seleccionado.</p></div><canvas id="classSalesChart"></canvas></article>
           <article class="chart-card"><div class="chart-header"><h3>Estado comercial: clientes por estado</h3><p>Número de clientes según estado en el mes seleccionado.</p></div><canvas id="statusChart"></canvas></article>
         </section>
@@ -537,7 +537,7 @@
             <div class="chart-header"><h3>Top 15 clientes Pareto general</h3><p>Clientes con mayor venta acumulada del año actual.</p></div>
             <div class="table-scroll"><table><thead><tr><th>#</th><th>Cliente</th><th>Asesor</th><th>Tipo</th><th>Venta 2026</th><th>% Acum.</th></tr></thead><tbody id="paretoTableBody"></tbody></table></div>
           </article>
-          <article class="director-table-card">
+          <article class="director-table-card" id="advisorTopCard">
             <div class="chart-header"><h3>Top 10 por asesor</h3><select id="advisorTopSelector" class="director-select"><option value="todos">Todos</option></select><p>Principales clientes de cada asesor.</p></div>
             <div class="table-scroll"><table><thead><tr><th>Asesor</th><th>#</th><th>Cliente</th><th>Venta 2026</th><th>Venta 2025</th><th>Crec.</th></tr></thead><tbody id="advisorTopTableBody"></tbody></table></div>
           </article>
@@ -609,22 +609,25 @@
             <button class="btn ghost small-btn" id="irAsignarClientesBtn" type="button">Ir a Gestión de Clientes → Sin asignación</button>
           </div>
 
-          <div class="admin-panel" id="pesosScorePanel" style="display:none">
+          <div class="admin-panel" id="pesosScorePanel">
             <div class="panel-header">
               <div>
-                <h3>Ponderación del score de recomendación</h3>
-                <p>Solo Super Administrador. Ajusta el peso de cada factor (deben sumar 100).</p>
+                <h3>Modelo de Probabilidad de Cumplimiento de Meta</h3>
+                <p>Solo Super Administrador. Define con qué criterio se ordena la cartera de cada asesor en "Acciones recomendadas". Valor agregado de la app — la selección responde a lo acordado comercialmente con la empresa contratante.</p>
               </div>
             </div>
             <div class="growth-grid">
-              <label>Faltante <input type="number" id="pesoFaltante" value="25" min="0" max="100"/>%</label>
-              <label>Clasificación <input type="number" id="pesoClasificacion" value="25" min="0" max="100"/>%</label>
-              <label>Continuidad <input type="number" id="pesoContinuidad" value="25" min="0" max="100"/>%</label>
-              <label>Urgencia (días sin gestión) <input type="number" id="pesoUrgencia" value="25" min="0" max="100"/>%</label>
+              <label>Motor de priorización
+                <select id="modeloProbabilidadCumplimientoSelect">
+                  <option value="potencial">Potencial (mayor a menor faltante de venta del mes)</option>
+                  <option value="cf">CF — Clasificación + Faltante (A &gt; B &gt; E &gt; C/N, luego faltante)</option>
+                  <option value="cfe">CFE — Estado + Clasificación + Faltante (Activos &gt; Inactivos &gt; Posible Baja; excluye Baja/Bloqueado)</option>
+                </select>
+              </label>
             </div>
             <div class="actions">
-              <button class="btn" id="aplicarPesosScoreBtn">Aplicar ponderación</button>
-              <span id="pesosScoreSumaWarn" style="color:#b45309;font-weight:700"></span>
+              <button class="btn" id="aplicarModeloProbabilidadCumplimientoBtn">Aplicar motor</button>
+              <span id="modeloProbabilidadCumplimientoMsg" style="color:#166534;font-weight:700"></span>
             </div>
           </div>
 

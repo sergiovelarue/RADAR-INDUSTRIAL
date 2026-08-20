@@ -79,7 +79,22 @@ function renderEwsPanelV107() {
 
   if (esAdmin) {
     if (wrapAdmin) wrapAdmin.style.display = "";
-    if (selectEl) selectEl.style.display = "none";
+
+    // V15.0: alarmasAsesorSelect estaba declarado en index.html pero
+    // forzado a display:none en ambas ramas (código muerto) — decisión
+    // del cliente (Ago 20): activarlo para Administrador/Super
+    // Administrador, para filtrar el detalle de alarmas por asesor
+    // específico desde la vista consolidada.
+    if (selectEl) {
+      selectEl.style.display = "";
+      const asesoresLista = (typeof DATA !== "undefined" && DATA.meta && Array.isArray(DATA.meta.asesores)) ? DATA.meta.asesores : [];
+      const valorPrevio = selectEl.value;
+      const opciones = ['<option value="">Todos los asesores</option>']
+        .concat(asesoresLista.map(a => `<option value="${a}">${a}</option>`));
+      const html = opciones.join("");
+      if (selectEl.innerHTML !== html) selectEl.innerHTML = html;
+      if (valorPrevio && asesoresLista.includes(valorPrevio)) selectEl.value = valorPrevio;
+    }
 
     const paneles = typeof panelAlarmasAdminV107 === "function" ? panelAlarmasAdminV107() : [];
     const body = $V107("alarmasAdminBody");
@@ -95,13 +110,24 @@ function renderEwsPanelV107() {
     }
     if ($V107("alarmasAdminCount")) $V107("alarmasAdminCount").textContent = `${paneles.length} asesores`;
 
-    const consolidado = typeof panelAlarmasV107 === "function" ? panelAlarmasV107(null) : { alarmas: [] };
+    // Filtro del detalle: si el admin seleccionó un asesor específico en
+    // alarmasAsesorSelect, el detalle/resumen se muestra solo de ese
+    // asesor; en "Todos los asesores" (valor vacío), sigue siendo la
+    // vista consolidada de la organización completa (comportamiento
+    // previo, sin cambios).
+    const asesorSeleccionado = (selectEl && selectEl.value) || null;
+    const consolidado = typeof panelAlarmasV107 === "function" ? panelAlarmasV107(asesorSeleccionado) : { alarmas: [] };
     renderResumenBarV107(consolidado);
-    renderDetalleAlarmasV107(consolidado, "Detalle — Total organización");
+    renderDetalleAlarmasV107(consolidado, asesorSeleccionado ? `Detalle — ${asesorSeleccionado}` : "Detalle — Total organización");
   } else {
     if (wrapAdmin) wrapAdmin.style.display = "none";
     if (selectEl) selectEl.style.display = "none";
-    const nombreAsesor = (typeof currentUserV86 !== "undefined" && currentUserV86 && currentUserV86.nombre) || null;
+    // V15.0: currentUserV86 no existe en ningún archivo de la app (bug
+    // detectado en la auditoría de estructura de pantallas, Ago 20) —
+    // nombreAsesor siempre daba null y el filtro de asesorAsignado nunca
+    // se aplicaba, mostrando alarmas de toda la organización al Asesor.
+    // Corregido a currentUserV84 (variable real, definida en app.js).
+    const nombreAsesor = (typeof currentUserV84 !== "undefined" && currentUserV84 && currentUserV84.advisor) || null;
     const panel = typeof panelAlarmasV107 === "function" ? panelAlarmasV107(nombreAsesor) : { alarmas: [] };
     renderResumenBarV107(panel);
     renderDetalleAlarmasV107(panel, `Detalle — ${panel.asesor}`);
@@ -158,7 +184,9 @@ async function renderRtePanelV107() {
   if (esAdmin && typeof DATA !== "undefined" && Array.isArray(DATA.asesores)) {
     asesores = DATA.asesores.map(a => a.nombre || a.email || a.id).filter(Boolean);
   } else {
-    const nombreAsesor = (typeof currentUserV86 !== "undefined" && currentUserV86 && currentUserV86.nombre) || null;
+    // V15.0: mismo fix que renderEwsPanelV107 — currentUserV86 no existe;
+    // se usa currentUserV84.advisor (campo real de asesor asignado).
+    const nombreAsesor = (typeof currentUserV84 !== "undefined" && currentUserV84 && currentUserV84.advisor) || null;
     asesores = nombreAsesor ? [nombreAsesor] : [];
   }
 
@@ -202,4 +230,9 @@ function renderAlarmasViewV107() {
 document.addEventListener("DOMContentLoaded", () => {
   if ($V107("navAlarmas")) $V107("navAlarmas").addEventListener("click", showAlarmasViewV107);
   if ($V107("alarmasRefreshBtn")) $V107("alarmasRefreshBtn").addEventListener("click", renderAlarmasViewV107);
+  // V15.0: al cambiar el asesor seleccionado, solo se re-renderiza el
+  // panel EWS (resumen + detalle) — la tabla "Alarmas por asesor" y el
+  // panel RTE no dependen del selector, así que no hace falta recalcular
+  // todo renderAlarmasViewV107().
+  if ($V107("alarmasAsesorSelect")) $V107("alarmasAsesorSelect").addEventListener("change", renderEwsPanelV107);
 });

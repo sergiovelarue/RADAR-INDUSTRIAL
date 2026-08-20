@@ -240,7 +240,7 @@ function showSistemaV1() {
   if ($("sistemaAdminPanel")) $("sistemaAdminPanel").classList.remove("hidden-view");
   if ($("sistemaLogPanel")) $("sistemaLogPanel").classList.remove("hidden-view");
   if ($("navSistema")) $("navSistema").classList.add("active");
-  if (typeof setPesosScoreInputsV102 === "function") setPesosScoreInputsV102();
+  if (typeof setModeloProbabilidadCumplimientoInputV15 === "function") setModeloProbabilidadCumplimientoInputV15();
   sistemaCargarAdministradoresV1();
   sistemaCargarContadorLogV1();
 }

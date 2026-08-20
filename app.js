@@ -760,7 +760,12 @@ function renderUsageDashboardV84(){
   const panel = $("usageAdminPanel");
   if(!panel) return;
 
-  const isAdmin = isSuperAdminV93();
+  // V15.0: unificado a Administrador + Super Administrador (decisión del
+  // cliente, Ago 20) — antes usaba isSuperAdminV93() en exclusiva, lo que
+  // contradecía a applyAdminVisibilityV811 (app.js) y a
+  // ajustesAjustarVisibilidadUsoV1 (ajustes-v1.js), que ya permitían
+  // Administrador. Ahora las tres piezas usan el mismo criterio: isAdminV86().
+  const isAdmin = isAdminV86();
   panel.classList.toggle("hidden-by-profile", !isAdmin);
 
   if(!isAdmin) return;
@@ -1419,27 +1424,31 @@ document.addEventListener("DOMContentLoaded",()=>{if($("monthSelect"))$("monthSe
 // ===============================
 // V8.11 - Ocultar funciones admin a asesores + respaldo
 // ===============================
-function isAdminProfileV811(){
-  return typeof currentUserV84 !== "undefined" && currentUserV84 && currentUserV84.profile === "admin";
-}
-
+// V15.0: isAdminProfileV811() era código duplicado exacto de isAdminV86()
+// (app.js:983) — mismo profile==="admin". Se elimina la duplicación y se
+// usa isAdminV86() como única fuente de verdad, sin cambiar el resultado
+// para ningún rol (ambas funciones ya devolvían siempre lo mismo).
 function applyAdminVisibilityV811(){
-  const admin = isAdminProfileV811();
+  const admin = isAdminV86();
   const superAdmin = typeof isSuperAdminV93 === "function" && isSuperAdminV93();
 
-  // Visible para Administrador y Super Administrador (exportaciones y carga operativa).
+  // Visible para Administrador y Super Administrador (exportaciones y carga
+  // operativa). V15.0: usageAdminPanel (Estadísticas de uso Radar) se unificó
+  // aquí por decisión del cliente (Ago 20) — pasa de exclusivo Super
+  // Administrador a Administrador + Super Administrador.
   [
     "dailyUpdatePanel",
     "masterDataAdminPanel",
-    "syncAdminPanel"
+    "syncAdminPanel",
+    "usageAdminPanel"
   ].forEach(id => {
     const el = $(id);
     if(el) el.classList.toggle("admin-only-panel-hidden", !admin);
   });
 
-  // Exclusivo Super Administrador: configuración de crecimiento, modelo de
-  // cálculo y estadísticas de uso.
-  ["growthConfigPanel", "modeloCalculoPanel", "usageAdminPanel"].forEach(id => {
+  // Exclusivo Super Administrador: configuración de crecimiento y modelo de
+  // cálculo.
+  ["growthConfigPanel", "modeloCalculoPanel"].forEach(id => {
     const el = $(id);
     if(el) el.classList.toggle("superadmin-only-hidden", !superAdmin);
   });
@@ -1585,8 +1594,21 @@ function lineSaleMonthV813(c, year, month){
 function lineClientIncludedV813(c){
   return c.tipoCliente==="Espumas"||c.tipoCliente==="Mixto"||Number(c.totalEspumas2025||0)>0||Number(c.totalEspumas2026||0)>0;
 }
+// V15.0: filtrado por asesor (decisión del cliente, Ago 20) — CRÍTICO.
+// Antes el Dashboard no filtraba por asesorAsignado (a diferencia del
+// resto de la app: Hoja de ruta, Seguimiento diario, Prospección,
+// Ranking), así que cualquier Asesor veía la venta total de la
+// organización. Ahora, si el usuario actual es Asesor (no Admin/Super
+// Admin), se filtra a su propia cartera — mismo patrón usado en
+// isAdvisorAllowedToEditV86: c.asesorAsignado === currentUserV84.advisor.
 function directorClientsV813(){
-  return (DATA.clientes||[]).filter(c=>!(typeof isBlockedV87==="function"&&isBlockedV87(c))&&lineClientIncludedV813(c));
+  const esAdmin = typeof isAdminV86 === "function" && isAdminV86();
+  const miAsesor = (!esAdmin && typeof currentUserV84 !== "undefined" && currentUserV84) ? currentUserV84.advisor : null;
+  return (DATA.clientes||[]).filter(c=>
+    !(typeof isBlockedV87==="function"&&isBlockedV87(c)) &&
+    lineClientIncludedV813(c) &&
+    (!miAsesor || c.asesorAsignado === miAsesor)
+  );
 }
 function dashMonthV813(){return (typeof selectedMonthV810==="function")?selectedMonthV810():(state.month||DATA.meta.currentMonthName||"Mayo")}
 function totalYtdLineV813(c,year){
@@ -1627,7 +1649,12 @@ function renderInsightsV813(d){
   items.push(d.growth>=0?`La venta acumulada crece ${pctV812(d.growth)} frente al mismo periodo 2025.`:`La venta acumulada decrece ${pctV812(Math.abs(d.growth))} frente al mismo periodo 2025.`);
   items.push(d.monthGrowth>=0?`En el mes seleccionado la venta crece ${pctV812(d.monthGrowth)} vs el mismo mes 2025.`:`En el mes seleccionado la venta cae ${pctV812(Math.abs(d.monthGrowth))} vs el mismo mes 2025.`);
   items.push(`${d.pareto} clientes explican aproximadamente el 80% de la venta acumulada de la línea seleccionada.`);
-  if(d.advisorRows&&d.advisorRows.length)items.push(`El asesor con mayor venta acumulada en la línea es ${d.advisorRows[0][0]} con ${money(d.advisorRows[0][1].v26)}.`);
+  // V15.0: la comparación "asesor con mayor venta" solo tiene sentido en
+  // la vista de organización completa (Admin/Super Admin) — para un
+  // Asesor viendo solo su propia cartera filtrada, sería una comparación
+  // trivial consigo mismo, así que se omite esa línea.
+  const esAdmin = typeof isAdminV86 === "function" && isAdminV86();
+  if(esAdmin && d.advisorRows&&d.advisorRows.length)items.push(`El asesor con mayor venta acumulada en la línea es ${d.advisorRows[0][0]} con ${money(d.advisorRows[0][1].v26)}.`);
   items.push(`${d.withSale} clientes tienen venta acumulada en 2026 para la línea seleccionada.`);
   items.forEach(t=>{const li=document.createElement("li");li.textContent=t;ul.appendChild(li);});
 }
@@ -2032,7 +2059,7 @@ showGlossaryV814 = function(){
 const previousApplyAdminVisibilityV93 = applyAdminVisibilityV811;
 applyAdminVisibilityV811 = function(){
   previousApplyAdminVisibilityV93();
-  const admin = isAdminProfileV811();
+  const admin = isAdminV86();
   ["navClients","navAdvisors"].forEach(id => {
     const el = $(id);
     if(el) el.style.display = admin ? "" : "none";
@@ -2802,3 +2829,39 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+// ===============================
+// V15.0 - Dashboard: ocultar secciones comparativas/gerenciales para
+// el rol Asesor (decisión del cliente, Ago 20).
+// -------------------------------------------------------------
+// directorClientsV813() ya filtra la cartera a la del propio Asesor
+// (ver arriba). Además de ese filtrado de datos, las secciones que
+// solo tienen sentido comparando entre asesores o mirando la cartera
+// agregada de la organización se OCULTAN por completo para el Asesor:
+// gráfico "Venta por asesor", "Segmentos Comerciales", "Salud del
+// Portafolio de Clientes" y "Top 10 por asesor" (con su selector de
+// otros asesores). El resto del Dashboard (KPIs, venta mensual,
+// clasificación, estado, Top 15 Pareto, lectura estratégica) se
+// mantiene visible, ya filtrado a la cartera propia por
+// directorClientsV813(). Administrador y Super Administrador no
+// tienen cambios: ven siempre la organización completa.
+// ===============================
+function aplicarVisibilidadDashboardPorRolV15(){
+  const esAdmin = typeof isAdminV86 === "function" && isAdminV86();
+  [
+    "advisorSalesChartCard",
+    "commercialSegmentSection",
+    "portfolioHealthSection",
+    "advisorTopCard"
+  ].forEach(id => {
+    const el = $(id);
+    if(el) el.classList.toggle("hidden-view", !esAdmin);
+  });
+}
+if(typeof renderDirectorDashboardV812 === "function"){
+  const previousRenderDashboardV15 = renderDirectorDashboardV812;
+  renderDirectorDashboardV812 = function(){
+    previousRenderDashboardV15();
+    aplicarVisibilidadDashboardPorRolV15();
+  };
+}

@@ -98,17 +98,20 @@ function showAjustesV1() {
 }
 
 // ------------------------------------------------------------
-// Relaja la visibilidad de "Estadísticas de uso Radar": pasa de
-// exclusivo Super Administrador a Administrador + Super Administrador,
-// por decisión explícita del cliente (Ago 18). No se toca
-// growthConfigPanel (Configuración comercial por clasificación), que
-// permanece exclusivo de Super Administrador.
+// V15.0: "Estadísticas de uso Radar" ya queda unificada a Administrador +
+// Super Administrador directamente en applyAdminVisibilityV811 (app.js,
+// clase admin-only-panel-hidden) y en renderUsageDashboardV84 (app.js,
+// clase hidden-by-profile) — decisión confirmada del cliente (Ago 20),
+// que reemplaza el ajuste parcial hecho aquí el Ago 18 (que solo tocaba
+// superadmin-only-hidden y dejaba la contradicción con hidden-by-profile).
+// Esta función se conserva vacía y sin llamar activamente por
+// retrocompatibilidad de nombre, pero applyAdminVisibilityV811 ya no
+// necesita este parche: no se toca ninguna clase aquí para evitar
+// pisar el criterio unificado de las dos piezas en app.js.
 // ------------------------------------------------------------
 function ajustesAjustarVisibilidadUsoV1() {
-  if (typeof applyAdminVisibilityV811 !== "function") return;
-  const admin = ajustesEsAdminV1();
-  const panel = $("usageAdminPanel");
-  if (panel) panel.classList.toggle("superadmin-only-hidden", !admin);
+  // Sin acción — ver comentario arriba. No eliminada por completo para
+  // no romper el listener que la invoca más abajo en este archivo.
 }
 
 document.addEventListener("DOMContentLoaded", () => {
