@@ -1,138 +1,89 @@
-RadarComercial B2B — Corrección de visibilidad: panel "Modelo de
-cálculo" ahora vive dentro de la pestaña Sistema (exclusiva
-Super Administrador)
-Fecha de creación: 2026-08-20 08:42 (hora Colombia)
-Carpeta: Mejoras_20260820_0842
+RadarComercial B2B — Título "Acciones Planeadas" en Seguimiento diario
++ título de la topbar sincronizado con la pestaña activa
+Fecha de creación: 2026-08-20 09:00 (hora Colombia)
+Carpeta: Mejoras_20260820_0900
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
 Archivos incluidos (reemplazan a los del mismo nombre en GitHub):
-1. app.js
+1. index.html
 2. mejoras-v1.js
-3. sistema-v1.js
-4. version.js (actualizado a V14.2 · 2026-08-20)
+3. version.js (actualizado a V14.3 · 2026-08-20)
 
 ============================================================
-POR QUÉ SE HIZO ESTE PAQUETE — INCOHERENCIA ENCONTRADA
+QUÉ CAMBIÓ — MEJORA 1: título "Acciones Planeadas"
 ============================================================
-Pediste optimizar la app y revisar que el panel "Modelo de cálculo —
-Venta proyectada y Presupuesto" solo fuera visible dentro de la
-pestaña Sistema, y que esa pestaña completa (con todo su contenido)
-fuera exclusiva de Super Administrador.
-
-Auditoría completa realizada (index.html, app.js, mejoras-v1.js,
-sistema-v1.js): se encontró UNA incoherencia real, que ya se corrigió.
-
-**El bloqueo de permiso del panel "Modelo de cálculo" YA era correcto
-(exigía Super Administrador, con la función isSuperAdminV93()). El
-problema era de UBICACIÓN, no de permiso**: el panel nunca se
-trasladaba físicamente dentro de la pestaña "Sistema" — se quedaba
-huérfano en la Hoja de Ruta (Dashboard), con su propio mecanismo de
-visibilidad paralelo (clase "hidden-by-profile") que ningún otro
-módulo de navegación conocía ni sincronizaba con el resto de paneles
-de Sistema.
-
-Consecuencia práctica de la incoherencia (antes de esta corrección):
-- El texto del propio panel de "Metas y presupuestos" le decía al
-  Super Administrador que el modelo de cálculo se configura en la
-  "pestaña Sistema" — pero al entrar a Sistema, el panel NO aparecía
-  ahí. Solo aparecía si volvía a la Hoja de Ruta.
-- El panel podía quedar visible simultáneamente en la Hoja de Ruta
-  mientras el Super Administrador navegaba a otras vistas (Clientes,
-  Asesores, Sistema, etc.), porque ningún mecanismo de ocultamiento de
-  esas vistas lo conocía.
-
-No se encontraron otras incoherencias de permisos dentro de la
-pestaña Sistema: los demás paneles (Configuración comercial por
-clasificación, Ponderación del score, Administradores, Log de
-eventos) ya exigían correctamente Super Administrador tanto para
-mostrarse dentro de Sistema como para ver el botón "Sistema" en el
-menú.
+En la pestaña "Seguimiento diario", se agregó el título "Acciones
+Planeadas" entre la tabla de venta diaria/semanal requerida y el lugar
+donde se define el rango (Vencidas/Semana pasada/Semana
+actual/Semana siguiente/Todas) y el filtro de asesor.
 
 ============================================================
-QUÉ CAMBIÓ EN DETALLE
+QUÉ CAMBIÓ — MEJORA 2: título de la topbar sincronizado con la pestaña
 ============================================================
+Encontramos que el título superior ("Hoja de Ruta del Mes") estaba
+escrito de forma FIJA en el encabezado principal de la app y se veía
+SIEMPRE, sin importar en qué pestaña estuviera el usuario — daba la
+impresión de seguir en "Hoja de ruta" incluso estando en Seguimiento
+diario, Dashboard, Metas y presupuestos, etc.
 
-1) sistema-v1.js
-   - `SISTEMA_PANEL_IDS_V1` ahora incluye "modeloCalculoPanel" junto a
-     "growthConfigPanel" y "pesosScorePanel". Esto hace que, al entrar
-     a la pestaña Sistema, el panel se traslade automáticamente dentro
-     de ella (mismo mecanismo ya usado para los otros 2 paneles) y se
-     le remuevan las clases de ocultamiento correspondientes.
-   - Textos descriptivos de la pestaña Sistema actualizados para
-     mencionar explícitamente "modelo de cálculo".
+Se corrigió para que el título de arriba cambie automáticamente según
+la pestaña activa en el menú lateral:
+- "Hoja de ruta" → "Hoja de Ruta del Mes" (se mantiene el título largo
+  original, ya que es la pestaña "principal" de la app).
+- Cualquier otra pestaña → el nombre exacto de esa pestaña tal como
+  aparece en el menú (ej. "Seguimiento diario", "Dashboard",
+  "Prospección", "Metas y presupuestos", "Panel de alarmas",
+  "Ranking", "Gestión de clientes", "Gestión de asesores", "Log de
+  cambios", "Glosario comercial", "Sistema", "Ajustes").
 
-2) app.js
-   - `applyAdminVisibilityV811()`: "modeloCalculoPanel" se agregó a la
-     lista de paneles exclusivos de Super Administrador (misma lista
-     donde ya estaba "growthConfigPanel"), usando la clase
-     "superadmin-only-hidden".
-   - `hideAllPrimaryViewsV93()`: "modeloCalculoPanel" se agregó a la
-     lista de paneles que se ocultan al navegar a cualquier vista
-     principal (Clientes, Asesores, Prospección, etc.), igual que ya
-     ocurría con "growthConfigPanel".
-
-3) mejoras-v1.js
-   - Se ELIMINÓ el mecanismo de visibilidad paralelo e independiente
-     que tenía "modeloCalculoPanel" (wraps propios de
-     applyUserProfileV84 y showViewV812, con una clase CSS distinta
-     "hidden-by-profile"). Ahora el panel usa exactamente el mismo
-     mecanismo que "growthConfigPanel": clases "superadmin-only-hidden"
-     y "hidden-view", gestionadas centralmente por app.js y
-     sistema-v1.js. Se dejó un comentario explicando el cambio para
-     quien continúe el desarrollo.
+Esta corrección se implementó de forma centralizada (un único
+mecanismo que observa cuál pestaña del menú tiene la clase "active"),
+en vez de modificar cada función de navegación por separado — así
+queda automáticamente correcto para cualquier pestaña nueva que se
+agregue en el futuro, sin necesidad de acordarse de tocar el título
+cada vez.
 
 ============================================================
 LO QUE NO CAMBIÓ
 ============================================================
-- El permiso en sí (Super Administrador) no cambió — ya era correcto.
-- Ningún otro panel de Sistema (Configuración comercial, Ponderación
-  del score, Administradores, Log de eventos) se tocó — ya estaban
-  correctamente restringidos.
-- Ninguna fórmula de cálculo se tocó.
-- El texto "Solo Administrador" en "Metas y presupuestos" se dejó
-  igual (decisión tuya): esa sección SÍ es visible tanto para
-  Administrador como para Super Administrador, y así se mantiene.
+- Ninguna fórmula de cálculo ni estructura de datos se tocó.
+- El badge de "Fecha actual" (junto al título) no se modificó — sigue
+  visible igual que antes.
+- El resto del contenido de "Seguimiento diario" (tabla de venta
+  diaria/semanal, selector de rango, tabla de acciones recomendadas)
+  no se modificó, solo se agregó el título nuevo.
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- `node --check` en app.js, mejoras-v1.js y sistema-v1.js: sin
-  errores.
+- `node --check` en mejoras-v1.js: sin errores.
 - Prueba automatizada en navegador (Chromium headless, con stubs de
   Supabase/Chart.js/XLSX por la limitación de red ya documentada de
-  este entorno) con 11 verificaciones, TODAS exitosas:
-  1. Login como Super Administrador establece el tier correcto.
-  2. El botón "Sistema" es visible para Super Administrador.
-  3. La vista Sistema se muestra al hacer clic.
-  4. El panel "Modelo de cálculo" queda como hijo real del contenedor
-     de paneles de Sistema tras entrar a la pestaña.
-  5. El panel "Modelo de cálculo" queda visible (sin ninguna clase de
-     ocultamiento) dentro de Sistema para Super Administrador.
-  6. Lo mismo se confirmó para "growthConfigPanel" como control.
-  7. El panel sigue visible al navegar a la Hoja de Ruta (mismo
-     comportamiento que growthConfigPanel, que también vive ahí).
-  8. El panel queda oculto correctamente en el Dashboard Director.
-  9. El botón "Sistema" queda OCULTO para un Administrador normal
-     (no Super Administrador).
-  10. Si se intenta forzar la función que abre Sistema directamente
-      (simulando manipulación por consola/URL) con un Administrador
-      normal, la vista permanece oculta — el bloqueo interno de la
-      función también protege, no solo el botón del menú.
-  11. El panel "Modelo de cálculo" queda marcado como oculto
-      (superadmin-only-hidden) para un Administrador normal.
+  este entorno) con 9 verificaciones, TODAS exitosas:
+  1. Título inicial correcto ("Hoja de Ruta del Mes").
+  2. Título cambia a "Seguimiento diario" al entrar a esa pestaña.
+  3. El título "Acciones Planeadas" existe en el DOM de Seguimiento
+     diario.
+  4. Está ubicado DESPUÉS de la tabla de venta diaria/semanal.
+  5. Está ubicado ANTES del selector de Rango/Asesor.
+  6. Título cambia a "Dashboard" en esa pestaña.
+  7. Título cambia a "Gestión de clientes" en esa pestaña.
+  8. Título vuelve correctamente a "Hoja de Ruta del Mes" al regresar
+     a Hoja de ruta.
+  9. Título cambia a "Sistema" en esa pestaña (confirma que también
+     funciona para pestañas insertadas en tiempo de ejecución, no solo
+     las que ya existen en el HTML original).
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Reemplazar en GitHub los 4 archivos (app.js, mejoras-v1.js,
-   sistema-v1.js, version.js).
+1. Reemplazar en GitHub los 3 archivos (index.html, mejoras-v1.js,
+   version.js).
 2. Confirmar el commit — Netlify debe re-desplegar automáticamente.
 3. No requiere ningún cambio en Supabase.
-4. Verificación manual recomendada en producción: entrar como Super
-   Administrador, hacer clic en "Sistema", y confirmar que el panel
-   "Modelo de cálculo — Venta proyectada y Presupuesto" aparece ahí
-   junto con "Configuración comercial por clasificación". Confirmar
-   también que un usuario Administrador (no Super Administrador) no ve
-   el botón "Sistema" en el menú.
+4. Verificación manual recomendada: navegar entre varias pestañas y
+   confirmar que el título de arriba cambia correctamente en cada una,
+   y que "Acciones Planeadas" aparece en el lugar correcto dentro de
+   Seguimiento diario.

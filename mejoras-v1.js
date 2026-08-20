@@ -1484,6 +1484,58 @@ if (typeof hideAllPrimaryViewsV93 === "function") {
 });
 
 // ------------------------------------------------------------
+// Título de la topbar (2026-08-20): "Hoja de Ruta del Mes" era un
+// texto fijo en el <h2> superior, visible SIEMPRE sin importar la
+// pestaña activa — daba la impresión de seguir en "Hoja de ruta"
+// incluso estando en Seguimiento diario, Dashboard, etc. Ahora el
+// título se sincroniza con la pestaña realmente activa en el menú
+// lateral (misma fuente que ya usa soportePantallaActualV1() en
+// soporte-v1.js: ".sidebar nav a.active"), mediante un
+// MutationObserver sobre la clase "active" — así cubre TODAS las
+// funciones show*/navegación existentes (Hoja de ruta, Seguimiento,
+// Dashboard, Prospección, Metas, Alarmas, Ranking, Clientes,
+// Asesores, Log, Glosario, Sistema, Ajustes) sin tener que modificar
+// cada una por separado ni arriesgar que una futura pestaña nueva se
+// quede desincronizada.
+const TOPBAR_TITULO_HOJA_RUTA_V1 = "Hoja de Ruta del Mes";
+function topbarActualizarTituloV1() {
+  const titulo = $("topbarTituloV1");
+  if (!titulo) return;
+  const activo = document.querySelector(".sidebar nav a.active");
+  const texto = activo ? activo.textContent.trim() : "";
+  // navRoute ("Hoja de ruta") conserva el título largo original; el
+  // resto de pestañas usa el nombre exacto que ya tiene en el menú.
+  if (!activo || activo.id === "navRoute" || !texto) {
+    titulo.textContent = TOPBAR_TITULO_HOJA_RUTA_V1;
+  } else {
+    titulo.textContent = texto;
+  }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const nav = document.querySelector(".sidebar nav");
+  if (nav && typeof MutationObserver !== "undefined") {
+    const observer = new MutationObserver(() => topbarActualizarTituloV1());
+    nav.querySelectorAll("a").forEach(a => {
+      observer.observe(a, { attributes: true, attributeFilter: ["class"] });
+    });
+    // Los botones de nav insertados en runtime (navSistema, navAjustes)
+    // aparecen después de este DOMContentLoaded; se observan también
+    // los hijos nuevos del <nav> para cubrirlos automáticamente.
+    const navObserver = new MutationObserver(muts => {
+      muts.forEach(m => {
+        m.addedNodes.forEach(node => {
+          if (node.nodeType === 1 && node.tagName === "A") {
+            observer.observe(node, { attributes: true, attributeFilter: ["class"] });
+          }
+        });
+      });
+    });
+    navObserver.observe(nav, { childList: true });
+  }
+  topbarActualizarTituloV1();
+});
+
+// ------------------------------------------------------------
 // Módulo de Prospección: registro y gestión de leads comerciales.
 // Mismo patrón de permisos que Hoja de Ruta: admin ve todos los
 // leads, cada asesor ve solo los suyos. Se guarda en DATA.leads
