@@ -118,6 +118,21 @@ document.addEventListener("DOMContentLoaded", () => {
   ajustesInsertarNavV1();
   ajustesInsertarVistaV1();
 
+  // V15.1: HALLAZGO reportado por el cliente (Ago 20) — dailyUpdatePanel,
+  // usageAdminPanel y syncAdminPanel viven en el HTML sueltos dentro de
+  // <main>, sin la clase hidden-view ni estar anidados en ninguna vista
+  // de pestaña específica. Antes de esta corrección, ajustesReubicarPanelesV1()
+  // SOLO se ejecutaba la primera vez que el usuario entraba a "Ajustes"
+  // (showAjustesV1() la llama) — hasta ese momento, para cualquier
+  // Administrador/Super Administrador (con admin-only-panel-hidden ya
+  // desactivado por su rol), esos 3 paneles quedaban visibles en
+  // CUALQUIER pestaña, incluida Hoja de ruta. Se reubican aquí, una sola
+  // vez, apenas se crea el DOM — así nunca aparecen fuera de la pestaña
+  // Ajustes, sin depender de que el usuario la visite primero.
+  if (typeof ajustesReubicarPanelesV1 === "function") {
+    try { ajustesReubicarPanelesV1(); } catch (e) { console.error("[Radar-Ajustes] Error reubicando paneles al iniciar:", e); }
+  }
+
   if (typeof applyAdminVisibilityV811 === "function") {
     const _applyAdminVisibilidadOriginalAjustesV1 = applyAdminVisibilityV811;
     applyAdminVisibilityV811 = function () {

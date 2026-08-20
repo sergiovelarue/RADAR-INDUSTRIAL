@@ -1,89 +1,84 @@
-RadarComercial B2B — V15.1: HOTFIX — Dashboard seguía sin filtrar por asesor
-Fecha de creación: 2026-08-20 12:05 (hora Colombia)
-Carpeta: Mejoras_20260820_1205
+RadarComercial B2B — V15.2: HOTFIX — Paneles administrativos visibles en pestañas equivocadas
+Fecha de creación: 2026-08-20 12:19 (hora Colombia)
+Carpeta: Mejoras_20260820_1219
 
 ============================================================
 QUÉ CONTIENE ESTE PAQUETE
 ============================================================
 Archivos incluidos (reemplazan a los del mismo nombre en GitHub):
-1. mejoras-v1.js
-2. version.js (actualizado a V15.1 · 2026-08-20)
+1. ajustes-v1.js
+2. sistema-v1.js
+3. version.js (actualizado a V15.2 · 2026-08-20)
 
 ============================================================
-POR QUÉ SE HIZO ESTE PAQUETE — ERROR DETECTADO EN MI PROPIA REVISIÓN
+POR QUÉ SE HIZO ESTE PAQUETE
 ============================================================
-Reportaste que, al revisar el sitio publicado, no veías que el punto 1
-del documento aprobado (Dashboard filtrado por asesor) estuviera
-funcionando. Investigué el sitio en producción
-(radar-com-conaccion-ind242f09.netlify.app) leyendo el código
-realmente servido, y confirmaste el problema: tenías razón.
+Compartiste una captura de pantalla mostrando que, estando en la
+pestaña "Hoja de ruta", aparecían visibles los paneles "Actualización
+diaria de ventas 2026" y "Configuración comercial por clasificación"
+— paneles que, según el documento aprobado, deben vivir exclusivamente
+en "Ajustes" y "Sistema".
 
-CAUSA RAÍZ: mi corrección del V15.0 (en app.js) SÍ quedó bien escrita,
-pero existía una segunda función en mejoras-v1.js —agregada en una
-fase anterior (V102), antes de mi trabajo— que REDEFINE
-directorClientsV813() después de que se carga app.js. Como los scripts
-se cargan en orden y mejoras-v1.js se carga DESPUÉS de app.js, esa
-redefinición vieja ganaba y anulaba por completo mi corrección.
+CAUSA RAÍZ (preexistente, NO introducida por el trabajo de V15.0/V15.1):
+en el HTML, estos 5 paneles administrativos (Actualización diaria de
+ventas, Configuración comercial por clasificación, Modelo de cálculo,
+Estadísticas de uso Radar, Sincronización de datos) NO están anidados
+dentro de ninguna pestaña específica — viven sueltos, colgando
+directamente del contenedor principal de la página, sin la marca que
+los oculta por defecto. La única razón por la que normalmente no se
+ven ahí es que un mecanismo en JavaScript los "recoge" y los mueve
+físicamente dentro de Ajustes/Sistema — pero ese mecanismo SOLO se
+disparaba la primera vez que el usuario entraba a esas dos pestañas.
+Si el usuario (como Administrador o Super Administrador) nunca las
+visitaba en esa sesión, los 5 paneles quedaban visibles en cualquier
+pestaña, incluida "Hoja de ruta" — exactamente lo que capturaste.
 
-Además, esa función vieja tenía su propio bug: comparaba
-`c.asesorAsignado === state.profile`, pero state.profile nunca
-contiene el nombre de un asesor (es el filtro de "Tipo de negocio" de
-otra pantalla, con valor por defecto "admin"). Es decir, aunque mi fix
-no hubiera sido pisado, esa capa vieja tampoco habría funcionado nunca
-— estaba rota desde antes de esta ronda de mejoras y nadie la había
-detectado.
-
-Esto se me escapó en la verificación del V15.0 porque probé
-directorClientsV813() de forma aislada (cargando solo los archivos que
-edité) y no reproduje el orden de carga completo de todos los archivos
-de la app tal como ocurre en producción. Fue un error de mi proceso de
-verificación, no un problema en el análisis o en la decisión que
-tomaste — la corrección que aprobaste era la correcta, solo faltaba
-quitar del camino esta capa vieja que la bloqueaba.
+No es inestabilidad de la aplicación ni un problema de datos: es un
+problema de secuencia de inicialización de la interfaz. No afecta
+cálculos, permisos de fondo ni información de clientes/ventas/metas —
+solo la posición visual de estos paneles administrativos antes de
+visitar sus pestañas correctas.
 
 ============================================================
 QUÉ CAMBIÓ
 ============================================================
-Se eliminó la redefinición vieja y rota de directorClientsV813() en
-mejoras-v1.js (líneas ~625-639 de la versión anterior). La definición
-de app.js —la que sí filtra correctamente por
-currentUserV84.advisor, el mismo criterio usado en toda la app— queda
-ahora como única fuente de verdad, sin nada que la pise después.
+Se adelantó la reubicación de los 5 paneles al momento de cargar la
+página (una sola vez, al iniciar), en vez de esperar a que el usuario
+visite "Ajustes" o "Sistema" por primera vez. Con este cambio, los
+paneles quedan siempre dentro de su pestaña correcta desde el primer
+segundo, sin importar qué pestaña visite primero el usuario.
 
 ============================================================
 LO QUE NO CAMBIÓ
 ============================================================
-- Los otros 5 ajustes del paquete V15.0 (Modelo de Probabilidad de
-  Cumplimiento de Meta, Panel de alarmas, Log de cambios, Estadísticas
-  de uso Radar, limpieza de función duplicada) SÍ estaban correctamente
-  aplicados en el sitio publicado — se verificaron uno por uno leyendo
-  el código fuente real servido por Netlify y quedaron confirmados.
-  Ningún otro archivo se modifica en este paquete.
-- Ninguna fórmula de motor ni dato de clientes/ventas/metas se tocó.
+- Ninguna fórmula, dato ni regla de permisos se modificó.
+- El comportamiento de "Ajustes" y "Sistema" al visitarlos sigue
+  siendo exactamente el mismo (se verificó que la navegación a ambas
+  pestañas sigue funcionando sin errores).
+- Los demás archivos del proyecto no se tocaron en este paquete.
 
 ============================================================
 VERIFICACIÓN REALIZADA
 ============================================================
-- `node --check` en mejoras-v1.js: sin errores.
-- Prueba automatizada en navegador (Chromium headless): confirmado que
-  directorClientsV813() ya NO contiene la comparación rota con
-  state.profile, y que al simular un usuario Asesor filtra
-  correctamente a 1 solo cliente (el suyo) de 2 cargados; al simular
-  Administrador, ve los 2 clientes completos.
-- Auditoría directa del sitio en producción (fetch de cada archivo
-  .js servido, comparado carácter por carácter contra lo entregado)
-  para confirmar que los otros 5 ajustes del V15.0 sí están
-  correctamente desplegados y no tienen el mismo problema de doble
-  redefinición.
+- `node --check` en ajustes-v1.js y sistema-v1.js: sin errores.
+- Prueba automatizada en navegador (Chromium headless): simulando un
+  Super Administrador que NUNCA visita Ajustes ni Sistema, se confirmó
+  que los 5 paneles ya están correctamente ubicados dentro de sus
+  contenedores (ajustesPanelsHost / sistemaPanelsHost) desde el primer
+  render — ninguno queda suelto.
+- Segunda prueba: se confirmó que, tras este cambio, navegar
+  manualmente a "Ajustes" y "Sistema" sigue funcionando sin errores de
+  consola ni de JavaScript.
 
 ============================================================
 CÓMO APLICAR
 ============================================================
-1. Reemplazar en GitHub los 2 archivos (mejoras-v1.js, version.js).
+1. Reemplazar en GitHub los 2 archivos (ajustes-v1.js, sistema-v1.js)
+   más version.js.
 2. Confirmar el commit — Netlify debe re-desplegar automáticamente.
 3. No requiere ningún cambio en Supabase.
-4. Verificación manual recomendada (la misma que quedó pendiente del
-   paquete anterior): iniciar sesión como Asesor y confirmar que el
-   Dashboard muestra solo su cartera, con las 4 secciones gerenciales
-   (Venta por asesor, Segmentos Comerciales, Salud del Portafolio,
-   Top 10 por asesor) ocultas.
+4. Verificación manual recomendada: recargar la app desde cero (sin
+   caché) como Administrador o Super Administrador, y confirmar que
+   "Hoja de ruta" ya NO muestra "Actualización diaria de ventas 2026"
+   ni "Configuración comercial por clasificación" — solo deben
+   aparecer al entrar a "Ajustes" y "Sistema" respectivamente.

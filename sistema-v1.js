@@ -483,6 +483,23 @@ async function sistemaResetearLogV1() {
 document.addEventListener("DOMContentLoaded", () => {
   sistemaInsertarNavV1();
   sistemaInsertarVistaV1();
+
+  // V15.1: HALLAZGO reportado por el cliente (Ago 20) — growthConfigPanel
+  // y modeloCalculoPanel viven en el HTML sueltos dentro de <main>, sin
+  // estar anidados en ninguna vista de pestaña específica. Antes de esta
+  // corrección, sistemaReubicarPanelesV1() SOLO se ejecutaba la primera
+  // vez que el usuario entraba a "Sistema" (showSistemaV1() la llama) —
+  // hasta ese momento, para el Super Administrador (con
+  // superadmin-only-hidden ya desactivado por su rol), esos paneles
+  // quedaban visibles en CUALQUIER pestaña, incluida Hoja de ruta. Se
+  // reubican aquí, una sola vez, apenas se crea el DOM — antes de
+  // sistemaInsertarPanelAdminV1()/sistemaInsertarPanelLogV1() para que
+  // ambas usen sistemaPanelsHost (ya con los otros paneles dentro) como
+  // referencia de inserción.
+  if (typeof sistemaReubicarPanelesV1 === "function") {
+    try { sistemaReubicarPanelesV1(); } catch (e) { console.error("[Radar-Sistema] Error reubicando paneles al iniciar:", e); }
+  }
+
   sistemaInsertarPanelAdminV1();
   sistemaInsertarPanelLogV1();
 
