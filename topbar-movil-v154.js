@@ -71,10 +71,15 @@ function ajustarSidebarFooterMovilV154() {
 }
 
 // ------------------------------------------------------------
-// 1b) V15.12 - Reparenta sessionInfo (nombre+cargo+cerrar sesión) y
+// 1b) V15.14 - Reparenta sessionInfo (nombre+cargo+cerrar sesión) y
 //     refreshDataBtn (Actualizar datos) a sus posiciones móviles:
-//     - .session-info-v159 → dentro de #topbarSessionSlotV160 (línea
-//       superior del topbar, a la derecha del título).
+//     - .session-info-v159 → dentro de #topbarSessionSlotV160, que en
+//       móvil vive dentro de .brand-row-v161 (la misma línea que el
+//       nombre de la app "Radar Comercial B2B" y su versión, ARRIBA
+//       de las pestañas de navegación) — no dentro de .topbar, que es
+//       la línea del título de la pestaña actual ("Hoja de Ruta del
+//       Mes"). Son dos franjas distintas: V15.12/V15.13 las habían
+//       confundido (corregido aquí tras evidencia real de Sergio).
 //     - #refreshDataBtn → se reparenta a document.body. Es necesario
 //       moverlo de contenedor de verdad (no solo darle
 //       position:fixed vía clase): su padre real,
@@ -109,19 +114,16 @@ function ajustarSessionSlotMovilV160() {
 }
 
 // ------------------------------------------------------------
-// 1c) V15.12 - Sincroniza la versión mostrada en el topbar móvil
-//     (#appVersionLabelTopbarV160) con la que ya se calcula para el
-//     sidebar (#appVersionLabel, recortada sin fecha desde el script
-//     al final de index.html). No se duplica el cálculo: se copia el
-//     texto ya resuelto.
-// ------------------------------------------------------------
-function sincronizarVersionTopbarV160() {
-  const origen = $tbm("appVersionLabel");
-  const destino = $tbm("appVersionLabelTopbarV160");
-  if (!origen || !destino) return;
-  destino.textContent = origen.textContent;
-}
-
+// V15.14 - corrige V15.12/V15.13: la versión y el bloque de sesión
+// debían quedar en la línea del NOMBRE DE LA APP ("Radar Comercial
+// B2B", dentro de .brand), no en la línea del título de la pestaña
+// actual ("Hoja de Ruta del Mes", dentro de .topbar) — eran dos
+// franjas distintas y se habían confundido en V15.12/V15.13
+// (confirmado con screenshot real de Sergio). Ya no hace falta
+// duplicar/sincronizar la versión: el span #appVersionLabel real
+// vive dentro de .brand, que es exactamente donde ahora se necesita.
+// Se retiró la función sincronizarVersionTopbarV160 (ya no aplica) y
+// el elemento #appVersionLabelTopbarV160 que sincronizaba.
 // ------------------------------------------------------------
 // 2) Nombre de sesión simplificado: solo el primer nombre, sin
 //    duplicar "Nombre · Rol · Nombre" cuando nombre y asesor
@@ -163,7 +165,6 @@ if (typeof updateSessionRoleLabelV93 === "function") {
 document.addEventListener("DOMContentLoaded", () => {
   ajustarSidebarFooterMovilV154();
   ajustarSessionSlotMovilV160();
-  sincronizarVersionTopbarV160();
   if (typeof updateSessionRoleLabelV93 === "function") updateSessionRoleLabelV93();
 
   if (typeof applyUserProfileV84 === "function") {
@@ -172,7 +173,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const resultado = _applyUserProfileOriginalV154.apply(this, args);
       ajustarSidebarFooterMovilV154();
       ajustarSessionSlotMovilV160();
-      sincronizarVersionTopbarV160();
       return resultado;
     };
   }

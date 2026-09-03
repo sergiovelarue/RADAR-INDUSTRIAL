@@ -22,7 +22,53 @@ input,select,textarea{font-size:16px}
     flex-wrap:wrap;
     gap:10px;
   }
-  .sidebar .brand{margin-bottom:0;flex:0 0 auto}
+  .sidebar .brand{margin-bottom:0}
+  /* V15.14 - .brand-row-v161 (nuevo wrapper alrededor de .brand)
+     pasa a ser el hijo directo de .sidebar en vez de .brand — toma
+     el flex:0 0 auto que antes tenía .brand directamente, para que
+     el layout de fila (logo+nombre+versión | pestañas) siga
+     funcionando igual. Dentro de esta fila, el bloque de sesión
+     (nombre+cargo+cerrar sesión) se reparenta vía JS a
+     #topbarSessionSlotV160 SOLO en móvil — en desktop queda vacío y
+     no afecta nada. */
+  .sidebar .brand-row-v161{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .sidebar .brand-row-v161 .topbar-session-slot-v160{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:2px;
+    text-align:right;
+    margin-left:auto;
+  }
+  .sidebar .brand-row-v161 .session-info-v159{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:2px;
+    text-align:right;
+  }
+  .sidebar .brand-row-v161 small#sessionRoleLabel{
+    display:block;
+    font-size:11px;
+    color:#cbd5e1;
+    white-space:nowrap;
+    max-width:150px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .sidebar .brand-row-v161 .session-nombre-v160{display:block;font-weight:800;color:#fff}
+  .sidebar .brand-row-v161 .session-cargo-v160{display:block;color:#cbd5e1}
+  .sidebar .brand-row-v161 #logoutBtn{
+    display:block;
+    font-size:11px;
+    padding:2px 0;
+  }
   .sidebar nav{
     display:flex;
     flex-direction:row;
@@ -94,53 +140,19 @@ input,select,textarea{font-size:16px}
     display:none;
   }
 
-  /* V15.13 - corrige V15.12: el título tenía flex:1 1 auto y
-     reclamaba TODO el ancho de la fila, dejando sin espacio al
-     bloque de sesión, que caía a una línea propia alineado a la
-     izquierda (confirmado con screenshot real de Sergio). Se separa
-     la fila superior en su propio contenedor ".topbar-fila1-v160"
-     (display:flex, justify-content:space-between) que SOLO contiene
-     título+versión a la izquierda y el bloque de sesión a la
-     derecha — ninguno de los dos usa flex-grow, así que cada uno
-     ocupa solo el ancho que su contenido necesita y quedan
-     correctamente separados en los extremos de la misma línea. El
-     badge de fecha y el párrafo de contexto (antes forzados con
-     flex-basis:100% DENTRO del título, causa real de que este creciera
-     a 3 líneas de alto) pasan a ser hermanos directos de esta fila,
-     en su propia línea completa debajo — ya no compiten por espacio
-     con la sesión. */
+  /* V15.14 - corrige V15.12/V15.13: la versión y el bloque de sesión
+     no debían quedar en la línea del título de la pestaña actual
+     (.topbar, "Hoja de Ruta del Mes") sino en la línea del NOMBRE DE
+     LA APP ("Radar Comercial B2B", dentro de .brand) — confirmado con
+     screenshot real de Sergio. El estilo de esa fila y del slot de
+     sesión ahora vive arriba, junto a ".sidebar .brand-row-v161". Aquí
+     solo queda el título de la pestaña actual, simple, sin competir
+     por espacio con nada más. */
   .topbar-info-v160{width:100%}
-  .topbar-fila1-v160{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;width:100%}
   .topbar-titulo-v160{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;min-width:0}
   .topbar-titulo-v160 h2{margin:0;font-size:17px}
-  .topbar-version-v160{font-size:11px;color:var(--muted);font-weight:800;white-space:nowrap}
   .today-badge{margin:6px 0 0}
   #contextLabel{margin:2px 0 0}
-  .topbar-session-slot-v160{flex:0 0 auto}
-  .topbar-session-slot-v160 .session-info-v159{
-    display:flex;
-    flex-direction:column;
-    align-items:flex-end;
-    gap:2px;
-    text-align:right;
-  }
-  .topbar-session-slot-v160 small#sessionRoleLabel{
-    display:block;
-    font-size:11px;
-    color:var(--muted);
-    white-space:nowrap;
-    max-width:150px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .topbar-session-slot-v160 .session-nombre-v160{display:block;font-weight:800;color:var(--ink)}
-  .topbar-session-slot-v160 .session-cargo-v160{display:block;color:var(--muted)}
-  .topbar-session-slot-v160 #logoutBtn{
-    display:block;
-    font-size:11px;
-    padding:2px 0;
-  }
-  #exportCsvBtn{order:3;flex:0 0 auto}
 
   /* V15.12 - "Actualizar datos" flotante, apilado justo arriba del
      botón de soporte (.soporte-fab, ver soporte-v1.css: 56px,
@@ -169,15 +181,17 @@ input,select,textarea{font-size:16px}
   #refreshDataBtn.refresh-btn-floating-v160 .refresh-btn-text{display:none}
 }
 @media(max-width:760px){
-  /* V15.12 - se mantiene flex-wrap (no flex-direction:column) para
-     que el título y el bloque de sesión (nombre+cargo+cerrar sesión)
-     sigan en la misma línea horizontal, como se pidió y aprobó sobre
-     el mockup — solo "Exportar CSV" pasa a su propia línea debajo
-     mediante flex-basis:100% (ver #exportCsvBtn más abajo). */
+  /* V15.14 - .topbar ahora solo contiene el título de la pestaña
+     actual (.topbar-info-v160) y el botón "Exportar CSV" — el bloque
+     de sesión ya no vive aquí (se movió a .brand-row-v161, dentro de
+     .sidebar). Se mantiene flex-wrap para que "Exportar CSV" pase a
+     su propia línea debajo en pantallas angostas. */
   .topbar{flex-wrap:wrap;align-items:flex-start;row-gap:8px}
   .topbar-titulo-v160{min-width:0}
   .topbar-titulo-v160 h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
   #exportCsvBtn{flex-basis:100%}
+  .sidebar .brand-row-v161{gap:10px}
+  .sidebar .brand-row-v161 small#sessionRoleLabel{max-width:110px}
   /* V15.9/V15.10 - causa raíz real del desborde en Hoja de Ruta
      (única pestaña afectada, confirmado 03-sep-2026): la regla
      suelta ".filters{grid-template-columns:repeat(auto-fit,
