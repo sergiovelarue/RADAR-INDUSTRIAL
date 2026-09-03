@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Radar Comercial ConAccion Industria</title>
+  <title>Radar Comercial B2B</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
   <link rel="stylesheet" href="styles.css"/>
   <link rel="stylesheet" href="soporte-v1.css"/>
@@ -85,7 +85,7 @@
       <div class="login-brand">
         <div class="login-icon"><img src="android-chrome-512x512.png" alt="Radar Comercial B2B"/></div>
         <div>
-          <h1>Radar Comercial Industria</h1>
+          <h1>Radar Comercial B2B</h1>
           <p>Acceso seguro · ConAccion</p>
         </div>
       </div>
@@ -133,13 +133,15 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-icon"><img src="android-chrome-512x512.png" alt="Radar Comercial B2B"/></div>
-        <div><h1>Radar Comercial Industria</h1><small>ConAccion · <span id="appVersionLabel">—</span></small></div>
+        <div><h1>Radar Comercial B2B</h1><small>ConAccion · <span id="appVersionLabel">—</span></small></div>
       </div>
       <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navProspeccion">Prospección</a><a id="navMetas">Metas y presupuestos</a><a id="navAlarmas">Panel de alarmas</a><a id="navRanking">Ranking</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
-        <button class="btn ghost" id="refreshDataBtn" style="width:100%;margin-bottom:10px">↻ Actualizar datos</button>
-        <small id="sessionRoleLabel"></small>
-        <a id="logoutBtn" class="logout-link">Cerrar sesión</a>
+        <button class="btn ghost" id="refreshDataBtn" style="width:100%;margin-bottom:10px" title="Actualizar datos" aria-label="Actualizar datos">↻ <span class="refresh-btn-text">Actualizar datos</span></button>
+        <div class="session-info-v159">
+          <small id="sessionRoleLabel"></small>
+          <a id="logoutBtn" class="logout-link">Cerrar sesión</a>
+        </div>
       </div>
     </aside>
     <main class="main">
@@ -1226,7 +1228,15 @@
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();
     var vl = document.getElementById("appVersionLabel");
-    if (vl && typeof window.RADAR_VERSION === "string") vl.textContent = window.RADAR_VERSION;
+    if (vl && typeof window.RADAR_VERSION === "string") {
+      // Pedido de Sergio (03-sep-2026): la fecha después de la versión
+      // (ej. "V15.8 · 2026-09-03") no aporta al usuario y sobra en
+      // pantalla, sobre todo en celular. RADAR_VERSION sigue guardando
+      // el string completo (versión.js documenta ese formato para quien
+      // dé mantenimiento), pero en pantalla solo se muestra la parte
+      // antes del primer " · " — la versión sola, sin fecha.
+      vl.textContent = window.RADAR_VERSION.split(" · ")[0];
+    }
   </script>
 </body>
 </html>

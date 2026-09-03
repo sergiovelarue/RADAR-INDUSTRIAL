@@ -56,6 +56,14 @@ input,select,textarea{font-size:16px}
      normal debajo del encabezado fijo (que ahora solo contiene el
      logo y las pestañas), y se desplaza junto con el resto de la
      página como cualquier otro contenido. */
+  /* V15.9 - Pedido de Sergio (03-sep-2026): en el footer móvil,
+     "Actualizar datos" pasa a ser solo un botón circular con ícono
+     (sin texto) para no ocupar ancho innecesario, y el
+     nombre/rol + "Cerrar sesión" se agrupan en una columna a la
+     derecha, para dar más espacio horizontal al contenido real.
+     El texto del botón se oculta con CSS (no se quita del HTML) para
+     no afectar accesibilidad/lectores de pantalla: se usa
+     aria-label + title en el propio botón. */
   .sidebar-footer.sidebar-footer-mobile-v154{
     position:static;
     width:100%;
@@ -63,13 +71,68 @@ input,select,textarea{font-size:16px}
     background:var(--dark);
     color:white;
     padding:10px 16px 14px;
-    display:block;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
     z-index:auto;
   }
-  .sidebar-footer.sidebar-footer-mobile-v154 #refreshDataBtn{margin-bottom:8px}
+  .sidebar-footer.sidebar-footer-mobile-v154 #refreshDataBtn{
+    width:40px!important;
+    height:40px;
+    min-width:40px;
+    margin-bottom:0!important;
+    padding:0!important;
+    border-radius:999px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+    flex:0 0 auto;
+    order:1;
+  }
+  .sidebar-footer.sidebar-footer-mobile-v154 #refreshDataBtn .refresh-btn-text{display:none}
+  .sidebar-footer.sidebar-footer-mobile-v154 .session-info-v159{
+    order:2;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:2px;
+    text-align:right;
+  }
+  .sidebar-footer.sidebar-footer-mobile-v154 small#sessionRoleLabel{
+    display:block;
+    font-size:11px;
+    color:#cbd5e1;
+    white-space:nowrap;
+    max-width:150px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .sidebar-footer.sidebar-footer-mobile-v154 #logoutBtn{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    font-size:11px;
+  }
 }
 @media(max-width:760px){
   .topbar{flex-direction:column;align-items:flex-start}
+  /* V15.9 - causa raíz real del desborde en Hoja de Ruta (única
+     pestaña afectada, confirmado 03-sep-2026): la regla suelta
+     ".filters{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))
+     !important}" (línea ~116, agregada en V8.1 para desktop con
+     muchos filtros) le gana a la línea de abajo aunque esta última
+     esté dentro del media query, porque !important vs. sin
+     !important siempre gana el !important, sin importar el orden ni
+     la especificidad. Con 8 filtros en Hoja de Ruta y un ancho de
+     ~375-414px, auto-fit alcanza a meter 2 columnas de 150px y el
+     grid total queda más ancho que la pantalla, desbordando todo el
+     layout de esa pestaña. Ninguna otra pestaña usa tantos filtros a
+     la vez, por eso solo esta se veía mal. Se agrega !important aquí
+     también para poder ganarle dentro de este breakpoint, sin tocar
+     la regla original (sigue sirviendo igual en desktop).  */
+  .filters{grid-template-columns:1fr!important}
   .filters,.kpi-grid,.type-grid,.breakdown{grid-template-columns:1fr}
   table,thead,tbody,tr,td,th{display:block;width:100%}
   thead{display:none}

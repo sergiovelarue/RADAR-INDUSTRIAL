@@ -91,7 +91,20 @@ function soporteInsertarUiV1() {
   fab.className = "soporte-fab";
   fab.type = "button";
   fab.title = "Soporte";
-  fab.innerHTML = "💬";
+  // Pedido de Sergio (03-sep-2026): el emoji 💬 se veía borroso/poco
+  // claro en varias plataformas (Android/algunos navegadores lo
+  // renderizan pequeño o con un estilo que no combina con el resto de
+  // la app). Se reemplaza por un ícono SVG propio — burbuja de chat
+  // con un signo de interrogación, línea limpia, mismo tamaño y
+  // posición que antes, mismo color (blanco sobre el fondo oscuro ya
+  // definido en .soporte-fab).
+  fab.innerHTML = `
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+      <path d="M9.1 9.5a2.9 2.9 0 0 1 5.6 1c0 1.9-2.6 1.9-2.6 3.6" stroke-width="1.8"/>
+      <circle cx="12" cy="16.6" r="0.9" fill="currentColor" stroke="none"/>
+    </svg>
+  `;
   document.body.appendChild(fab);
 
   const overlay = document.createElement("div");

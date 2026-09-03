@@ -1,51 +1,43 @@
-# Mejoras_20260903_0952 — Estabilidad móvil real (header, navegación, tablas)
+# Mejoras_20260903_1200 — Título de app, causa raíz Hoja de Ruta, footer móvil, ícono de soporte
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.8 · 2026-09-03**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.9 · 2026-09-03**
 
-Continuación de `Mejoras_20260903_0818`. Responde punto por punto a lo que Sergio reportó con evidencia de screenshot real tras subir esa entrega.
+Continuación de `Mejoras_20260903_0952` (V15.8). Responde punto por punto al lote de 6 ajustes reportados tras probar esa entrega.
 
-## 1. Causa raíz encontrada (importante)
+## 1. Qué cambió, punto por punto (tu reporte)
 
-El archivo `topbar-movil-v154.js`, referenciado en `index.html` desde hace semanas, **nunca existía en el proyecto** (confirmado: no está en ninguna carpeta de entrega anterior). `styles.css` ya tenía preparada la clase `.sidebar-footer-mobile-v154` para resolver exactamente el problema del encabezado móvil, pero como el JS que aplica esa clase nunca se subió, esa solución nunca entró en funcionamiento. Mientras tanto, mi corrección de la entrega pasada (`Mejoras_20260903_0758`) agregó un CSS embebido en `index.html` que competía con el sistema responsive real de `styles.css` (`@media max-width:1100px`, que convierte el menú lateral en barra horizontal con pestañas deslizables) — de ahí que el nav se viera cortado y el encabezado inestable.
+**1) Título de la app.** "Radar Comercial Industria" → "Radar Comercial B2B" en: el `<title>` de la pestaña del navegador, el encabezado de la pantalla de login, y el nombre junto al logo en el menú lateral. Se dejó **sin tocar a propósito** el texto legal del checkbox de autorización de datos personales (no se debe alterar contenido de consentimiento formal sin instrucción explícita).
 
-**Esta entrega corrige la causa raíz**, no otro parche encima: se retira el CSS embebido que competía, y se recrea `topbar-movil-v154.js` siguiendo exactamente lo que ya estaba previsto en `styles.css`.
+**2) Fecha junto a la versión.** Antes se mostraba `V15.8 · 2026-09-03` completo junto al logo (desktop y móvil). Ahora solo se muestra `V15.9`, sin fecha — se recorta en el script que pinta `window.RADAR_VERSION` en pantalla, tomando solo la parte antes del primer " · ". La fecha completa se sigue guardando en `version.js` para control interno de versiones, pero ya no se le muestra al usuario.
 
-## 2. Qué cambió, punto por punto (tu reporte)
+**3) Ancho de Hoja de Ruta en móvil (causa raíz real encontrada).** Esta era la única pestaña que seguía desbordada tras V15.8 pese a que todas las demás quedaron bien. Se encontró la causa exacta: una regla CSS suelta y antigua (`.filters{grid-template-columns:repeat(auto-fit,minmax(150px,1fr)) !important}`, agregada en una versión anterior — "V8.1" — para desktop) le ganaba, por el uso de `!important`, a la regla que colapsa los filtros a 1 columna en móvil. Como Hoja de Ruta es la única pestaña con 8 filtros simultáneos (Perfil, Mes, Ordenar, Asesor, Tipo cliente, Estado, Clasificación, Buscar), era la única donde ese grid alcanzaba a formar 2 columnas de 150px y desbordaba el ancho total de la pantalla. Se corrigió agregando el override correspondiente, también con `!important`, dentro del breakpoint móvil — sin tocar la regla original, que sigue funcionando igual en escritorio.
 
-**1) Header y nav inestables en Hoja de ruta.** Resuelto por lo descrito arriba: `topbar-movil-v154.js` reactiva el comportamiento móvil correcto ya preparado en `styles.css`. El nav de pestañas ahora es deslizable horizontalmente sin cortarse, y el pie del menú (Actualizar datos / nombre / Cerrar sesión) pasa a ser una fila normal debajo del encabezado en vez de competir por espacio.
+**4) Botón "Actualizar datos" en móvil.** Pasa de ocupar todo el ancho con texto, a un botón circular solo con el ícono ↻ (40×40px), sin texto visible. El texto se mantiene en el HTML oculto por CSS (no se borra) para no perder accesibilidad: el botón conserva `title` y `aria-label="Actualizar datos"` para lectores de pantalla y tooltip. No se hizo flotante junto al botón de soporte porque cumple una función distinta (refresca datos dentro del flujo normal de navegación, no es una acción global aislada); en su lugar se integró de forma compacta en la misma fila del footer del menú, sin ocupar espacio extra.
 
-**2) Cajones grandes: Acciones recomendadas y Prospección.** La tabla de clientes sugeridos en "Seguimiento diario → Acciones recomendadas" ahora se contrae en celular igual que ya funcionaba en "Hoja de ruta": se ve solo la razón social, y al tocar la tarjeta se expande mostrando el resto de datos. Los cajones de filtro/búsqueda de Prospección se redujeron en alto (menos padding, etiquetas más pequeñas) sin tocar el tamaño de los campos de escritura (se mantiene 16px para que no dispare el zoom automático de iPhone).
+**5) Nombre del asesor + Cerrar sesión.** En el footer del menú (móvil), ambos se agrupan ahora en una columna alineada a la derecha: arriba el nombre corto + rol, abajo el enlace "Cerrar sesión" — quedando visualmente en la esquina superior derecha de esa franja, separados del botón de actualizar (que queda a la izquierda). Esto libera espacio horizontal y evita que los tres elementos compitan por ancho en una sola fila.
 
-**3) Nombre del asesor y Score en Acciones recomendadas.** El nombre del asesor ahora muestra solo el primer nombre, no nombre y apellido. La columna Score se oculta para el asesor (solo le sirve al administrador para comparar entre varios asesores, no le aporta nada a quien ya ve su propia lista ordenada).
+**6) Ícono de soporte (botón flotante).** Se reemplazó el emoji 💬 (que se veía borroso/genérico en varias plataformas) por un ícono SVG propio: una burbuja de chat con signo de interrogación, trazo limpio en blanco sobre el mismo fondo oscuro circular ya existente. Se mantiene exactamente el mismo tamaño (56×56px), la misma posición (`fixed`, esquina inferior derecha, con el ajuste a `right:14px;bottom:14px` en pantallas ≤760px) y la misma función (abre el modal de soporte) — solo cambia el gráfico.
 
-**4) Nombre en el encabezado simplificado.** Se corrigió también un bug que no habías señalado directamente pero que se veía en tu captura: el nombre aparecía duplicado ("HERCILIA MUÑOZ · Asesor · HERCILIA MUÑOZ"), porque la función que arma ese texto usa el nombre dos veces cuando el usuario es asesor. Ahora muestra solo el primer nombre, una vez: "Hercilia · Asesor".
-
-**5) Botón "Actualizar datos": ¿es necesario?** Sí cumple una función real — refresca los datos desde Supabase (clientes, configuración, y para administradores también usuarios/metas/soporte) sin tener que recargar toda la página. No se eliminó, pero se sacó del bloque fijo superior en móvil (mismo mecanismo del punto 1), para que no le quite espacio al nav ni al nombre de sesión.
-
-**6) Bug de navegación: contenido de una pestaña visible en otra.** Encontrado y confirmado en el código: cada módulo nuevo (Ajustes, Sistema, Alarmas, Ranking) mantenía su propia lista fija de "qué otras vistas ocultar al entrar", y esas listas quedaron desactualizadas entre sí a medida que se agregaban pestañas nuevas — por ejemplo, si visitabas "Ajustes" y luego "Metas" o "Alarmas", la vista de Ajustes podía quedar visible por debajo. Se corrigió con un módulo nuevo (`modulo_12_navegacion_estable.js`) que reemplaza ese patrón frágil por una lista única y centralizada de las 12 pestañas reales, aplicada siempre, sin importar el orden en que se visiten.
-
-## 3. Archivos de este paquete
+## 2. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `index.html` | Reemplazar — quita el CSS viejo que competía, agrega 2 `<link>` y 3 `<script>` nuevos. |
-| `version.js` | Reemplazar — sube el número de versión. |
-| `topbar-movil-v154.js` | **Archivo nuevo** — recreado, resuelve el header móvil de raíz. |
-| `modulo_12_navegacion_estable.js` | **Archivo nuevo** — corrige el bug de navegación entre pestañas. |
-| `modulo_13_recomendadas_movil.js` | **Archivo nuevo** — contrae tarjetas, acorta nombre de asesor, oculta Score. |
-| `movil-v1.css` | **Archivo nuevo** — estilos de tarjeta contraída y filtros compactos de Prospección. |
-| `usuarios-v1.js` | Reemplazar — se encontró y corrigió la misma tabla-sin-scroll-horizontal que ya se había corregido en Sistema (auditoría completa de todas las pestañas, tal como pediste). |
+| `index.html` | Reemplazar — título, footer móvil reestructurado (botón ícono + columna nombre/logout), script de versión sin fecha. |
+| `styles.css` | Reemplazar — fix de causa raíz en Hoja de Ruta, nuevo layout del footer móvil. |
+| `version.js` | Reemplazar — sube a V15.9. |
+| `soporte-v1.js` | Reemplazar — ícono SVG del botón de soporte en vez de emoji. |
 
 No hay cambios en Supabase en esta entrega.
 
-## 4. Pasos para subir a GitHub
+## 3. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Sube los 3 archivos nuevos (`topbar-movil-v154.js`, `modulo_12_navegacion_estable.js`, `modulo_13_recomendadas_movil.js`, `movil-v1.css` — son 4, no 3, revisa la tabla arriba) como archivos nuevos.
-3. Reemplaza `index.html`, `version.js` y `usuarios-v1.js` con el contenido de este paquete.
-4. Espera 1-2 minutos y prueba en tu celular: entra como asesor, revisa que el nav de pestañas se pueda deslizar sin cortarse, que tu nombre aparezca una sola vez y corto, que "Acciones recomendadas" se vea en tarjetas contraídas, y navega entre varias pestañas seguidas (Ajustes → Metas → Alarmas → Hoja de ruta) para confirmar que no queda nada de una pestaña anterior visible.
+2. Reemplaza los 4 archivos de la tabla con el contenido de este paquete (todos ya existían, ninguno es nuevo).
+3. Espera 1-2 minutos a que Netlify redeploye y confirma en la pestaña "Deploys" que el más reciente quede "Published" sin errores.
+4. **Importante — prueba en modo incógnito o borrando caché del sitio primero.** Los navegadores móviles (especialmente iOS Safari) cachean agresivamente `index.html` y los `.js`/`.css`; si pruebas sin limpiar caché puedes seguir viendo la versión anterior aunque el deploy ya esté actualizado.
+5. Verifica en el celular: el título de la pestaña/login dice "Radar Comercial B2B", junto al logo solo aparece "V15.9" sin fecha, Hoja de Ruta ya no se desborda ni con los 8 filtros abiertos, "Actualizar datos" es un círculo con ícono sin texto, el nombre + "Cerrar sesión" aparecen agrupados a la derecha del footer, y el botón de soporte muestra el nuevo ícono de burbuja con "?".
 
-## 5. Pendiente (sin tocar en esta entrega)
+## 4. Pendiente (sin tocar en esta entrega)
 
-- Renombrar "Super Administrador" a "Administrador" en textos visibles al usuario (sigue pendiente, no aplicado).
+- Renombrar "Super Administrador" a "Administrador" en textos visibles al usuario (sigue pendiente, no aplicado — instrucción explícita de Sergio de dejarlo para un próximo cambio).
 - Conexión real a la API de Claude para el Motor ARC.
