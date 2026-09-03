@@ -1,0 +1,73 @@
+/* ============================================================
+   Motor ARC — Análisis y Recomendación Comercial con IA (V1)
+   ------------------------------------------------------------
+   Estilos del agente de IA: botón "Analizar con IA" por cliente,
+   panel de análisis de asesor/negocio, aviso "próximamente
+   disponible", y panel de control del Super Administrador en la
+   pestaña Sistema. Archivo separado, siguiendo el mismo patrón ya
+   usado por sistema-v1.css, ajustes-v1.css, metas-v1.css.
+   ============================================================ */
+
+.motor-arc-zone{
+  margin-top:10px;
+  min-width:220px;
+}
+.motor-arc-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,#6C4DF6,#2E6BE6);color:#fff;border:none;
+  border-radius:9px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;
+}
+.motor-arc-btn:hover{filter:brightness(1.08)}
+.motor-arc-btn:disabled{opacity:.6;cursor:not-allowed}
+
+.motor-arc-loading{
+  display:none;font-size:12.5px;color:var(--muted,#6B7280);margin-top:8px;
+  align-items:center;gap:8px;
+}
+.motor-arc-loading.show{display:flex}
+.motor-arc-spinner{
+  width:14px;height:14px;border:2px solid #ccc;border-top-color:#2E6BE6;
+  border-radius:50%;animation:motorArcSpin .7s linear infinite;
+}
+@keyframes motorArcSpin{to{transform:rotate(360deg)}}
+
+.motor-arc-result{
+  margin-top:10px;background:#F7F5FF;border:1.5px solid #DCD3FB;border-radius:10px;
+  padding:12px 14px;font-size:13px;line-height:1.55;color:#2B2350;display:none;
+  max-width:420px;
+}
+.motor-arc-result.show{display:block}
+.motor-arc-result-block{max-width:640px}
+
+.motor-arc-disabled{
+  display:flex;align-items:center;gap:12px;background:#FFF8EC;border:1.5px dashed #EBC26B;
+  border-radius:10px;padding:12px 14px;max-width:420px;
+}
+.motor-arc-disabled-icon{
+  font-size:20px;flex:0 0 auto;width:34px;height:34px;display:flex;align-items:center;
+  justify-content:center;background:#fff;border-radius:50%;border:1.5px solid #EBC26B;
+}
+.motor-arc-disabled strong{display:block;font-size:13px;color:#7a4a00;margin-bottom:2px}
+.motor-arc-disabled span{font-size:12px;color:#8a5a00}
+
+.motor-arc-admin-block{margin:14px 0}
+
+/* ---- Panel de control (Super Admin, pestaña Sistema) ---- */
+.motor-arc-toggle-row{
+  display:flex;align-items:center;gap:16px;padding:14px;
+  border:1.5px solid #E1E4EC;border-radius:12px;background:#F5F6FA;margin-bottom:14px;
+}
+.motor-arc-switch{position:relative;width:46px;height:26px;flex:0 0 auto;cursor:pointer}
+.motor-arc-switch input{opacity:0;width:0;height:0;position:absolute}
+.motor-arc-track{position:absolute;inset:0;background:#c9cedb;border-radius:999px;transition:.2s}
+.motor-arc-track::after{
+  content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;
+  background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25);
+}
+.motor-arc-switch input:checked + .motor-arc-track{background:#1a8f4c}
+.motor-arc-switch input:checked + .motor-arc-track::after{left:23px}
+
+@media (max-width:640px){
+  .motor-arc-result, .motor-arc-disabled{max-width:100%}
+  .motor-arc-result-block{max-width:100%}
+}
