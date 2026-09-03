@@ -58,16 +58,20 @@
 function $tbm(id) { return document.getElementById(id); }
 
 // ------------------------------------------------------------
-// 1) Aplica la clase ya prevista en styles.css al pie de la barra
-//    lateral, para que dependiendo del ancho de pantalla actual
-//    tenga el comportamiento correcto (fijo en desktop, fila normal
-//    debajo del encabezado en móvil/tablet).
+// 1) V15.4/V15.14 - Aplica la clase que oculta/ordena el pie de la
+//    barra lateral en móvil.
+//    V15.17 - desde este cambio, .sidebar-footer queda SIEMPRE sin
+//    contenido visible (tanto refreshDataBtn como .session-info-v159
+//    se reparentan fuera de él en todos los anchos de pantalla, ver
+//    ajustarSessionSlotMovilV160 más abajo) — se le aplica la misma
+//    clase de "oculto" también en desktop, para no dejar un
+//    contenedor vacío con padding ocupando espacio en el pie del
+//    menú lateral.
 // ------------------------------------------------------------
 function ajustarSidebarFooterMovilV154() {
   const footer = document.querySelector(".sidebar-footer");
   if (!footer) return;
-  const esMovil = window.matchMedia("(max-width:1100px)").matches;
-  footer.classList.toggle("sidebar-footer-mobile-v154", esMovil);
+  footer.classList.add("sidebar-footer-mobile-v154");
 }
 
 // ------------------------------------------------------------
@@ -91,26 +95,32 @@ function ajustarSidebarFooterMovilV154() {
 //       confirmó este comportamiento probando en vivo contra el sitio
 //       real antes de escribir este fix. Moviéndolo a document.body
 //       (fuera del árbol oculto) se resuelve de raíz.
-//     En desktop, todo vuelve a su contenedor/posición original.
+//
+// V15.17 - Pedido de Sergio (03-sep-2026), aprobado sobre mockup
+// interactivo antes de aplicarlo: el mismo tratamiento de V15.12/14
+// (botón flotante + bloque de sesión reubicado) se extiende ahora a
+// ESCRITORIO (>1100px), no solo a móvil. Se agrega un tercer destino
+// fijo, #sidebarSessionSlotV162 (ver index.html: vive dentro de
+// .sidebar, debajo de .brand-row-v161 y arriba de <nav>) — el bloque
+// de sesión ya no vuelve a .sidebar-footer en ningún ancho de
+// pantalla; .sidebar-footer queda sin contenido visible siempre
+// (oculto por CSS, ver styles.css). "Actualizar datos" pasa a ser
+// flotante en desktop también, apilado sobre el botón de soporte,
+// igual que en móvil.
 // ------------------------------------------------------------
 function ajustarSessionSlotMovilV160() {
   const sessionInfo = document.querySelector(".session-info-v159");
-  const sidebarFooter = document.querySelector(".sidebar-footer");
   const topbarSlot = $tbm("topbarSessionSlotV160");
+  const sidebarSlot = $tbm("sidebarSessionSlotV162");
   const refreshBtn = $tbm("refreshDataBtn");
-  if (!sessionInfo || !sidebarFooter || !topbarSlot) return;
+  if (!sessionInfo || !topbarSlot || !sidebarSlot) return;
 
   const esMovil = window.matchMedia("(max-width:1100px)").matches;
+  const destinoSesion = esMovil ? topbarSlot : sidebarSlot;
 
-  if (esMovil) {
-    if (sessionInfo.parentElement !== topbarSlot) topbarSlot.appendChild(sessionInfo);
-    if (refreshBtn && refreshBtn.parentElement !== document.body) document.body.appendChild(refreshBtn);
-  } else {
-    if (sessionInfo.parentElement !== sidebarFooter) sidebarFooter.appendChild(sessionInfo);
-    if (refreshBtn && refreshBtn.parentElement !== sidebarFooter) sidebarFooter.insertBefore(refreshBtn, sidebarFooter.firstChild);
-  }
-
-  if (refreshBtn) refreshBtn.classList.toggle("refresh-btn-floating-v160", esMovil);
+  if (sessionInfo.parentElement !== destinoSesion) destinoSesion.appendChild(sessionInfo);
+  if (refreshBtn && refreshBtn.parentElement !== document.body) document.body.appendChild(refreshBtn);
+  if (refreshBtn) refreshBtn.classList.add("refresh-btn-floating-v160");
 }
 
 // ------------------------------------------------------------

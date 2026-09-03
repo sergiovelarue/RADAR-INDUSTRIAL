@@ -138,6 +138,17 @@
         </div>
         <div class="topbar-session-slot-v160" id="topbarSessionSlotV160"></div>
       </div>
+      <!-- V15.17 - Pedido de Sergio (03-sep-2026), aprobado sobre mockup:
+           en escritorio (>1100px), el bloque de sesión (nombre+cargo+
+           "Cerrar sesión") se reparenta vía JS (ver topbar-movil-v154.js)
+           a este contenedor fijo, ubicado debajo del nombre de la app y
+           arriba de las pestañas de navegación — no dentro de
+           .sidebar-footer, que ahora queda sin contenido visible en
+           ningún ancho de pantalla (oculto por CSS). En móvil este
+           contenedor no se usa: el bloque de sesión sigue yendo a
+           #topbarSessionSlotV160 dentro de .brand-row-v161, como ya
+           funcionaba desde V15.14. -->
+      <div class="sidebar-session-slot-v162" id="sidebarSessionSlotV162"></div>
       <nav><a class="active" id="navRoute">Hoja de ruta</a><a id="navSeguimiento">Seguimiento diario</a><a id="navDashboard">Dashboard</a><a id="navProspeccion">Prospección</a><a id="navMetas">Metas y presupuestos</a><a id="navAlarmas">Panel de alarmas</a><a id="navRanking">Ranking</a><a id="navClients">Gestión de clientes</a><a id="navAdvisors">Gestión de asesores</a><a id="navLog">Log de cambios</a><a id="navGlossary">Glosario comercial</a></nav>
       <div class="sidebar-footer">
         <button class="btn ghost" id="refreshDataBtn" style="width:100%;margin-bottom:10px" title="Actualizar datos" aria-label="Actualizar datos">↻ <span class="refresh-btn-text">Actualizar datos</span></button>

@@ -7,7 +7,89 @@ input,select,textarea{font-size:16px}
 .route-pagination .pagination-controls button{border:1px solid #d1d5db;background:white;color:var(--ink);padding:8px 14px;border-radius:10px;font-weight:800;cursor:pointer;font-size:13px}
 .route-pagination .pagination-controls button:hover:not(:disabled){background:#f3f4f6}
 .route-pagination .pagination-controls button:disabled{opacity:.4;cursor:not-allowed}
-.route-pagination .pagination-page{color:var(--muted);font-size:12px;font-weight:800;white-space:nowrap}.table-scroll{overflow:auto}table{width:100%;border-collapse:collapse;table-layout:auto}th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:13px}th{background:#f9fafb;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.04em}td:nth-child(1),th:nth-child(1){max-width:50ch;min-width:22ch}td:nth-child(2),th:nth-child(2){width:12ch;max-width:12ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}td:nth-child(n+6){white-space:nowrap}.client-main{display:block;font-weight:900;color:#111827;max-width:50ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.client-location{display:block;margin-top:3px;color:#6b7280;font-size:12px}.badge{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;white-space:nowrap}.badge.espumas{background:#dbeafe;color:#1d4ed8}.badge.mixto{background:#dcfce7;color:#15803d}.badge.nuevo{background:#f3f4f6;color:#6b7280}.status{font-weight:800}.green{background:#ecfdf5}.yellow{background:#fffbeb}.red{background:#fff1f2}.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}.summary-grid article{background:white;border:1px solid var(--line);border-radius:12px;padding:10px}@media(max-width:1100px){
+.route-pagination .pagination-page{color:var(--muted);font-size:12px;font-weight:800;white-space:nowrap}.table-scroll{overflow:auto}table{width:100%;border-collapse:collapse;table-layout:auto}th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:13px}th{background:#f9fafb;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.04em}td:nth-child(1),th:nth-child(1){max-width:50ch;min-width:22ch}td:nth-child(2),th:nth-child(2){width:12ch;max-width:12ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}td:nth-child(n+6){white-space:nowrap}.client-main{display:block;font-weight:900;color:#111827;max-width:50ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.client-location{display:block;margin-top:3px;color:#6b7280;font-size:12px}.badge{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;white-space:nowrap}.badge.espumas{background:#dbeafe;color:#1d4ed8}.badge.mixto{background:#dcfce7;color:#15803d}.badge.nuevo{background:#f3f4f6;color:#6b7280}.status{font-weight:800}.green{background:#ecfdf5}.yellow{background:#fffbeb}.red{background:#fff1f2}.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}.summary-grid article{background:white;border:1px solid var(--line);border-radius:12px;padding:10px}
+/* V15.17 - Pedido de Sergio (03-sep-2026), aprobado sobre mockup: en
+   escritorio (>1100px) se aplica el mismo tratamiento que ya existía
+   solo para móvil desde V15.12/14 — "Actualizar datos" flotante,
+   apilado sobre el botón de soporte, y el bloque de sesión
+   (nombre+cargo+"Cerrar sesión") reubicado fuera de .sidebar-footer.
+   Estas reglas viven FUERA de cualquier @media (aplican siempre) para
+   que el botón flotante y el ocultamiento del footer funcionen tanto
+   en escritorio como en móvil; los bloques @media más abajo solo
+   ajustan detalles específicos de cada ancho de pantalla (posición
+   exacta del botón, tamaño del bloque de sesión, etc). */
+.sidebar-footer.sidebar-footer-mobile-v154{display:none}
+#refreshDataBtn.refresh-btn-floating-v160{
+  position:fixed;
+  right:20px;
+  bottom:86px;
+  width:40px!important;
+  height:40px;
+  min-width:40px;
+  margin:0!important;
+  padding:0!important;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+  box-shadow:0 12px 30px rgba(15,23,42,.35);
+  z-index:1500;
+}
+#refreshDataBtn.refresh-btn-floating-v160 .refresh-btn-text{display:none}
+/* V15.17 - Bloque de sesión en escritorio: vive dentro de
+   #sidebarSessionSlotV162 (ver index.html), debajo de .brand-row-v161
+   y arriba de <nav>. A diferencia de móvil (donde nombre+cargo+
+   "Cerrar sesión" quedan en columna, alineados a la derecha, porque
+   compiten por espacio horizontal con el nombre de la app), aquí el
+   sidebar es vertical y hay ancho de sobra: "Cerrar sesión" queda AL
+   LADO de nombre+cargo (no debajo), tal como se aprobó en el mockup —
+   justify-content:space-between separa el bloque nombre+cargo (a la
+   izquierda) de "Cerrar sesión" (a la derecha), dentro del ancho
+   completo del sidebar. */
+.sidebar-session-slot-v162{
+  width:100%;
+  border-top:1px solid rgba(255,255,255,.08);
+  padding-top:14px;
+  margin-bottom:14px;
+  display:none;
+}
+/* V15.17 - Nombre+cargo y "Cerrar sesión" en la misma fila, alineados
+   verticalmente al centro (align-items:center, no baseline: el link de
+   "Cerrar sesión" trae su propio padding vertical de .logout-link que
+   rompía la alineación con baseline — confirmado midiendo el DOM en
+   vivo antes de este ajuste). Con nombres de asesor largos, el nombre+
+   cargo tiene prioridad de espacio (min-width:0 + ellipsis) y "Cerrar
+   sesión" nunca se corta (flex:0 0 auto, ancho fijo a su contenido). */
+.sidebar-session-slot-v162 .session-info-v159{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.sidebar-session-slot-v162 small#sessionRoleLabel{
+  display:block;
+  min-width:0;
+  flex:1 1 auto;
+  color:#cbd5e1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:12px;
+}
+.sidebar-session-slot-v162 .session-nombre-v160{display:inline;font-weight:800;color:#fff}
+.sidebar-session-slot-v162 .session-cargo-v160{display:inline;color:#cbd5e1}
+.sidebar-session-slot-v162 .session-nombre-v160::after{content:" · "}
+.sidebar-session-slot-v162 #logoutBtn{
+  flex:0 0 auto;
+  font-size:12px;
+  padding:4px 0;
+  white-space:nowrap;
+}
+@media(min-width:1101px){
+  .sidebar-session-slot-v162{display:block}
+}
+@media(max-width:1100px){
   .app{flex-direction:column}
   .sidebar{
     width:100%;
@@ -142,16 +224,15 @@ input,select,textarea{font-size:16px}
      interactivo antes de aplicarlo: se reemplaza el diseño de V15.9
      (footer del menú con botón+nombre en una fila) por dos cambios
      de ubicación: "Actualizar datos" pasa a ser un botón flotante
-     apilado arriba del botón de soporte (ver .refresh-btn-floating-v160
-     más abajo), y el nombre+cargo+"Cerrar sesión" pasan al encabezado
-     superior (ver .topbar-titulo-v160/.topbar-session-slot-v160 en el
-     bloque @media(max-width:760px) de más abajo, y el reparenting real
-     en topbar-movil-v154.js). El footer del menú lateral queda sin
-     contenido visible en móvil — ambos elementos se reparentaron fuera
-     de él, así que no hace falta darle estilos especiales aquí. */
-  .sidebar-footer.sidebar-footer-mobile-v154{
-    display:none;
-  }
+     apilado arriba del botón de soporte (ver .refresh-btn-floating-v160,
+     definido fuera de este @media desde V15.17), y el nombre+cargo+
+     "Cerrar sesión" pasan al encabezado superior (ver
+     .topbar-titulo-v160/.topbar-session-slot-v160 en el bloque
+     @media(max-width:760px) de más abajo, y el reparenting real en
+     topbar-movil-v154.js). El footer del menú lateral queda sin
+     contenido visible en móvil (la clase que lo oculta,
+     .sidebar-footer-mobile-v154, ahora se aplica siempre desde fuera
+     de este @media — ver arriba). */
 
   /* V15.14 - corrige V15.12/V15.13: la versión y el bloque de sesión
      no debían quedar en la línea del título de la pestaña actual
@@ -167,31 +248,11 @@ input,select,textarea{font-size:16px}
   .today-badge{margin:6px 0 0}
   #contextLabel{margin:2px 0 0}
 
-  /* V15.12 - "Actualizar datos" flotante, apilado justo arriba del
-     botón de soporte (.soporte-fab, ver soporte-v1.css: 56px,
-     right:20px, bottom:20px, con override a right:14px;bottom:14px
-     en @media max-width:760px). Aquí solo se define el tamaño/forma;
-     la posición fixed final (que depende del breakpoint del botón de
-     soporte) se define abajo, en el bloque @media(max-width:760px),
-     para que ambos botones queden siempre alineados entre sí. */
-  #refreshDataBtn.refresh-btn-floating-v160{
-    position:fixed;
-    right:20px;
-    bottom:86px;
-    width:40px!important;
-    height:40px;
-    min-width:40px;
-    margin:0!important;
-    padding:0!important;
-    border-radius:999px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:16px;
-    box-shadow:0 12px 30px rgba(15,23,42,.35);
-    z-index:1500;
-  }
-  #refreshDataBtn.refresh-btn-floating-v160 .refresh-btn-text{display:none}
+  /* V15.17 - la definición de tamaño/forma/posición base de
+     "Actualizar datos" flotante ya no vive aquí: se movió fuera de
+     todo @media (ver arriba de este bloque) porque ahora aplica
+     también en escritorio, no solo en móvil/tablet. Este bloque
+     @media(max-width:1100px) ya no necesita duplicarla. */
 }
 @media(max-width:760px){
   /* V15.14 - .topbar ahora solo contiene el título de la pestaña
