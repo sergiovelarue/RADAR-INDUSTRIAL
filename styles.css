@@ -30,9 +30,22 @@ input,select,textarea{font-size:16px}
      funcionando igual. Dentro de esta fila, el bloque de sesión
      (nombre+cargo+cerrar sesión) se reparenta vía JS a
      #topbarSessionSlotV160 SOLO en móvil — en desktop queda vacío y
-     no afecta nada. */
+     no afecta nada.
+     V15.15 - corrige bug real de Sergio (screenshot en producción):
+     con flex:0 0 auto, .brand-row-v161 solo medía el ancho de su
+     propio contenido (logo+nombre+slot), NO el ancho completo de
+     .sidebar — por lo tanto no quedaba espacio libre dentro del
+     contenedor y el margin-left:auto del slot (más abajo) no tenía
+     ningún efecto: el bloque de sesión quedaba pegado justo después
+     del nombre de la app, no en el extremo derecho de la pantalla,
+     como se ve en el bug reportado. Se cambia a flex:1 1 auto para
+     que la fila ocupe el 100% del ancho de .sidebar (menos el
+     padding), dejando el espacio libre que el margin-left:auto
+     necesita para empujar el bloque de sesión al borde derecho real
+     — tal como se aprobó en el mockup. */
   .sidebar .brand-row-v161{
-    flex:0 0 auto;
+    flex:1 1 auto;
+    width:100%;
     display:flex;
     align-items:center;
     gap:14px;
@@ -222,7 +235,17 @@ input,select,textarea{font-size:16px}
   td:first-child{display:block}
   td:first-child::before{display:none}
   .sidebar .brand h1{font-size:15px}
-  .sidebar .brand small{display:none}
+  /* V15.15 - se retira "display:none" de este <small> (bug real
+     reportado por Sergio en producción: la versión no se veía en
+     móvil). Esta regla venía de la tarea #60 ("quitar fecha junto a
+     versión"), cuando el <small>ConAccion · V..</small> solo se veía
+     en desktop y no importaba ocultarlo entero en móvil. Desde V15.14
+     esa misma etiqueta es la ÚNICA fuente visible de la versión junto
+     al nombre de la app en el header móvil (ver .brand-row-v161 más
+     arriba) — ocultarla por completo dejaba el header sin versión.
+     Se reduce el tamaño en vez de ocultar, para que quepa junto al
+     nombre de la app sin desbordar. */
+  .sidebar .brand small{font-size:10px}
   .sidebar .brand-icon{width:34px;height:34px}
   .btn,.detail-btn{padding:12px 16px}
   .detail-btn{padding:9px 12px}

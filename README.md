@@ -1,54 +1,41 @@
-# Mejoras_20260903_1830 — Corrección definitiva de ubicación del header (móvil + verificación desktop)
+# Mejoras_20260903_1920 — Quita "ConAccion" junto a la versión (solo queda "V15.16")
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.14 · 2026-09-03**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.16 · 2026-09-03**
 
-Continuación de `Mejoras_20260903_1730` (V15.13). Confirmaste con screenshot que la versión y el bloque de sesión (nombre + cargo + "Cerrar sesión") seguían mal ubicados: quedaban junto al título de la pestaña actual ("Hoja de Ruta del Mes", dentro de `.topbar`) en vez de junto al nombre de la app ("Radar Comercial B2B", dentro de `.brand`).
+Este paquete reemplaza al anterior (`Mejoras_20260903_1900`, V15.15), que aún no habías subido. Incluye TODO lo necesario en un solo paquete: la corrección de alineación de sesión + versión visible (V15.15) MÁS el ajuste que pediste ahora — quitar la palabra "ConAccion" de junto a la versión, dejando solo el número de versión.
 
-## 1. Causa del error (V15.12 y V15.13)
+## 1. Qué cambia respecto a lo que tenías antes de V15.14
 
-Ambas versiones anteriores resolvieron correctamente la MECÁNICA de flex (que no se encimaran o rompieran línea), pero colocaron el bloque de versión + sesión en el lugar CONCEPTUALMENTE INCORRECTO: la línea del título de la pestaña activa (`.topbar`), que cambia según la pantalla que se esté viendo (Hoja de Ruta, Dashboard, Prospección, etc.). Lo que se había aprobado en el mockup era que ese bloque quedara junto al nombre fijo de la aplicación ("Radar Comercial B2B"), que vive en `.brand`, dentro de `.sidebar`, arriba de las pestañas de navegación — una franja distinta y fija, no la del título de pestaña.
+- El bloque de sesión (nombre del asesor + cargo + "Cerrar sesión") queda en la misma línea del nombre de la app ("Radar Comercial B2B"), alineado al borde derecho de la pantalla en móvil.
+- Junto a "Radar Comercial B2B" aparece únicamente el número de versión (por ejemplo "V15.16") — sin el texto "ConAccion ·" que llevaba antes.
 
-## 2. La corrección (V15.14)
+## 2. Detalle técnico de este ajuste puntual
 
-- Se envolvió `.brand` en un nuevo contenedor `.brand-row-v161` (dentro de `.sidebar`).
-- El bloque de sesión (`#topbarSessionSlotV160`, que recibe por reparenting el nodo real `.session-info-v159` con nombre/cargo/cerrar sesión) ahora vive dentro de `.brand-row-v161`, en la misma línea que "Radar Comercial B2B" y su versión — no dentro de `.topbar`.
-- Se eliminó la versión duplicada que se había creado en V15.12/13 (`#appVersionLabelTopbarV160`) y la función que la sincronizaba (`sincronizarVersionTopbarV160`): ya no hace falta, porque el span real de versión (`#appVersionLabel`) vive naturalmente dentro de `.brand`, que es exactamente donde debía estar.
-- `.topbar` quedó simplificado: solo contiene el título de la pestaña activa y el botón "Exportar CSV" — ya no compite por espacio con nada más.
-- En escritorio (>1100px) el comportamiento es idéntico al original: el bloque de sesión permanece en el pie del menú lateral (`.sidebar-footer`), tal como siempre ha estado; `.brand-row-v161` no tiene efecto visual ahí.
+En `index.html`, dentro de `.brand`, el `<small>` que envuelve la versión decía `ConAccion · <span id="appVersionLabel">...</span>`. Se quitó el texto fijo `ConAccion · `, dejando el `<small>` con únicamente el `<span id="appVersionLabel">` adentro. No se tocó ningún script: ningún archivo `.js` del proyecto arma o depende de ese texto "ConAccion" en este punto (se verificó con búsqueda en todo el proyecto), así que el cambio es puramente de marcado HTML, sin riesgo de romper otra funcionalidad.
 
-**Verificación realizada (antes de empaquetar, contra el sitio real en producción):**
-- Ancho 375px (celular estándar): "Radar Comercial B2B" + versión y "Hercilia · Asesor · Cerrar sesión" en la misma línea, arriba de las pestañas — confirmado por captura.
-- Ancho 320px (celular angosto, iPhone SE): mismo layout, sin desbordes ni recortes — confirmado por captura.
-- Ancho 1400px (escritorio): confirmado por inspección del DOM en vivo que:
-  - El bloque de sesión NO está dentro de `.brand-row-v161` (0 hijos) — sigue en `.sidebar-footer`, como siempre.
-  - `refreshDataBtn` sigue en `.sidebar-footer` (no flotante).
-  - No hay desborde horizontal (`document.body.scrollWidth === window.innerWidth`).
-  - El ancho del sidebar es el estándar de 260px, sin cambios.
+**Verificación realizada (antes de empaquetar, contra el sitio real en producción):** se inyectó el cambio en vivo y se confirmó visualmente que el `<small>` queda mostrando solo el número de versión, sin "ConAccion ·" ni ningún otro texto sobrante.
 
 ## 3. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `index.html` | Reemplazar — se agrega el wrapper `.brand-row-v161` alrededor de `.brand`, se mueve `#topbarSessionSlotV160` dentro de él, se retira el span de versión duplicado del `.topbar`. |
-| `styles.css` | Reemplazar — nuevas reglas `.sidebar .brand-row-v161{...}` con el estilo del bloque de sesión en móvil; `.topbar-titulo-v160` simplificado (ya no necesita compartir fila con nada). |
-| `topbar-movil-v154.js` | Reemplazar — se retira `sincronizarVersionTopbarV160()` (ya no aplica); comentarios actualizados explicando la corrección. La lógica de reparenting (`ajustarSessionSlotMovilV160`) no cambia en su cuerpo, solo el destino físico del contenedor al que apunta. |
-| `version.js` | Reemplazar — sube a V15.14. |
+| `index.html` | Reemplazar — se quita el texto "ConAccion · " fijo junto al `#appVersionLabel`, dentro de `.brand`. |
+| `styles.css` | Reemplazar — incluye la corrección de V15.15: `.brand-row-v161` pasa a `flex:1 1 auto; width:100%` (para que el bloque de sesión se alinee al borde derecho real de la pantalla) y se revierte el `display:none` que ocultaba la versión en móvil. |
+| `version.js` | Reemplazar — sube a V15.16. |
 
-No se tocó ningún otro archivo.
+No se tocó `topbar-movil-v154.js` en esta entrega.
 
 ## 4. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza `index.html`, `styles.css`, `topbar-movil-v154.js` y `version.js`.
+2. Reemplaza `index.html`, `styles.css` y `version.js`.
 3. Espera el deploy de Netlify y confirma "Published".
-4. Prueba en modo incógnito o borrando caché del sitio.
+4. Prueba en modo incógnito o borrando caché.
 
 ## 5. Checklist de prueba
 
-- **Celular** (ancho ≤1100px): "Radar Comercial B2B" + versión a la izquierda, "Hercilia · Asesor" + "Cerrar sesión" a la derecha, TODO en la misma línea, arriba de las pestañas de navegación. El título de la pestaña activa (ej. "Hoja de Ruta del Mes") aparece solo, debajo del menú, sin compartir línea con nada más.
-- **Botón "Actualizar datos"** en móvil: flotante, circular, pequeño, apilado justo arriba del botón de soporte, esquina inferior derecha.
-- **Escritorio** (ancho >1100px): todo debe verse exactamente igual que antes de este cambio — nombre/cargo/cerrar sesión y "Actualizar datos" en el pie del menú lateral, sin nada flotante, sin desbordes horizontales.
-- Repetir la prueba de celular en al menos dos anchos (por ejemplo 375px y 320px) para confirmar que no hay recortes en pantallas más angostas.
+- **Celular**: "Radar Comercial B2B" + versión sola (sin "ConAccion") a la izquierda; nombre del asesor + cargo + "Cerrar sesión" pegados al borde derecho de la pantalla, misma línea.
+- **Escritorio**: sin cambios visibles respecto a siempre, sin overflow.
 
 ## 6. Pendiente (sin tocar en esta entrega)
 
