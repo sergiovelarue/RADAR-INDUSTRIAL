@@ -118,21 +118,27 @@ input,select,textarea{font-size:16px}
 }
 @media(max-width:760px){
   .topbar{flex-direction:column;align-items:flex-start}
-  /* V15.9 - causa raíz real del desborde en Hoja de Ruta (única
-     pestaña afectada, confirmado 03-sep-2026): la regla suelta
-     ".filters{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))
-     !important}" (línea ~116, agregada en V8.1 para desktop con
-     muchos filtros) le gana a la línea de abajo aunque esta última
-     esté dentro del media query, porque !important vs. sin
-     !important siempre gana el !important, sin importar el orden ni
-     la especificidad. Con 8 filtros en Hoja de Ruta y un ancho de
-     ~375-414px, auto-fit alcanza a meter 2 columnas de 150px y el
-     grid total queda más ancho que la pantalla, desbordando todo el
-     layout de esa pestaña. Ninguna otra pestaña usa tantos filtros a
-     la vez, por eso solo esta se veía mal. Se agrega !important aquí
-     también para poder ganarle dentro de este breakpoint, sin tocar
-     la regla original (sigue sirviendo igual en desktop).  */
-  .filters{grid-template-columns:1fr!important}
+  /* V15.9/V15.10 - causa raíz real del desborde en Hoja de Ruta
+     (única pestaña afectada, confirmado 03-sep-2026): la regla
+     suelta ".filters{grid-template-columns:repeat(auto-fit,
+     minmax(150px,1fr)) !important}" (línea ~450, agregada en V8.1
+     para desktop con muchos filtros) está físicamente MÁS ABAJO en
+     este archivo que este bloque @media. Cuando dos reglas CSS con
+     !important empatan en especificidad (ambas son ".filters" con
+     un solo !important), gana la que aparece después en el archivo
+     — no la que está "dentro de un media query más específico" como
+     se podría pensar. Por eso agregar solo "!important" aquí (intento
+     de V15.9) no alcanzó: seguía perdiendo por orden de aparición.
+     La solución real es subir la ESPECIFICIDAD del selector, no solo
+     poner !important — con html body .filters (3 clases distintas
+     de especificidad) le ganamos a .filters plano sin importar en
+     qué orden aparezcan ambas reglas en el archivo. Con 8 filtros en
+     Hoja de Ruta y un ancho de ~375-414px, auto-fit alcanzaba a
+     meter 2 columnas de 150px y el grid total quedaba más ancho que
+     la pantalla, desbordando todo el layout de esa pestaña. Ninguna
+     otra pestaña usa tantos filtros a la vez, por eso solo esta se
+     veía mal. */
+  html body .filters{grid-template-columns:1fr!important}
   .filters,.kpi-grid,.type-grid,.breakdown{grid-template-columns:1fr}
   table,thead,tbody,tr,td,th{display:block;width:100%}
   thead{display:none}
