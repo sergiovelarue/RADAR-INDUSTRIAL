@@ -17,6 +17,14 @@
   cursor:pointer;
   z-index:1500;
   display:none;
+  /* V15.19 - el JS activa este botón con display:"flex" (sin más
+     reglas de alineación) cuando hay sesión — sin align-items/
+     justify-content explícitos, el ícono SVG interno quedaba pegado
+     a la esquina superior izquierda en vez de centrado en el círculo
+     de 56px. Se agrega el centrado aquí, aplicable tanto si el botón
+     queda en display:flex (por JS) como en cualquier otro valor. */
+  align-items:center;
+  justify-content:center;
 }
 .soporte-fab:hover{background:#1e293b}
 

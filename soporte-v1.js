@@ -94,15 +94,24 @@ function soporteInsertarUiV1() {
   // Pedido de Sergio (03-sep-2026): el emoji 💬 se veía borroso/poco
   // claro en varias plataformas (Android/algunos navegadores lo
   // renderizan pequeño o con un estilo que no combina con el resto de
-  // la app). Se reemplaza por un ícono SVG propio — burbuja de chat
-  // con un signo de interrogación, línea limpia, mismo tamaño y
-  // posición que antes, mismo color (blanco sobre el fondo oscuro ya
-  // definido en .soporte-fab).
+  // la app). Se reemplazó por un ícono SVG propio (burbuja de chat con
+  // signo de interrogación) que, tras revisión posterior de Sergio,
+  // tampoco resultaba claro ni se veía centrado/proporcionado.
+  //
+  // V15.19 - Segundo ajuste, aprobado sobre mockup interactivo antes
+  // de aplicarlo: burbuja de chat con tres puntos suspensivos (patrón
+  // universal de "conversación/mensaje en curso"), más reconocible que
+  // la burbuja con interrogación, y se aumenta de 26x26 a 30x30 dentro
+  // del mismo botón circular de 56px (ver soporte-v1.css/.soporte-fab)
+  // para que se vea con más presencia sin perder discreción — mismo
+  // color (blanco sobre el fondo oscuro), mismo tamaño y posición del
+  // botón contenedor, misma función.
   fab.innerHTML = `
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-      <path d="M9.1 9.5a2.9 2.9 0 0 1 5.6 1c0 1.9-2.6 1.9-2.6 3.6" stroke-width="1.8"/>
-      <circle cx="12" cy="16.6" r="0.9" fill="currentColor" stroke="none"/>
+    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 22c5.5 0 10-4 10-9s-4.5-9-10-9S2 8 2 13c0 2.1.8 4 2.2 5.5L3 22l4.8-1.5c1.3.6 2.7 1 4.2 1z"/>
+      <circle cx="8.5" cy="13" r="1" fill="currentColor" stroke="none"/>
+      <circle cx="12" cy="13" r="1" fill="currentColor" stroke="none"/>
+      <circle cx="15.5" cy="13" r="1" fill="currentColor" stroke="none"/>
     </svg>
   `;
   document.body.appendChild(fab);

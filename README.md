@@ -1,49 +1,46 @@
-# Mejoras_20260903_2000 — "Actualizar datos" flotante y sesión reubicada en escritorio
+# Mejoras_20260903_2130 — Dashboard móvil (tarjetas contraíbles) + íconos de "Actualizar datos" y "Soporte"
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.17 · 2026-09-03**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.19 · 2026-09-03**
 
-Extiende a escritorio (>1100px) el mismo tratamiento que ya existía solo para móvil desde V15.12/14, con el ajuste que aprobaste sobre el mockup interactivo antes de implementar.
+Este paquete reemplaza a `Mejoras_20260903_2100` (V15.18), que aún no habías subido. Incluye todo lo de V15.18 (Dashboard móvil) MÁS el ajuste de íconos que aprobaste sobre el mockup y pediste aplicar ahora.
 
-## 1. Qué cambia en escritorio
+## 1. Dashboard móvil — tarjetas contraíbles (igual que V15.18)
 
-- **"Actualizar datos"** deja de ser un botón de ancho completo en el pie del menú lateral y pasa a ser un círculo flotante pequeño, apilado justo arriba del botón de soporte, esquina inferior derecha de la pantalla — igual patrón que ya tenías en móvil.
-- **Nombre del asesor + cargo + "Cerrar sesión"** se mueven del pie del menú lateral a justo debajo del logo, el nombre de la app y la versión — y arriba del menú de pestañas (Hoja de ruta, Seguimiento diario, etc). A diferencia de móvil (donde van en columna, alineados a la derecha), en escritorio "Cerrar sesión" queda AL LADO de nombre+cargo, no debajo — el sidebar vertical tiene ancho de sobra para eso, tal como pediste y se ajustó sobre el mockup.
-- El pie del menú lateral queda vacío en todos los anchos de pantalla (ya lo estaba en móvil desde V15.14; ahora también en escritorio).
+"Top 15 clientes Pareto general" y "Top 10 por asesor" ahora se contraen en celular igual que Hoja de ruta: solo # + cliente + dato principal visibles, el resto (Asesor, Tipo, Venta 2025, Crec.) aparece al tocar la tarjeta. De paso se corrigió que el nombre del cliente se cortaba a ~12 caracteres.
 
-## 2. Detalle técnico
+## 2. Íconos de "Actualizar datos" y "Soporte" (nuevo en este paquete)
 
-Se agregó un tercer contenedor fijo en `index.html`, `#sidebarSessionSlotV162`, ubicado dentro de `.sidebar`, debajo de `.brand-row-v161` (logo+nombre+versión) y arriba de `<nav>`. La función de reparenting en `topbar-movil-v154.js` (`ajustarSessionSlotMovilV160`, la misma que desde V15.14 mueve el bloque de sesión según el ancho de pantalla) ahora reconoce tres destinos: en móvil (`≤1100px`) sigue yendo a `#topbarSessionSlotV160` (dentro de `.brand-row-v161`, sin cambios respecto a lo que ya tenías); en escritorio (`>1100px`) va a `#sidebarSessionSlotV162`. El botón `#refreshDataBtn` ahora se reparenta a `document.body` con la clase flotante en ambos casos, no solo en móvil.
+- **"Actualizar datos"**: el carácter de texto "↻" (se veía desproporcionado y descentrado dentro del círculo flotante de 40px, evidencia real tuya en producción) se reemplaza por un SVG de flecha circular de refresco, trazo limpio, 18x18px.
+- **Soporte**: la burbuja de chat con signo de interrogación (poco clara, según tu observación — ni en celular ni en escritorio) se reemplaza por una burbuja de chat con tres puntos suspensivos (patrón universal de "conversación en curso"), aumentada de 26x26 a 30x30px dentro del mismo botón circular de 56px, para más presencia sin perder discreción.
 
-En `styles.css`, la definición base del botón flotante (tamaño, forma, posición fija) se movió fuera de cualquier `@media` para que aplique siempre; antes solo existía dentro de `@media(max-width:1100px)`. Se agregó el bloque `.sidebar-session-slot-v162` con el estilo del bloque de sesión en escritorio: `justify-content:space-between` separa nombre+cargo (con `text-overflow:ellipsis` para nombres largos, sin desbordar el sidebar) de "Cerrar sesión" (ancho fijo, nunca se corta), en la misma fila.
-
-**Verificación realizada (antes de empaquetar, contra el sitio real en producción, con el cambio inyectado en vivo):**
-- 1400px: bloque de sesión debajo de logo/nombre/versión, "Cerrar sesión" al lado (no debajo) de nombre+cargo. Botón "Actualizar datos" flotante, circular, apilado sobre soporte. Sin overflow horizontal.
-- Se probó con un nombre de asesor largo simulado ("MARIAALEJANDRAFERNANDA · Super Administrador"): el nombre se recorta con "…" sin romper el layout ni empujar "Cerrar sesión" fuera de la pantalla.
-- 1150px (dentro del rango desktop, cerca del breakpoint): layout desktop correcto.
-- 1050px (justo debajo del breakpoint de 1100px): transición limpia a layout móvil, sin overflow.
-- 375px (celular): confirmado que el comportamiento móvil de V15.14-16 sigue exactamente igual, sin cambios.
+**Verificación realizada (antes de empaquetar, contra el sitio real en producción, con los cambios inyectados en vivo):**
+- Escritorio (1400px): medí ambos íconos con `getBoundingClientRect()` — el centro exacto de cada ícono coincide matemáticamente con el centro de su botón contenedor (refresh: centro en x=1360/y=794 tanto para el botón de 40px como para el SVG de 18px; soporte: centro en x=1352/y=852 tanto para el botón de 56px como para el SVG de 30px).
+- Celular (375px): confirmado visualmente que ambos íconos se ven proporcionados y centrados, sin cambios de tamaño ni posición de los botones contenedores.
 
 ## 3. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `index.html` | Reemplazar — se agrega el contenedor `#sidebarSessionSlotV162` dentro de `.sidebar`. |
-| `styles.css` | Reemplazar — botón flotante ahora aplica siempre (no solo en móvil); nuevo bloque de estilos para `.sidebar-session-slot-v162`. |
-| `topbar-movil-v154.js` | Reemplazar — `ajustarSessionSlotMovilV160` ahora reparenta a tres destinos según el ancho de pantalla en vez de dos. |
-| `version.js` | Reemplazar — sube a V15.17. |
+| `index.html` | Reemplazar — se agregan los IDs `paretoTable`/`advisorTopTable` (Dashboard), el script `modulo_14_dashboard_top_movil.js`, y el SVG de "Actualizar datos" reemplazando el carácter "↻". |
+| `styles.css` | Reemplazar — tarjeta contraíble para las dos tablas del Dashboard, corrección del ancho del nombre de cliente, y regla de alineación defensiva para el nuevo ícono de "Actualizar datos". |
+| `soporte-v1.css` | Reemplazar — se agrega centrado explícito (`align-items`/`justify-content`) al botón de soporte. |
+| `soporte-v1.js` | Reemplazar — nuevo SVG de burbuja de chat con tres puntos, 30x30px. |
+| `modulo_14_dashboard_top_movil.js` | Nuevo — mismo archivo de V15.18, sin cambios. |
+| `version.js` | Reemplazar — sube a V15.19. |
 
 ## 4. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza `index.html`, `styles.css`, `topbar-movil-v154.js` y `version.js`.
-3. Espera el deploy de Netlify y confirma "Published".
-4. Prueba en modo incógnito o borrando caché.
+2. Reemplaza `index.html`, `styles.css`, `soporte-v1.css`, `soporte-v1.js`, `version.js`.
+3. Sube `modulo_14_dashboard_top_movil.js` como archivo NUEVO (si no lo subiste ya con el paquete anterior).
+4. Espera el deploy de Netlify y confirma "Published".
+5. Prueba en modo incógnito o borrando caché.
 
 ## 5. Checklist de prueba
 
-- **Escritorio**: nombre del asesor + cargo debajo del nombre de la app, "Cerrar sesión" al lado (misma línea). Botón circular flotante de "Actualizar datos" sobre el botón de soporte, esquina inferior derecha.
-- **Celular**: sin cambios respecto a lo que ya tenías — sesión en la línea del nombre de la app, "Actualizar datos" flotante sobre soporte.
-- Redimensionar la ventana lentamente de escritorio a móvil (cruzando los 1100px) para confirmar que no hay una zona intermedia rota.
+- **Dashboard, celular**: tarjetas de "Top 15 clientes" y "Top 10 por asesor" contraídas, expandibles al tocar.
+- **Botón "Actualizar datos"** (círculo pequeño, esquina inferior derecha): flecha de refresco SVG limpia y centrada, tanto en celular como en escritorio.
+- **Botón de soporte** (círculo grande, esquina inferior derecha): burbuja de chat con tres puntos, centrada, tanto en celular como en escritorio.
 
 ## 6. Pendiente (sin tocar en esta entrega)
 

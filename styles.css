@@ -37,6 +37,14 @@ input,select,textarea{font-size:16px}
   z-index:1500;
 }
 #refreshDataBtn.refresh-btn-floating-v160 .refresh-btn-text{display:none}
+/* V15.19 - el SVG de "Actualizar datos" (reemplaza al carácter de
+   texto "↻" que se veía desproporcionado/descentrado — evidencia real
+   de Sergio en producción, screenshot 03-sep-2026) queda centrado por
+   el flex del botón flotante de arriba; esta regla es defensiva para
+   el caso (hoy no usado) en que el botón se vea en su modo no
+   flotante de ancho completo, donde el <button> no tiene display:flex
+   propio y el SVG fluye inline junto al texto. */
+#refreshDataBtn .refresh-btn-icon-v1519{vertical-align:middle}
 /* V15.17 - Bloque de sesión en escritorio: vive dentro de
    #sidebarSessionSlotV162 (ver index.html), debajo de .brand-row-v161
    y arriba de <nav>. A diferencia de móvil (donde nombre+cargo+
@@ -329,6 +337,58 @@ input,select,textarea{font-size:16px}
   #routeTable tr.row-expanded td[data-label="Detalle"]{justify-content:center;padding-top:10px}
   #routeTable tr.row-expanded td[data-label="Detalle"]::before{display:none}
   #routeTable tr.row-expanded td[data-label="Detalle"] .detail-btn{width:100%;padding:11px 16px}
+
+  /* V15.18 - Dashboard: tarjeta contraíble genérica para "Top 15
+     clientes Pareto general" (#paretoTable) y "Top 10 por asesor"
+     (#advisorTopTable) — mismo patrón que #routeTable (arriba) y
+     #recomendadasTable: contraída se ve solo lo esencial de cada fila
+     (# + Cliente + el dato principal de esa tabla), el resto de
+     columnas aparece al tocar (clase "row-expanded", aplicada por
+     modulo_14_dashboard_top_movil.js). Antes estas dos tablas no
+     tenían data-label en sus celdas (a diferencia de #routeTable/
+     #recomendadasTable), así que cada columna se veía en su propia
+     línea sin etiqueta y sin poder contraerse — 15 filas de 6 líneas
+     cada una generaban un scroll larguísimo (evidencia real,
+     screenshot de Sergio 03-sep-2026). */
+  #paretoTable tr,#advisorTopTable tr{position:relative;cursor:pointer;padding:10px 34px 10px 32px}
+  #paretoTable td,#advisorTopTable td{display:none}
+  #paretoTable tr::after,#advisorTopTable tr::after{content:"\25BE";position:absolute;top:12px;right:12px;color:var(--muted);font-size:16px;transition:transform .15s ease}
+  #paretoTable tr.row-expanded::after,#advisorTopTable tr.row-expanded::after{transform:rotate(180deg)}
+  #paretoTable tr.row-expanded td,#advisorTopTable tr.row-expanded td{display:flex;padding:9px 0;border-top:1px solid var(--line)}
+  #paretoTable tr.row-expanded td:first-child,#advisorTopTable tr.row-expanded td:first-child{border-top:none;padding-top:0}
+
+  /* "#" (ranking) siempre visible como badge pequeño en la esquina
+     superior izquierda de la tarjeta, igual en ambas tablas. */
+  #paretoTable td[data-label="#"],#advisorTopTable td[data-label="#"]{
+    display:block;position:absolute;top:12px;left:12px;padding:0;
+    color:var(--muted);font-size:12px;font-weight:800;border-top:none!important;
+  }
+  #paretoTable td[data-label="#"]::before,#advisorTopTable td[data-label="#"]::before{display:none}
+
+  /* Cliente siempre visible como título de la tarjeta (negrita, sin
+     etiqueta "Cliente" repetida). Debajo, el dato principal de cada
+     tabla: en Pareto general, Venta 2026 + % Acum. (cuánto vende y qué
+     peso tiene); en Top por asesor, Venta 2026 (el monto del
+     ranking). El resto de columnas (Asesor/Tipo en Pareto; Venta
+     2025/Crec. en Top por asesor) solo aparece al expandir. */
+  #paretoTable td[data-label="Cliente"],#advisorTopTable td[data-label="Cliente"]{
+    display:block;padding-top:0;font-weight:800;
+    /* Anula la regla genérica "td:nth-child(2){width:12ch;max-width:12ch;
+       white-space:nowrap;...}" (pensada para columnas cortas de otras
+       tablas, ver styles.css fuera de cualquier @media) — aquí "Cliente"
+       también cae en la 2da columna y por eso heredaba ese límite,
+       cortando la razón social a ~12 caracteres. Se permite 2 líneas
+       en vez de una sola cortada, ya la tarjeta contraída tiene
+       espacio vertical de sobra. */
+    width:auto!important;max-width:none!important;white-space:normal!important;
+    overflow:visible!important;text-overflow:clip!important;
+    line-height:1.3;
+  }
+  #paretoTable td[data-label="Cliente"]::before,#advisorTopTable td[data-label="Cliente"]::before{display:none}
+  #paretoTable td[data-label="Venta 2026"],#paretoTable td[data-label="% Acum."],
+  #advisorTopTable td[data-label="Venta 2026"]{
+    display:flex;padding:2px 0;font-size:12px;
+  }
 
   .route-pagination{flex-direction:column;align-items:stretch;gap:10px;padding:12px 4px 4px}
   .route-pagination .pagination-controls{justify-content:space-between}
