@@ -94,17 +94,29 @@ input,select,textarea{font-size:16px}
     display:none;
   }
 
-  /* V15.12 - Encabezado superior: título+versión a la izquierda,
-     nombre+cargo+"Cerrar sesión" a la derecha, misma línea, sobre las
-     pestañas. El nodo real (.session-info-v159, con sessionRoleLabel
-     y logoutBtn dentro) se reparenta aquí vía JS — este selector solo
-     define cómo se ve una vez está dentro de #topbarSessionSlotV160. */
-  .topbar-titulo-v160{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;flex:1 1 auto;min-width:0}
+  /* V15.13 - corrige V15.12: el título tenía flex:1 1 auto y
+     reclamaba TODO el ancho de la fila, dejando sin espacio al
+     bloque de sesión, que caía a una línea propia alineado a la
+     izquierda (confirmado con screenshot real de Sergio). Se separa
+     la fila superior en su propio contenedor ".topbar-fila1-v160"
+     (display:flex, justify-content:space-between) que SOLO contiene
+     título+versión a la izquierda y el bloque de sesión a la
+     derecha — ninguno de los dos usa flex-grow, así que cada uno
+     ocupa solo el ancho que su contenido necesita y quedan
+     correctamente separados en los extremos de la misma línea. El
+     badge de fecha y el párrafo de contexto (antes forzados con
+     flex-basis:100% DENTRO del título, causa real de que este creciera
+     a 3 líneas de alto) pasan a ser hermanos directos de esta fila,
+     en su propia línea completa debajo — ya no compiten por espacio
+     con la sesión. */
+  .topbar-info-v160{width:100%}
+  .topbar-fila1-v160{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;width:100%}
+  .topbar-titulo-v160{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;min-width:0}
   .topbar-titulo-v160 h2{margin:0;font-size:17px}
-  .topbar-version-v160{font-size:11px;color:var(--muted);font-weight:800}
-  .topbar-titulo-v160 .today-badge{flex-basis:100%;margin:2px 0 0}
-  .topbar-titulo-v160 p{flex-basis:100%;margin:2px 0 0}
-  .topbar-session-slot-v160{flex:0 0 auto;order:2}
+  .topbar-version-v160{font-size:11px;color:var(--muted);font-weight:800;white-space:nowrap}
+  .today-badge{margin:6px 0 0}
+  #contextLabel{margin:2px 0 0}
+  .topbar-session-slot-v160{flex:0 0 auto}
   .topbar-session-slot-v160 .session-info-v159{
     display:flex;
     flex-direction:column;

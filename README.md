@@ -1,43 +1,38 @@
-# Mejoras_20260903_1630 — Reubicación de "Actualizar datos" y de nombre/cargo/cerrar sesión (móvil)
+# Mejoras_20260903_1730 — Corrección real del encabezado superior (móvil)
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.12 · 2026-09-03**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.13 · 2026-09-03**
 
-Continuación de `Mejoras_20260903_1500` (V15.11). Se validó un mockup interactivo con Sergio antes de tocar código real, y se aplicó exactamente lo aprobado.
+Continuación de `Mejoras_20260903_1630` (V15.12). Confirmaste con screenshot que el nombre/cargo/cerrar sesión quedaron apilados a la izquierda, en su propia línea, empujando "Exportar CSV" hacia abajo — no en la misma línea que el título, a la derecha, como se había aprobado sobre el mockup.
 
-## 1. Qué cambió, punto por punto
+## 1. Causa del error
 
-**1) "Actualizar datos" ahora es un botón flotante.** En móvil, pasó de estar dentro del footer del menú lateral a ser un botón circular (40px) flotante en la esquina inferior derecha, apilado justo arriba del botón de soporte (56px) — mismo estilo visual, más pequeño, separado por un espacio de 10px. Se mueve junto con el botón de soporte cuando el breakpoint más angosto (≤760px) lo reposiciona más cerca del borde.
+En V15.12, `.topbar-titulo-v160` tenía `flex:1 1 auto`, lo que le hacía reclamar todo el ancho disponible de la fila. Además, el badge de fecha y el párrafo de contexto estaban forzados con `flex-basis:100%` dentro de ese mismo contenedor, haciendo que el bloque del título creciera a 3 líneas de alto. El resultado: no quedaba espacio horizontal para el bloque de sesión en esa primera línea, así que el `flex-wrap` del contenedor padre lo empujaba a una línea propia, alineado a la izquierda por defecto.
 
-**2) Nombre + cargo + "Cerrar sesión" ahora viven en el encabezado superior.** En la misma línea que el título de la pestaña (ej. "Hoja de Ruta del Mes") y la versión de la app, alineados a la derecha, sobre las pestañas — antes vivían en el footer del menú lateral. El nombre y el cargo quedan en líneas separadas (aprobado sobre el mockup), con "Cerrar sesión" debajo.
+## 2. La corrección
 
-## 2. Cómo se implementó (para que quede documentado)
+Se separó la fila superior en su propio contenedor, `.topbar-fila1-v160` (`display:flex; justify-content:space-between`), que contiene ÚNICAMENTE el título+versión (izquierda) y el bloque de sesión (derecha) — ninguno de los dos reclama espacio de más, así que cada uno ocupa solo lo que su contenido necesita y quedan correctamente en los extremos de la misma línea. El badge de fecha y el párrafo de contexto pasaron a ser hermanos de esa fila, en su propia línea completa debajo — ya no compiten por espacio con la sesión.
 
-Ninguno de los dos elementos se duplicó en el HTML — se reubicó el nodo real del DOM según el ancho de pantalla (técnica ya usada en el proyecto para el nombre de sesión). Esto es importante porque `app.js` y `mejoras-v1.js` ya tienen lógica y listeners enganchados a esos IDs exactos (`sessionRoleLabel`, `logoutBtn`, `refreshDataBtn`); duplicar el ID habría roto esa lógica o dejado un elemento sin funcionalidad. En vez de eso, el mismo botón/bloque se mueve de contenedor en el DOM según el tamaño de pantalla, conservando toda su funcionalidad.
-
-**Bug encontrado y corregido durante la verificación en vivo (antes de entregar):** el primer intento le daba a "Actualizar datos" `position:fixed` sin sacarlo del `.sidebar-footer`, que en móvil pasó a `display:none` (porque ya no tiene contenido visible propio). Un elemento con `position:fixed` dentro de un ancestro con `display:none` no se renderiza — mide 0×0 — sin importar el `position:fixed`. Se confirmó esto probando en vivo contra el sitio real, y se corrigió reparentando el botón a `document.body` en móvil, igual que ya se hacía con el bloque de sesión.
-
-**Verificación:** se probó el resultado completo inyectado en vivo sobre el sitio en producción (sesión real iniciada, viewport 375px) antes de empaquetar esta entrega — no se entregó a ciegas.
+**Verificación:** se probó el fix inyectado en vivo sobre el sitio real en producción (sesión iniciada, viewport 375px) antes de empaquetar — se confirmó visualmente que el título queda a la izquierda y el nombre+cargo+"Cerrar sesión" a la derecha, en la misma línea, tal como se aprobó en el mockup original.
 
 ## 3. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `index.html` | Reemplazar — nueva estructura del encabezado (`topbar-titulo-v160`, `topbar-session-slot-v160`). |
-| `styles.css` | Reemplazar — estilos del nuevo encabezado y del botón flotante; se retira el diseño anterior del footer móvil (V15.9), que ya no aplica. |
-| `topbar-movil-v154.js` | Reemplazar — lógica de reparenting de nombre/cargo/logout y del botón de actualizar según el ancho de pantalla. |
-| `version.js` | Reemplazar — sube a V15.12. |
+| `index.html` | Reemplazar — se reestructura el encabezado en 2 wrappers (`topbar-info-v160` > `topbar-fila1-v160`) para que el layout en escritorio no cambie y el de móvil quede correcto. |
+| `styles.css` | Reemplazar — corrige el `flex` del título y separa la fila de sesión de los elementos que antes competían por el mismo espacio. |
+| `version.js` | Reemplazar — sube a V15.13. |
 
-No hay cambios en Supabase en esta entrega.
+No se tocó ningún otro archivo.
 
 ## 4. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza los 4 archivos de la tabla (todos ya existían, ninguno es nuevo).
+2. Reemplaza `index.html`, `styles.css` y `version.js`.
 3. Espera el deploy de Netlify y confirma "Published".
 4. Prueba en modo incógnito o borrando caché del sitio.
-5. Verifica en el celular: el título + versión están a la izquierda del encabezado superior, el nombre + cargo + "Cerrar sesión" están a la derecha en esa misma franja, y en la esquina inferior derecha aparecen dos botones circulares apilados — el de actualizar (más pequeño, arriba) y el de soporte (más grande, abajo).
+5. Verifica en el celular: título + versión a la izquierda, nombre + cargo + "Cerrar sesión" a la derecha, en la misma línea, arriba del badge de fecha — igual que en el mockup aprobado.
 
 ## 5. Pendiente (sin tocar en esta entrega)
 
-- Renombrar "Super Administrador" a "Administrador" sigue pendiente, no aplicado.
+- Renombrar "Super Administrador" a "Administrador" sigue pendiente.
 - Conexión real a la API de Claude para el Motor ARC — sigue pendiente.
