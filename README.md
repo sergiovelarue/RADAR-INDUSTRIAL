@@ -1,81 +1,63 @@
-# Mejoras_20260903_2300 — Conexión remota (ERP) para Actualización diaria de ventas
+# Mejoras_20260903_2358 — Carga de histórico de ventas (año anterior)
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.20 · 2026-09-03**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.21 · 2026-09-03**
 
-Nueva funcionalidad: el panel "Actualización diaria de ventas" (pestaña Ajustes) ahora soporta, además de la carga manual de archivo (que se preserva 100% intacta), una actualización automática desde un archivo remoto tipo ERP (Siesa, Odoo, Siigo, Alegra, u otro link genérico). Hoy se prueba con un Google Sheet; el diseño queda listo para apuntar a cualquier archivo estático en URL fija que un cliente configure más adelante.
+Nueva funcionalidad, exclusiva Super Administrador: un panel para cargar el histórico de ventas de un año anterior (base comparativa para Cumplimiento, Alarmas y Proyección) desde un archivo Excel/CSV, sin necesidad de intervención directa en la base de datos.
 
-## 1. Cómo funciona (según el mockup que aprobaste)
+## 1. Dónde vive y cómo funciona
 
-- **Super Administrador** (bloque "Conexión remota (ERP)", solo visible para ese rol): configura sistema de origen, URL del archivo remoto, hora programada de sincronización diaria, y un interruptor para habilitar/deshabilitar la conexión.
-- **Administrador**: ve un selector "Manual / Por link de conexión". Si Super Administrador no ha habilitado la conexión, solo ve la opción Manual (igual que hoy). Si está habilitada, puede elegir "Por link de conexión" y ver el estado de la fuente (activa/con errores, última sincronización) y un botón "Actualizar ahora desde ERP".
-- El **flujo manual actual no cambia en nada**: mismo input de archivo, mismos botones Validar/Procesar/Limpiar.
+Vive dentro de la pestaña **Ajustes**, en el panel de datos maestros (visible solo para Super Administrador — Administrador no lo ve). Flujo:
+
+1. Selecciona el año que se está cargando (2025, 2024...).
+2. Sube el archivo (mismo formato que el de actualización diaria: primera columna NIT, columnas siguientes con nombre de mes Enero..Diciembre; columnas extra como Cliente/Asesor/Ciudad se ignoran).
+3. **Validar archivo**: consulta contra la base real y muestra cuántos NIT del archivo coinciden con clientes existentes y cuántos no — sin escribir nada todavía.
+4. Si hay NIT sin coincidencia, se pueden descargar para revisarlos antes de continuar.
+5. **Procesar carga**: pide confirmación y aplica el histórico SOLO a los NIT coincidentes. Nunca crea clientes nuevos — ese sigue siendo un proceso aparte (Gestión de clientes).
+6. Incluye un botón para descargar una plantilla en blanco con el formato exacto esperado.
 
 ## 2. Qué se construyó del lado del servidor (Supabase, proyecto RADAR-INDUSTRIAL)
 
-- Tabla `config_conexion_erp`: guarda la configuración (habilitado, sistema, URL, hora programada, estado de la última corrida). RLS cerrado — solo accesible vía funciones `SECURITY DEFINER`, mismo criterio que el resto de tablas sensibles del proyecto (historial_cambios, ajustes_meta_asesor).
-- Funciones RPC: `leer_config_conexion_erp_v1`, `guardar_config_conexion_erp_v1`, `disparar_sincronizacion_erp_manual_v1`.
-- Edge Function `sincronizar-ventas-erp`: descarga el archivo remoto (CSV, o Google Sheet convertido automáticamente a su link de exportación CSV), lo interpreta con el mismo formato que hoy usa el archivo Excel manual (NIT + columnas de mes), y actualiza la tabla `clientes` — igual que hace hoy `applyDailyFiles` en el navegador.
-- Cron job (`pg_cron` + `pg_net`, cada 15 minutos revisa si ya es la hora programada y, si la conexión está habilitada, dispara la sincronización): queda instalado y activo.
+- Edge Function `cargar-historico-ventas`: valida NIT contra la tabla `clientes` y, en modo procesar, actualiza `datos_venta.ventas<AÑO>EspumasPorMes` y `total_<AÑO>` (cuando el año es 2025 o 2026) por cliente, uno por uno vía `.update().eq("id", ...)` — no usa upsert masivo porque eso exigía repetir columnas `NOT NULL` de toda la tabla y fallaba.
+- Función RPC `disparar_historico_ventas_v1` (dispara la Edge Function con el secreto server-side, el navegador nunca lo ve) y `leer_ultimo_resultado_historico_v1` (el frontend hace polling corto de esta función hasta obtener el resultado, hasta 60 segundos de margen para archivos grandes).
+- Reutiliza el mismo secreto (`RADAR_CRON_SECRET`) que ya configuraste para la conexión ERP — no requiere ningún paso adicional de tu parte.
 
-### Alerta de seguridad — acción tuya pendiente antes de que el cron/botón funcionen
+## 3. Verificado en vivo antes de empaquetar
 
-La Edge Function está protegida con un secreto compartido (nunca vive en el navegador ni en este código). **Debes configurarlo manualmente en el dashboard de Supabase, en dos lugares, con el mismo valor exacto:**
-
-```
-a6bf55ed81d991bab8a16f39f3e51997eb3776d8bcefc0d5
-```
-
-1. **Supabase → Edge Functions → sincronizar-ventas-erp → Secrets**: agrega `RADAR_CRON_SECRET` = el valor de arriba.
-2. **Supabase → SQL Editor**, ejecuta una sola vez:
-   ```sql
-   ALTER DATABASE postgres SET app.settings.radar_cron_secret = 'a6bf55ed81d991bab8a16f39f3e51997eb3776d8bcefc0d5';
-   ```
-
-Sin este paso, tanto el botón "Actualizar ahora" como el cron diario fallarán con error de autorización — es la protección esperada, no un bug.
-
-## 3. Sobre el "simulador de ventas"
-
-Revisé el código de la app: el simulador NO es una función activa dentro de `app.js`/`mejoras-v1.js` — son archivos Excel que yo generé en una sesión anterior para que subieras manualmente cada semana al panel de pruebas. No hay nada que "desaparecer" en el código de producción.
-
-Según tu instrucción, tú vas a mantener por tu cuenta, en otro proyecto, un Google Sheet con las ventas simuladas actualizándose. **Aquí solo falta que me compartas el link de ese Sheet** para:
-1. Configurarlo como prueba en el bloque Super Administrador.
-2. Verificar en vivo que el botón "Actualizar ahora" y el cron diario leen y aplican los datos correctamente.
-3. Asegurarme de que el Sheet tenga acceso de lectura público ("Cualquiera con el enlace puede ver") — si es privado, la Edge Function no podrá descargarlo.
+- Probé el flujo completo (validar y procesar) directamente contra la base de datos real de Supabase, usando un cliente real (NIT 900116526) y un NIT inventado para confirmar que el conteo de "sin coincidencia" funciona.
+- **Encontré y corregí un bug real durante la prueba**: el primer diseño (`upsert` masivo) fallaba con "null value in column nit violates not-null constraint" porque el patch no incluía todas las columnas obligatorias de la tabla. Se corrigió usando `update()` por `id`, que sí funciona sin necesidad de repetir columnas no modificadas — confirmado con una carga de prueba real (histórico 2024 aplicado y verificado, luego revertido para no dejar datos de prueba).
+- También se detectó que el mecanismo de espera de la RPC original (con `pg_net` + polling dentro de la misma función SQL) tenía una condición de carrera bajo llamadas consecutivas rápidas — se rediseñó con un patrón más robusto (la Edge Function escribe su resultado en una tabla, y el frontend consulta esa tabla por separado), igual de seguro pero sin ese riesgo.
+- Sintaxis validada: `node --check modulo_16_historico_ventas.js` sin errores; `styles.css` con llaves balanceadas (443/443); `index.html` sin tags huérfanos ni IDs duplicados.
 
 ## 4. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `index.html` | Reemplazar — agrega el bloque "Conexión remota (ERP)" y el selector Manual/Link dentro de `dailyUpdatePanel`, y el script `modulo_15_conexion_erp.js`. |
-| `styles.css` | Reemplazar — estilos del nuevo bloque, siguiendo el mismo sistema visual de la app. |
-| `modulo_15_conexion_erp.js` | Nuevo — toda la lógica del nuevo panel (wrapper, no toca app.js). |
-| `version.js` | Reemplazar — sube a V16.20. |
+| `index.html` | Reemplazar — agrega el bloque de carga de histórico dentro del panel de datos maestros, y el script `modulo_16_historico_ventas.js`. |
+| `styles.css` | Reemplazar — estilos del nuevo panel. |
+| `modulo_16_historico_ventas.js` | Nuevo — toda la lógica (wrapper, no toca app.js). |
+| `version.js` | Reemplazar — sube a V16.21. |
 
 ## 5. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
 2. Reemplaza `index.html`, `styles.css`, `version.js`.
-3. Sube `modulo_15_conexion_erp.js` como archivo NUEVO.
-4. Antes de probar, completa la sección 2 (secreto en Supabase) — si no, el botón "Actualizar ahora" mostrará error, lo cual es esperado hasta ese paso.
-5. Espera el deploy de Netlify y confirma "Published".
+3. Sube `modulo_16_historico_ventas.js` como archivo NUEVO.
+4. Espera el deploy de Netlify y confirma "Published".
 
 ## 6. Checklist de prueba
 
-- **Sesión Super Administrador → Ajustes**: ver el bloque "Conexión remota (ERP)", guardar una URL de prueba, confirmar que el checkbox y los campos persisten al recargar.
-- **Sesión Administrador → Ajustes**: con la conexión deshabilitada, solo debe verse "Manual". Al habilitarla desde Super Administrador, debe aparecer "Por link de conexión" como opción.
-- **Botón "Actualizar ahora desde ERP"**: solo tras completar el paso del secreto (sección 2) y con un Sheet real configurado (sección 3).
-- **Flujo manual**: confirmar que sigue funcionando exactamente igual que antes (Validar archivos / Procesar actualización / Limpiar actualización local).
+- **Sesión Super Administrador → Ajustes**: en la sección de datos maestros, debe verse el nuevo panel "Cargar histórico de ventas (año anterior)".
+- **Sesión Administrador**: NO debe ver este panel (exclusivo Super Admin).
+- **Descargar plantilla**: confirma que baja un Excel con encabezado NIT + los 12 meses.
+- **Validar** con un archivo real: revisa que los conteos de coincidentes/no coincidentes sean correctos.
+- **Procesar** solo después de validar y confirmar que los números tienen sentido — la acción pide confirmación antes de aplicar.
 
-## 7. Verificado antes de empaquetar
+## 7. Nota sobre frecuencia de actualización (conexión ERP, recordatorio)
 
-- Sintaxis validada: `node --check modulo_15_conexion_erp.js` sin errores; `styles.css` con llaves balanceadas (413/413); `index.html` sin tags huérfanos ni IDs duplicados.
-- Probado en vivo contra la base de datos real de Supabase (lectura y escritura de configuración vía RPC desde el navegador): funciona correctamente extremo a extremo.
-- Render visual verificado en la app en producción (inyección en vivo): coincide con el mockup aprobado, en los estados "deshabilitado" y "habilitado + modo link".
-- El disparo real de sincronización (descarga del Sheet + actualización de clientes) NO se pudo probar todavía — depende de que completes el paso del secreto y me compartas el link del Sheet.
-- Los datos de prueba que usé durante la verificación (URL ficticia, habilitado=true) ya fueron limpiados de la base de datos real.
+Confirmaste que la actualización de ventas vía conexión remota (ERP) debe poder refrescarse máximo una vez al día, reflejando el consolidado del día anterior. El diseño actual ya cumple esto: el cron revisa cada 15 minutos si ya llegó la hora programada, pero solo dispara una vez dentro de esa ventana — no hay riesgo de refrescos múltiples en el mismo día.
 
 ## 8. Pendiente (sin tocar en esta entrega)
 
 - Renombrar "Super Administrador" a "Administrador" sigue pendiente — NO aplicar hasta nueva instrucción explícita (tarea #50).
-- Link del Google Sheet real de pruebas — pendiente de que lo compartas.
-- Configuración del secreto `RADAR_CRON_SECRET` en Supabase — pendiente de que la realices (sección 2).
+- Regenerar el simulador de Google Drive con los NIT reales (archivos `Ventas_2025_Historico.xlsx`/`Ventas_2026_Actual.xlsx` ya entregados) para poder probar la conexión ERP con coincidencias reales.
+- Fase futura (mencionada pero no construida aún): proceso completo de activación de un cliente/empresa nueva desde cero, incluyendo carga de maestro de clientes — quedó explícitamente fuera de esta entrega por decisión tuya, se hace después de validar este flujo de histórico.

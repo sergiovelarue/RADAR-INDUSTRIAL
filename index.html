@@ -325,6 +325,58 @@
           <button class="btn" id="downloadMasterDataBtn">Descargar asignación actualizada</button>
           <button class="btn ghost" id="downloadMasterLogBtn">Descargar historial de cambios</button>
         </div>
+
+        <div class="hist-panel-v1621" id="histPanelV1621">
+          <div class="panel-header">
+            <div>
+              <h3>Cargar histórico de ventas (año anterior)</h3>
+              <p>Establece la base comparativa (año anterior) usada por Cumplimiento, Alarmas y Proyección. Se ejecuta una vez por año, o al activar un cliente nuevo con datos previos.</p>
+            </div>
+          </div>
+
+          <div class="hist-warning-v1621">
+            <div class="hist-warning-title-v1621"><span>Antes de cargar</span></div>
+            <ul>
+              <li>Los NIT del archivo deben coincidir exactamente con los NIT ya existentes en la base de clientes.</li>
+              <li>Esta carga <strong>reemplaza</strong> el histórico del año seleccionado. La venta del año en curso no se toca.</li>
+              <li>Se recomienda exportar un respaldo (sección "Sincronización de datos", más abajo en esta pestaña) antes de continuar.</li>
+              <li>Los NIT que no coincidan con ningún cliente existente NO se cargarán — este panel no crea clientes nuevos.</li>
+            </ul>
+          </div>
+
+          <div class="hist-grid-v1621">
+            <div>
+              <label>Año que se está cargando</label>
+              <select id="histAnioV1621">
+                <option value="2025" selected>2025</option>
+                <option value="2024">2024</option>
+              </select>
+            </div>
+            <div>
+              <label>Archivo (.xlsx, .xls, .csv)</label>
+              <input type="file" id="histArchivoV1621" accept=".xlsx,.xls,.csv"/>
+            </div>
+          </div>
+
+          <div class="hist-actions-v1621">
+            <button class="btn ghost" id="histPlantillaBtnV1621">Descargar plantilla</button>
+            <button class="btn" id="histValidarBtnV1621">Validar archivo</button>
+            <button class="btn secondary" id="histProcesarBtnV1621" disabled>Procesar carga</button>
+          </div>
+
+          <div class="hist-resultado-v1621" id="histResultadoV1621" style="display:none">
+            <p class="hist-resultado-titulo-v1621">Resultado de validación</p>
+            <div class="hist-resultado-grid-v1621">
+              <div class="hist-stat-v1621"><span>Filas en archivo</span><strong id="histStatFilasV1621">—</strong></div>
+              <div class="hist-stat-v1621 hist-stat-ok-v1621"><span>NIT coincidentes</span><strong id="histStatOkV1621">—</strong></div>
+              <div class="hist-stat-v1621 hist-stat-error-v1621"><span>NIT sin coincidencia</span><strong id="histStatErrorV1621">—</strong></div>
+            </div>
+            <p class="hist-resultado-nota-v1621">Los NIT sin coincidencia no se cargarán. Descárgalos para revisarlos antes de procesar.</p>
+            <button class="btn ghost" id="histDescargarNoCoincidentesBtnV1621" style="display:none">Ver / descargar NIT sin coincidencia</button>
+          </div>
+
+          <div class="hist-estado-v1621" id="histEstadoV1621"><strong>Estado:</strong> pendiente de carga.</div>
+        </div>
       </section>
 
 
@@ -1301,6 +1353,7 @@
   <script src="modulo_13_recomendadas_movil.js"></script>
   <script src="modulo_14_dashboard_top_movil.js"></script>
   <script src="modulo_15_conexion_erp.js"></script>
+  <script src="modulo_16_historico_ventas.js"></script>
   <script>
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();
