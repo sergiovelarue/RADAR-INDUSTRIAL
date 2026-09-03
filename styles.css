@@ -79,68 +79,93 @@ input,select,textarea{font-size:16px}
      normal debajo del encabezado fijo (que ahora solo contiene el
      logo y las pestañas), y se desplaza junto con el resto de la
      página como cualquier otro contenido. */
-  /* V15.9 - Pedido de Sergio (03-sep-2026): en el footer móvil,
-     "Actualizar datos" pasa a ser solo un botón circular con ícono
-     (sin texto) para no ocupar ancho innecesario, y el
-     nombre/rol + "Cerrar sesión" se agrupan en una columna a la
-     derecha, para dar más espacio horizontal al contenido real.
-     El texto del botón se oculta con CSS (no se quita del HTML) para
-     no afectar accesibilidad/lectores de pantalla: se usa
-     aria-label + title en el propio botón. */
+  /* V15.12 - Pedido de Sergio (03-sep-2026), aprobado sobre mockup
+     interactivo antes de aplicarlo: se reemplaza el diseño de V15.9
+     (footer del menú con botón+nombre en una fila) por dos cambios
+     de ubicación: "Actualizar datos" pasa a ser un botón flotante
+     apilado arriba del botón de soporte (ver .refresh-btn-floating-v160
+     más abajo), y el nombre+cargo+"Cerrar sesión" pasan al encabezado
+     superior (ver .topbar-titulo-v160/.topbar-session-slot-v160 en el
+     bloque @media(max-width:760px) de más abajo, y el reparenting real
+     en topbar-movil-v154.js). El footer del menú lateral queda sin
+     contenido visible en móvil — ambos elementos se reparentaron fuera
+     de él, así que no hace falta darle estilos especiales aquí. */
   .sidebar-footer.sidebar-footer-mobile-v154{
-    position:static;
-    width:100%;
-    box-sizing:border-box;
-    background:var(--dark);
-    color:white;
-    padding:10px 16px 14px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    z-index:auto;
+    display:none;
   }
-  .sidebar-footer.sidebar-footer-mobile-v154 #refreshDataBtn{
-    width:40px!important;
-    height:40px;
-    min-width:40px;
-    margin-bottom:0!important;
-    padding:0!important;
-    border-radius:999px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:18px;
-    flex:0 0 auto;
-    order:1;
-  }
-  .sidebar-footer.sidebar-footer-mobile-v154 #refreshDataBtn .refresh-btn-text{display:none}
-  .sidebar-footer.sidebar-footer-mobile-v154 .session-info-v159{
-    order:2;
+
+  /* V15.12 - Encabezado superior: título+versión a la izquierda,
+     nombre+cargo+"Cerrar sesión" a la derecha, misma línea, sobre las
+     pestañas. El nodo real (.session-info-v159, con sessionRoleLabel
+     y logoutBtn dentro) se reparenta aquí vía JS — este selector solo
+     define cómo se ve una vez está dentro de #topbarSessionSlotV160. */
+  .topbar-titulo-v160{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;flex:1 1 auto;min-width:0}
+  .topbar-titulo-v160 h2{margin:0;font-size:17px}
+  .topbar-version-v160{font-size:11px;color:var(--muted);font-weight:800}
+  .topbar-titulo-v160 .today-badge{flex-basis:100%;margin:2px 0 0}
+  .topbar-titulo-v160 p{flex-basis:100%;margin:2px 0 0}
+  .topbar-session-slot-v160{flex:0 0 auto;order:2}
+  .topbar-session-slot-v160 .session-info-v159{
     display:flex;
     flex-direction:column;
     align-items:flex-end;
     gap:2px;
     text-align:right;
   }
-  .sidebar-footer.sidebar-footer-mobile-v154 small#sessionRoleLabel{
+  .topbar-session-slot-v160 small#sessionRoleLabel{
     display:block;
     font-size:11px;
-    color:#cbd5e1;
+    color:var(--muted);
     white-space:nowrap;
     max-width:150px;
     overflow:hidden;
     text-overflow:ellipsis;
   }
-  .sidebar-footer.sidebar-footer-mobile-v154 #logoutBtn{
+  .topbar-session-slot-v160 .session-nombre-v160{display:block;font-weight:800;color:var(--ink)}
+  .topbar-session-slot-v160 .session-cargo-v160{display:block;color:var(--muted)}
+  .topbar-session-slot-v160 #logoutBtn{
+    display:block;
+    font-size:11px;
+    padding:2px 0;
+  }
+  #exportCsvBtn{order:3;flex:0 0 auto}
+
+  /* V15.12 - "Actualizar datos" flotante, apilado justo arriba del
+     botón de soporte (.soporte-fab, ver soporte-v1.css: 56px,
+     right:20px, bottom:20px, con override a right:14px;bottom:14px
+     en @media max-width:760px). Aquí solo se define el tamaño/forma;
+     la posición fixed final (que depende del breakpoint del botón de
+     soporte) se define abajo, en el bloque @media(max-width:760px),
+     para que ambos botones queden siempre alineados entre sí. */
+  #refreshDataBtn.refresh-btn-floating-v160{
+    position:fixed;
+    right:20px;
+    bottom:86px;
+    width:40px!important;
+    height:40px;
+    min-width:40px;
+    margin:0!important;
+    padding:0!important;
+    border-radius:999px;
     display:flex;
     align-items:center;
-    gap:4px;
-    font-size:11px;
+    justify-content:center;
+    font-size:16px;
+    box-shadow:0 12px 30px rgba(15,23,42,.35);
+    z-index:1500;
   }
+  #refreshDataBtn.refresh-btn-floating-v160 .refresh-btn-text{display:none}
 }
 @media(max-width:760px){
-  .topbar{flex-direction:column;align-items:flex-start}
+  /* V15.12 - se mantiene flex-wrap (no flex-direction:column) para
+     que el título y el bloque de sesión (nombre+cargo+cerrar sesión)
+     sigan en la misma línea horizontal, como se pidió y aprobó sobre
+     el mockup — solo "Exportar CSV" pasa a su propia línea debajo
+     mediante flex-basis:100% (ver #exportCsvBtn más abajo). */
+  .topbar{flex-wrap:wrap;align-items:flex-start;row-gap:8px}
+  .topbar-titulo-v160{min-width:0}
+  .topbar-titulo-v160 h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  #exportCsvBtn{flex-basis:100%}
   /* V15.9/V15.10 - causa raíz real del desborde en Hoja de Ruta
      (única pestaña afectada, confirmado 03-sep-2026): la regla
      suelta ".filters{grid-template-columns:repeat(auto-fit,
@@ -198,6 +223,12 @@ input,select,textarea{font-size:16px}
   .route-pagination{flex-direction:column;align-items:stretch;gap:10px;padding:12px 4px 4px}
   .route-pagination .pagination-controls{justify-content:space-between}
   .route-pagination .pagination-controls button{flex:1}
+
+  /* V15.12 - .soporte-fab pasa a right:14px;bottom:14px en este
+     breakpoint (ver soporte-v1.css) — el botón de actualizar datos
+     debe moverse con él para seguir apilado justo arriba, con el
+     mismo gap de 10px (14+56+10=80px desde abajo). */
+  #refreshDataBtn.refresh-btn-floating-v160{right:14px;bottom:80px}
 }
 @media(max-width:420px){
   .login-card{padding:20px}

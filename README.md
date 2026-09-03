@@ -1,46 +1,43 @@
-# Mejoras_20260903_1500 — Causa raíz REAL y verificada del desborde en Hoja de Ruta
+# Mejoras_20260903_1630 — Reubicación de "Actualizar datos" y de nombre/cargo/cerrar sesión (móvil)
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.11 · 2026-09-03**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.12 · 2026-09-03**
 
-Continuación de `Mejoras_20260903_1330` (V15.10). Reportaste que el desborde seguía igual: el encabezado (franja azul oscuro superior) se veía más angosto que el contenido de abajo, generando movimiento lateral al hacer scroll. Esta vez el diagnóstico no se hizo por inspección de código sino midiendo el DOM real de la app en producción, con sesión iniciada, en viewport móvil (375px) — así se encontró y confirmó la causa exacta antes de escribir el fix.
+Continuación de `Mejoras_20260903_1500` (V15.11). Se validó un mockup interactivo con Sergio antes de tocar código real, y se aplicó exactamente lo aprobado.
 
-## 1. Por qué V15.9 y V15.10 no fueron suficientes
+## 1. Qué cambió, punto por punto
 
-Ambos intentos corrigieron correctamente el grid de `.filters` (el problema que yo había diagnosticado por lectura de código), y verificado en el DOM real, ese grid efectivamente ya queda contenido en 360px sin desbordar. El problema real nunca fue el grid de filtros — era otro elemento, más arriba en la jerarquía, que yo no había medido directamente.
+**1) "Actualizar datos" ahora es un botón flotante.** En móvil, pasó de estar dentro del footer del menú lateral a ser un botón circular (40px) flotante en la esquina inferior derecha, apilado justo arriba del botón de soporte (56px) — mismo estilo visual, más pequeño, separado por un espacio de 10px. Se mueve junto con el botón de soporte cuando el breakpoint más angosto (≤760px) lo reposiciona más cerca del borde.
 
-## 2. Causa raíz real (confirmada midiendo el DOM en vivo)
+**2) Nombre + cargo + "Cerrar sesión" ahora viven en el encabezado superior.** En la misma línea que el título de la pestaña (ej. "Hoja de Ruta del Mes") y la versión de la app, alineados a la derecha, sobre las pestañas — antes vivían en el footer del menú lateral. El nombre y el cargo quedan en líneas separadas (aprobado sobre el mockup), con "Cerrar sesión" debajo.
 
-El contenedor `.main` (que envuelve TODO el contenido de cada pestaña, incluida Hoja de Ruta) medía **388px de ancho real en un viewport de 375px** — un desborde de 13px — mientras `html`, `body`, `.app` y `.sidebar` medían correctamente 375px. Se aisló el problema probando en vivo: al quitarle a `.main` la propiedad `margin` (que en desktop es `margin:0 auto`, para centrar el contenido en pantallas anchas), su ancho volvió exactamente a 375px.
+## 2. Cómo se implementó (para que quede documentado)
 
-La explicación técnica: con `margin:auto` en un elemento de tipo `block` dentro de un contenedor flex con `flex-direction:column`, el navegador calcula el ancho "natural" de ese elemento usando su `max-width:1600px` casi como si tuviera espacio disponible ilimitado, en vez de limitarlo estrictamente al ancho real del padre. Es un comportamiento real de motor de renderizado, no una suposición — quedó verificado en el propio sitio en producción, no en una copia local.
+Ninguno de los dos elementos se duplicó en el HTML — se reubicó el nodo real del DOM según el ancho de pantalla (técnica ya usada en el proyecto para el nombre de sesión). Esto es importante porque `app.js` y `mejoras-v1.js` ya tienen lógica y listeners enganchados a esos IDs exactos (`sessionRoleLabel`, `logoutBtn`, `refreshDataBtn`); duplicar el ID habría roto esa lógica o dejado un elemento sin funcionalidad. En vez de eso, el mismo botón/bloque se mueve de contenedor en el DOM según el tamaño de pantalla, conservando toda su funcionalidad.
 
-**Por qué solo se notaba en Hoja de Ruta:** este bug de 13px afecta a `.main` en TODAS las pestañas por igual (es el contenedor de toda la app), pero en la mayoría de pestañas el contenido interno no tiene tanta variedad de elementos anchos como para hacer evidente el desborde. Hoja de Ruta, con 8 filtros simultáneos y una tabla de cientos de clientes, es donde el movimiento lateral se nota de forma clara al usuario.
+**Bug encontrado y corregido durante la verificación en vivo (antes de entregar):** el primer intento le daba a "Actualizar datos" `position:fixed` sin sacarlo del `.sidebar-footer`, que en móvil pasó a `display:none` (porque ya no tiene contenido visible propio). Un elemento con `position:fixed` dentro de un ancestro con `display:none` no se renderiza — mide 0×0 — sin importar el `position:fixed`. Se confirmó esto probando en vivo contra el sitio real, y se corrigió reparentando el botón a `document.body` en móvil, igual que ya se hacía con el bloque de sesión.
 
-## 3. La corrección
+**Verificación:** se probó el resultado completo inyectado en vivo sobre el sitio en producción (sesión real iniciada, viewport 375px) antes de empaquetar esta entrega — no se entregó a ciegas.
 
-Se anula `margin` en `.main` dentro del breakpoint `@media(max-width:1100px)` (`.main{padding:14px;margin:0}`). En móvil no hace falta centrar nada — `.main` ya debe ocupar el 100% del ancho disponible. La regla original de desktop (`margin:0 auto`, para centrar contenido en pantallas anchas) no se toca, sigue funcionando igual ahí.
-
-**Verificación en vivo, no solo en teoría:** se probó el fix inyectándolo directamente en el sitio real en producción (sesión con datos reales de Hoja de Ruta cargados) y se confirmó que tras el cambio, `.main` mide exactamente 375px = viewport, y `document.body.scrollWidth` también queda en 375px, sin ningún desborde.
-
-## 4. Archivos de este paquete
+## 3. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `styles.css` | Reemplazar — único cambio real: `margin:0` agregado a `.main` dentro del breakpoint móvil. |
-| `version.js` | Reemplazar — sube a V15.11. |
+| `index.html` | Reemplazar — nueva estructura del encabezado (`topbar-titulo-v160`, `topbar-session-slot-v160`). |
+| `styles.css` | Reemplazar — estilos del nuevo encabezado y del botón flotante; se retira el diseño anterior del footer móvil (V15.9), que ya no aplica. |
+| `topbar-movil-v154.js` | Reemplazar — lógica de reparenting de nombre/cargo/logout y del botón de actualizar según el ancho de pantalla. |
+| `version.js` | Reemplazar — sube a V15.12. |
 
-No se tocó ningún otro archivo.
+No hay cambios en Supabase en esta entrega.
 
-## 5. Pasos para subir a GitHub
+## 4. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza `styles.css` y `version.js`.
-3. Espera el deploy de Netlify y confirma "Published" en la pestaña Deploys.
+2. Reemplaza los 4 archivos de la tabla (todos ya existían, ninguno es nuevo).
+3. Espera el deploy de Netlify y confirma "Published".
 4. Prueba en modo incógnito o borrando caché del sitio.
-5. Verifica en el celular: entra a Hoja de Ruta y confirma que el encabezado azul oscuro (arriba) y el contenido de abajo (filtros, KPIs, tabla) tienen exactamente el mismo ancho, sin ningún movimiento lateral al hacer scroll — igual que en las demás pestañas.
+5. Verifica en el celular: el título + versión están a la izquierda del encabezado superior, el nombre + cargo + "Cerrar sesión" están a la derecha en esa misma franja, y en la esquina inferior derecha aparecen dos botones circulares apilados — el de actualizar (más pequeño, arriba) y el de soporte (más grande, abajo).
 
-## 6. Pendiente (sin tocar, a la espera de tu confirmación)
+## 5. Pendiente (sin tocar en esta entrega)
 
-- Nada más se toca hasta que confirmes que Hoja de Ruta quedó igual que las demás pestañas.
-- Renombrar "Super Administrador" a "Administrador" sigue pendiente.
+- Renombrar "Super Administrador" a "Administrador" sigue pendiente, no aplicado.
 - Conexión real a la API de Claude para el Motor ARC — sigue pendiente.
