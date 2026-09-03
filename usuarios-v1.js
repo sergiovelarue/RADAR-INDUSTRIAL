@@ -66,12 +66,14 @@ function usuariosInsertarPanelV1() {
       <input type="search" id="usuariosBuscar" placeholder="Buscar por correo o nombre…"/>
       <span id="usuariosCount" class="usuarios-count"></span>
     </div>
-    <table class="sistema-admin-table">
-      <thead>
-        <tr><th>Correo</th><th>Nombre</th><th>Teléfono</th><th>Último ingreso</th><th>Acciones</th></tr>
-      </thead>
-      <tbody id="usuariosTableBody"><tr><td colspan="5">Cargando…</td></tr></tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="sistema-admin-table">
+        <thead>
+          <tr><th>Correo</th><th>Nombre</th><th>Teléfono</th><th>Último ingreso</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="usuariosTableBody"><tr><td colspan="5">Cargando…</td></tr></tbody>
+      </table>
+    </div>
   `;
   // Se ubica antes del catálogo de canales/zonas, al final de la vista.
   const canalPanel = $("canalCatalogPanel");

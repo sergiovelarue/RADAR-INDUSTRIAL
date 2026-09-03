@@ -1,45 +1,51 @@
-# Mejoras_20260903_0818 — Ajustes de estabilidad móvil
+# Mejoras_20260903_0952 — Estabilidad móvil real (header, navegación, tablas)
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.7 · 2026-09-03**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.8 · 2026-09-03**
 
-Continuación de `Mejoras_20260903_0758` (Motor ARC). Este paquete corrige lo que Sergio reportó tras probar esa entrega: el aviso "próximamente disponible" era demasiado grande (sobre todo en celular), y hay pantallas que se desbordan y no permiten scroll fluido en móvil.
+Continuación de `Mejoras_20260903_0818`. Responde punto por punto a lo que Sergio reportó con evidencia de screenshot real tras subir esa entrega.
 
-## 1. Qué cambió
+## 1. Causa raíz encontrada (importante)
 
-**Aviso "IA próximamente" simplificado.** Antes era una tarjeta grande (ícono circular + título + subtítulo). Ahora es un chip pequeño de una sola línea ("✨ IA próximamente"), con la explicación completa disponible solo como tooltip (al pasar el mouse en computador) — en celular el texto corto ya es suficiente, no hace falta el detalle largo ocupando espacio. Afecta `motor-arc-v1.css` y `modulo_11_motor_arc.js`.
+El archivo `topbar-movil-v154.js`, referenciado en `index.html` desde hace semanas, **nunca existía en el proyecto** (confirmado: no está en ninguna carpeta de entrega anterior). `styles.css` ya tenía preparada la clase `.sidebar-footer-mobile-v154` para resolver exactamente el problema del encabezado móvil, pero como el JS que aplica esa clase nunca se subió, esa solución nunca entró en funcionamiento. Mientras tanto, mi corrección de la entrega pasada (`Mejoras_20260903_0758`) agregó un CSS embebido en `index.html` que competía con el sistema responsive real de `styles.css` (`@media max-width:1100px`, que convierte el menú lateral en barra horizontal con pestañas deslizables) — de ahí que el nav se viera cortado y el encabezado inestable.
 
-**Tabla de administradores (pestaña Sistema) sin scroll horizontal — corregido.** La tabla de administradores (Correo/Nombre/Rol/Último ingreso/Acciones) no tenía el mismo wrapper de scroll horizontal que ya usan las demás tablas de la app (`.table-scroll`). En celular, esa tabla se salía de la pantalla sin forma de desplazarla. Ahora tiene scroll horizontal propio, controlado y fluido. Afecta `sistema-v1.js` y `sistema-v1.css`.
+**Esta entrega corrige la causa raíz**, no otro parche encima: se retira el CSS embebido que competía, y se recrea `topbar-movil-v154.js` siguiendo exactamente lo que ya estaba previsto en `styles.css`.
 
-**Selector de mes en "Metas y presupuestos" con ancho mínimo fijo — corregido.** Tenía `min-width:220px`, que en celulares angostos (320-360px de ancho, ej. iPhone SE) podía forzar desborde horizontal. Ahora se ajusta al ancho disponible. Afecta `metas-v1.css`.
+## 2. Qué cambió, punto por punto (tu reporte)
 
-**Botón "Analizar con IA" en la tabla de clientes sugeridos — corregido.** La zona del botón tenía un ancho mínimo de 220px que, sumado a las otras 7 columnas de esa tabla, empeoraba el desborde en móvil. Se quitó ese mínimo — el botón se ajusta al espacio real disponible. Afecta `motor-arc-v1.css`.
+**1) Header y nav inestables en Hoja de ruta.** Resuelto por lo descrito arriba: `topbar-movil-v154.js` reactiva el comportamiento móvil correcto ya preparado en `styles.css`. El nav de pestañas ahora es deslizable horizontalmente sin cortarse, y el pie del menú (Actualizar datos / nombre / Cerrar sesión) pasa a ser una fila normal debajo del encabezado en vez de competir por espacio.
 
-## 2. Sobre "simplificar textos"
+**2) Cajones grandes: Acciones recomendadas y Prospección.** La tabla de clientes sugeridos en "Seguimiento diario → Acciones recomendadas" ahora se contrae en celular igual que ya funcionaba en "Hoja de ruta": se ve solo la razón social, y al tocar la tarjeta se expande mostrando el resto de datos. Los cajones de filtro/búsqueda de Prospección se redujeron en alto (menos padding, etiquetas más pequeñas) sin tocar el tamaño de los campos de escritura (se mantiene 16px para que no dispare el zoom automático de iPhone).
 
-Revisé los textos de ayuda de la app (descripciones bajo cada panel, `field-help`, etc.). La mayoría explica reglas de negocio reales que el usuario necesita saber — quién ve qué panel, qué hace cada botón, qué modifica y qué no. No encontré texto incorrecto, engañoso o innecesario que debiera eliminarse: el problema de desborde no venía del contenido de los textos sino de tablas y selectores sin el tratamiento responsive correcto (detallado arriba). Si en el celular ves algún texto específico que sientas largo o redundante, dime cuál exactamente y lo ajustamos con precisión — prefiero no recortar contenido útil "a ciegas".
+**3) Nombre del asesor y Score en Acciones recomendadas.** El nombre del asesor ahora muestra solo el primer nombre, no nombre y apellido. La columna Score se oculta para el asesor (solo le sirve al administrador para comparar entre varios asesores, no le aporta nada a quien ya ve su propia lista ordenada).
+
+**4) Nombre en el encabezado simplificado.** Se corrigió también un bug que no habías señalado directamente pero que se veía en tu captura: el nombre aparecía duplicado ("HERCILIA MUÑOZ · Asesor · HERCILIA MUÑOZ"), porque la función que arma ese texto usa el nombre dos veces cuando el usuario es asesor. Ahora muestra solo el primer nombre, una vez: "Hercilia · Asesor".
+
+**5) Botón "Actualizar datos": ¿es necesario?** Sí cumple una función real — refresca los datos desde Supabase (clientes, configuración, y para administradores también usuarios/metas/soporte) sin tener que recargar toda la página. No se eliminó, pero se sacó del bloque fijo superior en móvil (mismo mecanismo del punto 1), para que no le quite espacio al nav ni al nombre de sesión.
+
+**6) Bug de navegación: contenido de una pestaña visible en otra.** Encontrado y confirmado en el código: cada módulo nuevo (Ajustes, Sistema, Alarmas, Ranking) mantenía su propia lista fija de "qué otras vistas ocultar al entrar", y esas listas quedaron desactualizadas entre sí a medida que se agregaban pestañas nuevas — por ejemplo, si visitabas "Ajustes" y luego "Metas" o "Alarmas", la vista de Ajustes podía quedar visible por debajo. Se corrigió con un módulo nuevo (`modulo_12_navegacion_estable.js`) que reemplaza ese patrón frágil por una lista única y centralizada de las 12 pestañas reales, aplicada siempre, sin importar el orden en que se visiten.
 
 ## 3. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `index.html` | Reemplazar (sin cambios de contenido en esta entrega respecto a la anterior, pero se re-entrega completo por consistencia). |
+| `index.html` | Reemplazar — quita el CSS viejo que competía, agrega 2 `<link>` y 3 `<script>` nuevos. |
 | `version.js` | Reemplazar — sube el número de versión. |
-| `modulo_11_motor_arc.js` | Reemplazar el de la entrega anterior. |
-| `motor-arc-v1.css` | Reemplazar el de la entrega anterior. |
-| `sistema-v1.js` | Reemplazar — agrega wrapper de scroll a la tabla de administradores. |
-| `sistema-v1.css` | Reemplazar — agrega red de seguridad de scroll horizontal. |
-| `metas-v1.css` | Reemplazar — corrige el selector de mes. |
+| `topbar-movil-v154.js` | **Archivo nuevo** — recreado, resuelve el header móvil de raíz. |
+| `modulo_12_navegacion_estable.js` | **Archivo nuevo** — corrige el bug de navegación entre pestañas. |
+| `modulo_13_recomendadas_movil.js` | **Archivo nuevo** — contrae tarjetas, acorta nombre de asesor, oculta Score. |
+| `movil-v1.css` | **Archivo nuevo** — estilos de tarjeta contraída y filtros compactos de Prospección. |
+| `usuarios-v1.js` | Reemplazar — se encontró y corrigió la misma tabla-sin-scroll-horizontal que ya se había corregido en Sistema (auditoría completa de todas las pestañas, tal como pediste). |
 
-No hay cambios en Supabase en esta entrega (el `06_motor_arc.sql` de la entrega anterior sigue siendo el vigente, no se repite aquí).
+No hay cambios en Supabase en esta entrega.
 
 ## 4. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza cada uno de los 7 archivos de este paquete con su versión anterior (editar, borrar todo, pegar el nuevo contenido, Commit changes).
-3. Espera 1-2 minutos y verifica en tu celular: abre "Sistema" (si eres Super Administrador) y revisa la tabla de administradores con scroll horizontal; abre "Metas y presupuestos" y revisa el selector de mes; abre "Seguimiento diario" y revisa que el aviso "IA próximamente" (si el Motor ARC sigue desactivado) se vea como un chip pequeño, no una tarjeta grande.
+2. Sube los 3 archivos nuevos (`topbar-movil-v154.js`, `modulo_12_navegacion_estable.js`, `modulo_13_recomendadas_movil.js`, `movil-v1.css` — son 4, no 3, revisa la tabla arriba) como archivos nuevos.
+3. Reemplaza `index.html`, `version.js` y `usuarios-v1.js` con el contenido de este paquete.
+4. Espera 1-2 minutos y prueba en tu celular: entra como asesor, revisa que el nav de pestañas se pueda deslizar sin cortarse, que tu nombre aparezca una sola vez y corto, que "Acciones recomendadas" se vea en tarjetas contraídas, y navega entre varias pestañas seguidas (Ajustes → Metas → Alarmas → Hoja de ruta) para confirmar que no queda nada de una pestaña anterior visible.
 
 ## 5. Pendiente (sin tocar en esta entrega)
 
-- Renombrar "Super Administrador" a "Administrador" en los textos visibles al usuario (pedido explícito de Sergio, guardado para un próximo cambio, no aplicado aquí).
+- Renombrar "Super Administrador" a "Administrador" en textos visibles al usuario (sigue pendiente, no aplicado).
 - Conexión real a la API de Claude para el Motor ARC.
-- El archivo `topbar-movil-v154.js` referenciado en `index.html` sigue sin existir en el proyecto (reportado en la entrega anterior, no corregido todavía).

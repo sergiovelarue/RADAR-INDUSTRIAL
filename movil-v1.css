@@ -1,0 +1,54 @@
+/* ============================================================
+   V1 — Ajustes de estabilidad y espacio en celular (03-sep-2026)
+   ------------------------------------------------------------
+   Correcciones puntuales pedidas por Sergio tras probar la app en
+   celular real. Archivo separado (no se mezcla con motor-arc-v1.css,
+   que es específico del agente de IA) para que sea claro qué CSS
+   pertenece a qué mejora.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1) "Acciones recomendadas" (Seguimiento diario): tarjeta
+   compacta en celular, mismo patrón que #routeTable en styles.css
+   (Hoja de ruta) — colapsada solo muestra Cliente, se expande al
+   tocar la fila.
+   ------------------------------------------------------------ */
+@media (max-width:760px){
+  #recomendadasTable tr{position:relative;cursor:pointer;padding-right:34px}
+  #recomendadasTable td{display:none}
+  #recomendadasTable td[data-label="Cliente"]{display:block;padding:6px 0 0}
+  #recomendadasTable td[data-label="Cliente"]::before{display:none}
+  #recomendadasTable tr::after{content:"\25BE";position:absolute;top:14px;right:12px;color:var(--muted);font-size:16px;transition:transform .15s ease}
+  #recomendadasTable tr.row-expanded::after{transform:rotate(180deg)}
+  #recomendadasTable tr.row-expanded td{display:flex;padding:9px 0;border-top:1px solid var(--line)}
+  #recomendadasTable tr.row-expanded td[data-label="Cliente"]{border-top:none;padding-top:0}
+  #recomendadasTable tr.row-expanded td[data-label=""]{justify-content:center;padding-top:10px}
+  #recomendadasTable tr.row-expanded td[data-label=""] button{width:100%}
+  #recomendadasTable tr.row-expanded .motor-arc-zone{width:100%}
+}
+
+/* ------------------------------------------------------------
+   2) Prospección: los cajones de filtro/búsqueda son más altos de
+   lo necesario en celular — se reduce el padding vertical y el
+   tamaño de fuente de las etiquetas sin afectar el tamaño mínimo de
+   los campos (se conserva font-size:16px en inputs para no disparar
+   el zoom automático de iOS).
+   ------------------------------------------------------------ */
+@media (max-width:760px){
+  #prospeccionView .filters,
+  #prospeccionView .mgmt-toolbar{
+    padding:12px;
+    gap:8px;
+  }
+  #prospeccionView .filters label,
+  #prospeccionView .mgmt-toolbar label{
+    font-size:11px;
+    margin-bottom:3px;
+  }
+  #prospeccionView .filters select,
+  #prospeccionView .filters input,
+  #prospeccionView .mgmt-toolbar input,
+  #prospeccionView .mgmt-toolbar select{
+    padding:8px 10px;
+  }
+}

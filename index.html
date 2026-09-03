@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="usuarios-v1.css"/>
   <link rel="stylesheet" href="metas-v1.css"/>
   <link rel="stylesheet" href="motor-arc-v1.css"/>
+  <link rel="stylesheet" href="movil-v1.css"/>
   <style>
     /* ============================================================
        V107 — Checkbox de autorización de datos personales (login).
@@ -62,81 +63,17 @@
     }
 
     /* ============================================================
-       V107 — Corrección responsive del pie de la barra lateral
-       (botón "Actualizar datos", nombre del asesor/rol y "Cerrar
-       sesión") en pantallas de celular.
-       ------------------------------------------------------------
-       Pedido de Sergio (12-ago-2026): en vista de asesor desde el
-       celular, esos tres elementos se salen de la pantalla. Como
-       styles.css no forma parte de los archivos entregados en este
-       paquete y no se puede editar, se fuerza aquí (con !important
-       donde es necesario) un comportamiento seguro en móvil: el
-       botón de actualizar se hace más compacto, el nombre del
-       asesor se ajusta con salto de línea/tamaño reducido en vez de
-       desbordar, y "Cerrar sesión" queda siempre visible dentro del
-       ancho de pantalla. No se toca la vista de escritorio (los
-       cambios están dentro de @media max-width:780px).
+       NOTA (2026-09-03): el fix responsive del pie de la barra
+       lateral que vivía aquí (V107, 12-ago-2026) se retira — competía
+       con el sistema responsive real que ya trae styles.css
+       (@media max-width:1100px convierte .sidebar en barra
+       horizontal con nav scrolleable; @media max-width:760px reduce
+       tipografía). Las dos reglas activas a la vez rompían el layout
+       (nav se cortaba, pie de barra no se alineaba). La corrección
+       correcta es topbar-movil-v154.js, que ya estaba previsto en
+       styles.css (clase .sidebar-footer-mobile-v154) pero nunca se
+       había subido — ver ese archivo nuevo.
        ============================================================ */
-    @media (max-width:780px){
-      .sidebar{
-        max-width:100vw;
-        box-sizing:border-box;
-        overflow-x:hidden;
-      }
-      .sidebar-footer{
-        box-sizing:border-box;
-        width:100%;
-        max-width:100%;
-        padding-left:10px;
-        padding-right:10px;
-        overflow:hidden;
-      }
-      /* Botón "↻ Actualizar datos": más compacto para dejar espacio
-         al nombre del asesor y al link de cerrar sesión. */
-      .sidebar-footer #refreshDataBtn{
-        width:100% !important;
-        font-size:12.5px !important;
-        padding:8px 6px !important;
-        min-height:36px;
-        box-sizing:border-box;
-        white-space:normal;
-        line-height:1.25;
-      }
-      /* Nombre del asesor / rol de sesión: en vez de desbordar en
-         una sola línea, se ajusta al ancho disponible. */
-      .sidebar-footer #sessionRoleLabel{
-        display:block;
-        width:100%;
-        max-width:100%;
-        box-sizing:border-box;
-        white-space:normal;
-        overflow-wrap:break-word;
-        word-break:break-word;
-        font-size:12px;
-        line-height:1.3;
-        margin:6px 0;
-      }
-      /* "Cerrar sesión": queda como bloque propio, con área de toque
-         cómoda, sin depender de que el texto anterior le deje espacio. */
-      .sidebar-footer #logoutBtn{
-        display:inline-block;
-        width:100%;
-        box-sizing:border-box;
-        text-align:center;
-        white-space:nowrap;
-        overflow:hidden;
-        text-overflow:ellipsis;
-        font-size:13px;
-        padding:8px 4px;
-        min-height:36px;
-        line-height:1.3;
-      }
-    }
-    @media (max-width:360px){
-      .sidebar-footer #refreshDataBtn{font-size:11.5px !important; padding:7px 4px !important}
-      .sidebar-footer #sessionRoleLabel{font-size:11px}
-      .sidebar-footer #logoutBtn{font-size:12px}
-    }
   </style>
 </head>
 <body>
@@ -1283,6 +1220,8 @@
   <script src="hoja-ruta-v15.js"></script>
   <script src="topbar-movil-v154.js"></script>
   <script src="modulo_11_motor_arc.js"></script>
+  <script src="modulo_12_navegacion_estable.js"></script>
+  <script src="modulo_13_recomendadas_movil.js"></script>
   <script>
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();
