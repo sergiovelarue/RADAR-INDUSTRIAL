@@ -42,8 +42,15 @@
 
 .sistema-admin-table{
   width:100%;
+  min-width:560px; /* evita que las 5 columnas se compriman ilegibles; el scroll horizontal lo da .table-scroll (styles.css) o, si falta, la regla de abajo */
   border-collapse:collapse;
   margin-top:8px;
+}
+/* Red de seguridad: si esta tabla se usa sin el wrapper .table-scroll
+   en algún lugar, igual queda con scroll horizontal propio en vez de
+   desbordar la pantalla en móvil. */
+@media (max-width:760px){
+  .sistema-admin-table{ display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 }
 .sistema-admin-table th,
 .sistema-admin-table td{

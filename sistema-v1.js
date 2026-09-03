@@ -273,12 +273,14 @@ function sistemaInsertarPanelAdminV1() {
       </div>
       <div id="sistemaAdminMsg" class="sistema-msg"></div>
     </div>
-    <table class="sistema-admin-table">
-      <thead>
-        <tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Último ingreso</th><th>Acciones</th></tr>
-      </thead>
-      <tbody id="sistemaAdminTableBody"><tr><td colspan="5">Cargando…</td></tr></tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="sistema-admin-table">
+        <thead>
+          <tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Último ingreso</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="sistemaAdminTableBody"><tr><td colspan="5">Cargando…</td></tr></tbody>
+      </table>
+    </div>
   `;
   if (referencia.appendChild) referencia.appendChild(panel);
 }

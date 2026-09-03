@@ -69,7 +69,11 @@
   border-radius:12px;
   padding:10px;
   background:white;
-  min-width:220px;
+  width:100%;
+  max-width:220px;
+}
+@media (max-width:380px){
+  .metas-ajuste-mes-selector select{ max-width:100%; }
 }
 
 .metas-badge-ajustada{

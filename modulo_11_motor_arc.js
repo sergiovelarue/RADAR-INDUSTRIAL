@@ -231,13 +231,9 @@ function inyectarBotonesArcClienteV1() {
       `;
     } else {
       zona.innerHTML = `
-        <div class="motor-arc-disabled">
-          <span class="motor-arc-disabled-icon">✨</span>
-          <div>
-            <strong>Análisis con IA — próximamente disponible</strong>
-            <span>Pídele a tu administrador que lo active.</span>
-          </div>
-        </div>
+        <span class="motor-arc-disabled" title="Pídele a tu administrador que active esta función">
+          <span class="motor-arc-disabled-icon">✨</span><strong>IA próximamente</strong>
+        </span>
       `;
     }
     celdaAccion.appendChild(zona);
@@ -298,10 +294,9 @@ function insertarPanelArcAsesorV1() {
     <button class="motor-arc-btn" id="motorArcAnalizarAsesorBtn" type="button">✨ Analizar asesor con IA</button>
     <div class="motor-arc-loading" id="motorArcAsesorLoading"><span class="motor-arc-spinner"></span> Generando diagnóstico…</div>
     <div class="motor-arc-result motor-arc-result-block" id="motorArcAsesorResult"></div>
-    <div class="motor-arc-disabled" id="motorArcAsesorDisabled" style="display:none">
-      <span class="motor-arc-disabled-icon">✨</span>
-      <div><strong>Análisis con IA — próximamente disponible</strong><span>Pídele a tu Super Administrador que lo active.</span></div>
-    </div>
+    <span class="motor-arc-disabled" id="motorArcAsesorDisabled" style="display:none" title="Pídele a tu administrador que active esta función">
+      <span class="motor-arc-disabled-icon">✨</span><strong>IA próximamente</strong>
+    </span>
   `;
   wrap.parentNode.insertBefore(panel, wrap.nextSibling);
 }
@@ -363,10 +358,9 @@ function insertarBotonArcNegocioV1() {
     <button class="motor-arc-btn" id="motorArcAnalizarNegocioBtn" type="button">✨ Analizar negocio con IA</button>
     <div class="motor-arc-loading" id="motorArcNegocioLoading"><span class="motor-arc-spinner"></span> Generando diagnóstico del negocio…</div>
     <div class="motor-arc-result motor-arc-result-block" id="motorArcNegocioResult"></div>
-    <div class="motor-arc-disabled" id="motorArcNegocioDisabled" style="display:none">
-      <span class="motor-arc-disabled-icon">✨</span>
-      <div><strong>Análisis con IA — próximamente disponible</strong><span>Pídele a tu Super Administrador que lo active.</span></div>
-    </div>
+    <span class="motor-arc-disabled" id="motorArcNegocioDisabled" style="display:none" title="Pídele a tu administrador que active esta función">
+      <span class="motor-arc-disabled-icon">✨</span><strong>IA próximamente</strong>
+    </span>
   `;
   seccion.appendChild(panel);
 }

@@ -1,53 +1,45 @@
-# Mejoras_20260903_0758 — Motor ARC (Agente de IA)
+# Mejoras_20260903_0818 — Ajustes de estabilidad móvil
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.6 · 2026-09-03**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.7 · 2026-09-03**
 
-## 1. Qué trae este paquete
+Continuación de `Mejoras_20260903_0758` (Motor ARC). Este paquete corrige lo que Sergio reportó tras probar esa entrega: el aviso "próximamente disponible" era demasiado grande (sobre todo en celular), y hay pantallas que se desbordan y no permiten scroll fluido en móvil.
 
-Estructura completa del **Motor ARC** (Análisis y Recomendación Comercial con IA): botón "Analizar con IA" por cliente para el asesor, análisis individual de asesor y análisis del negocio completo para el administrador/director comercial, y panel de control exclusivo del Super Administrador (activar/desactivar + límites diarios de uso) en la pestaña **Sistema**.
+## 1. Qué cambió
 
-**⚠️ IMPORTANTE — sin conexión real a IA todavía.** Esta entrega conecta toda la interfaz, la configuración en Supabase y el historial auditable, pero la llamada a la API de Claude es un **placeholder simulado** (`llamarMotorArcV1` en `modulo_11_motor_arc.js`): responde con un texto de ejemplo tras ~1 segundo de espera, sin llamar a ningún servicio externo ni generar costo. Cuando tengas tu API key de Anthropic, se reemplaza únicamente esa función por la llamada real a una Supabase Edge Function — el resto del módulo (botones, permisos, historial) no necesita cambios.
+**Aviso "IA próximamente" simplificado.** Antes era una tarjeta grande (ícono circular + título + subtítulo). Ahora es un chip pequeño de una sola línea ("✨ IA próximamente"), con la explicación completa disponible solo como tooltip (al pasar el mouse en computador) — en celular el texto corto ya es suficiente, no hace falta el detalle largo ocupando espacio. Afecta `motor-arc-v1.css` y `modulo_11_motor_arc.js`.
 
-La función queda **desactivada por defecto** tras ejecutar el SQL. Actívala desde Sistema → Motor ARC cuando quieras probarla.
+**Tabla de administradores (pestaña Sistema) sin scroll horizontal — corregido.** La tabla de administradores (Correo/Nombre/Rol/Último ingreso/Acciones) no tenía el mismo wrapper de scroll horizontal que ya usan las demás tablas de la app (`.table-scroll`). En celular, esa tabla se salía de la pantalla sin forma de desplazarla. Ahora tiene scroll horizontal propio, controlado y fluido. Afecta `sistema-v1.js` y `sistema-v1.css`.
 
-## 2. Archivos de este paquete
+**Selector de mes en "Metas y presupuestos" con ancho mínimo fijo — corregido.** Tenía `min-width:220px`, que en celulares angostos (320-360px de ancho, ej. iPhone SE) podía forzar desborde horizontal. Ahora se ajusta al ancho disponible. Afecta `metas-v1.css`.
+
+**Botón "Analizar con IA" en la tabla de clientes sugeridos — corregido.** La zona del botón tenía un ancho mínimo de 220px que, sumado a las otras 7 columnas de esa tabla, empeoraba el desborde en móvil. Se quitó ese mínimo — el botón se ajusta al espacio real disponible. Afecta `motor-arc-v1.css`.
+
+## 2. Sobre "simplificar textos"
+
+Revisé los textos de ayuda de la app (descripciones bajo cada panel, `field-help`, etc.). La mayoría explica reglas de negocio reales que el usuario necesita saber — quién ve qué panel, qué hace cada botón, qué modifica y qué no. No encontré texto incorrecto, engañoso o innecesario que debiera eliminarse: el problema de desborde no venía del contenido de los textos sino de tablas y selectores sin el tratamiento responsive correcto (detallado arriba). Si en el celular ves algún texto específico que sientas largo o redundante, dime cuál exactamente y lo ajustamos con precisión — prefiero no recortar contenido útil "a ciegas".
+
+## 3. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `index.html` | Reemplazar el existente — agrega el `<link>` de `motor-arc-v1.css` y el `<script>` de `modulo_11_motor_arc.js` al final. |
-| `version.js` | Reemplazar el existente — sube el número de versión visible en la app. |
-| `modulo_11_motor_arc.js` | Archivo nuevo — subir a la raíz del sitio. |
-| `motor-arc-v1.css` | Archivo nuevo — subir a la raíz del sitio. |
-| `06_motor_arc.sql` | Ejecutar en Supabase (ver paso 4). |
+| `index.html` | Reemplazar (sin cambios de contenido en esta entrega respecto a la anterior, pero se re-entrega completo por consistencia). |
+| `version.js` | Reemplazar — sube el número de versión. |
+| `modulo_11_motor_arc.js` | Reemplazar el de la entrega anterior. |
+| `motor-arc-v1.css` | Reemplazar el de la entrega anterior. |
+| `sistema-v1.js` | Reemplazar — agrega wrapper de scroll a la tabla de administradores. |
+| `sistema-v1.css` | Reemplazar — agrega red de seguridad de scroll horizontal. |
+| `metas-v1.css` | Reemplazar — corrige el selector de mes. |
 
-## 3. Pasos para subir a GitHub
+No hay cambios en Supabase en esta entrega (el `06_motor_arc.sql` de la entrega anterior sigue siendo el vigente, no se repite aquí).
 
-1. Entra a tu repositorio **RADAR-INDUSTRIAL** en GitHub, rama `main`.
-2. Sube `modulo_11_motor_arc.js` y `motor-arc-v1.css` como archivos **nuevos** (Add file → Upload files, o crear cada uno y pegar el contenido).
-3. Reemplaza `index.html` y `version.js` con el contenido de este paquete (edítalos, borra todo, pega el nuevo contenido, Commit changes).
-4. Espera 1-2 minutos y verifica en tu sitio de Netlify.
+## 4. Pasos para subir a GitHub
 
-## 4. Paso en Supabase (obligatorio para que funcione)
+1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
+2. Reemplaza cada uno de los 7 archivos de este paquete con su versión anterior (editar, borrar todo, pegar el nuevo contenido, Commit changes).
+3. Espera 1-2 minutos y verifica en tu celular: abre "Sistema" (si eres Super Administrador) y revisa la tabla de administradores con scroll horizontal; abre "Metas y presupuestos" y revisa el selector de mes; abre "Seguimiento diario" y revisa que el aviso "IA próximamente" (si el Motor ARC sigue desactivado) se vea como un chip pequeño, no una tarjeta grande.
 
-1. Entra a [supabase.com/dashboard](https://supabase.com/dashboard), proyecto **`ljztqfzykvuvopgqgxxf`** (Radar Comercial Industria).
-2. SQL Editor → New query.
-3. Copia y pega el contenido completo de `06_motor_arc.sql`, ejecuta (Run).
-4. Debe decir "Success". Crea: tabla `configuracion_motor_arc` (fila única, `activo = false` por defecto), tabla `analisis_ia_log` (historial auditable), y 3 funciones (`actualizar_config_motor_arc_v1`, `registrar_analisis_ia_v1`, `contar_analisis_ia_hoy_v1`).
+## 5. Pendiente (sin tocar en esta entrega)
 
-## 5. Cómo probarlo
-
-1. Inicia sesión como Super Administrador (`sergiovelasquez@me.com`).
-2. Ve a la pestaña **Sistema** → panel "Motor ARC — Agente de análisis y recomendación con IA" → activa el interruptor → Guardar configuración.
-3. Ve a **Seguimiento diario** → "Acciones recomendadas": debe aparecer el botón "✨ Analizar con IA" junto a cada cliente sugerido.
-4. En esa misma vista, si eres administrador y seleccionas un asesor específico (no "Todos"), aparece el botón "✨ Analizar asesor con IA".
-5. Ve al **Dashboard**: junto a "Lectura estratégica sugerida" aparece "✨ Analizar negocio con IA".
-6. Desactiva el interruptor en Sistema y vuelve a revisar esas tres pantallas: en vez del botón, debe verse el aviso "Análisis con IA — próximamente disponible".
-
-## 6. Pendiente / próximos pasos
-
-- Conectar la llamada real a la API de Claude (reemplazar `llamarMotorArcV1` por una Supabase Edge Function con la API key de Anthropic).
-- Definir el límite diario real de uso por asesor/administrador según presupuesto (ya configurable desde el panel, valores por defecto: 15 y 10 análisis/día).
-
-## 7. Hallazgo detectado durante esta entrega (no corregido, solo reportado)
-
-`index.html` referencia `<script src="topbar-movil-v154.js">`, pero ese archivo **no existe** en ninguna carpeta del proyecto (ni en esta entrega ni en entregas anteriores) — es un enlace roto en producción (error 404 silencioso en consola, no rompe la app, pero esa mejora nunca llegó a aplicarse). El fix del header móvil (botón "Actualizar datos" / nombre del asesor / "Cerrar sesión" saliéndose de la pantalla) ya está resuelto por otra vía, con CSS embebido directamente en `index.html` — no depende de ese archivo faltante. Si tienes el archivo `topbar-movil-v154.js` guardado en otro lugar, avísame y lo integro; si no, se puede quitar esa línea del `<head>` para evitar el error en consola.
+- Renombrar "Super Administrador" a "Administrador" en los textos visibles al usuario (pedido explícito de Sergio, guardado para un próximo cambio, no aplicado aquí).
+- Conexión real a la API de Claude para el Motor ARC.
+- El archivo `topbar-movil-v154.js` referenciado en `index.html` sigue sin existir en el proyecto (reportado en la entrega anterior, no corregido todavía).
