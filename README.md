@@ -1,40 +1,46 @@
-# Mejoras_20260903_1330 — Fix definitivo del ancho en Hoja de Ruta (móvil)
+# Mejoras_20260903_1500 — Causa raíz REAL y verificada del desborde en Hoja de Ruta
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.10 · 2026-09-03**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V15.11 · 2026-09-03**
 
-Continuación de `Mejoras_20260903_1200` (V15.9). Confirmaste que tras subir V15.9 el título ya cambió correctamente, pero Hoja de Ruta seguía desbordada en móvil. Esta entrega corrige la causa exacta de por qué el fix de V15.9 no alcanzó.
+Continuación de `Mejoras_20260903_1330` (V15.10). Reportaste que el desborde seguía igual: el encabezado (franja azul oscuro superior) se veía más angosto que el contenido de abajo, generando movimiento lateral al hacer scroll. Esta vez el diagnóstico no se hizo por inspección de código sino midiendo el DOM real de la app en producción, con sesión iniciada, en viewport móvil (375px) — así se encontró y confirmó la causa exacta antes de escribir el fix.
 
-## 1. Por qué el fix anterior (V15.9) no funcionó
+## 1. Por qué V15.9 y V15.10 no fueron suficientes
 
-En V15.9 agregué `.filters{grid-template-columns:1fr!important}` dentro del bloque `@media(max-width:760px)`, asumiendo que el `!important` sería suficiente para ganarle a la regla vieja (`.filters{grid-template-columns:repeat(auto-fit,minmax(150px,1fr)) !important}`, agregada en una versión antigua — "V8.1" — para desktop).
+Ambos intentos corrigieron correctamente el grid de `.filters` (el problema que yo había diagnosticado por lectura de código), y verificado en el DOM real, ese grid efectivamente ya queda contenido en 360px sin desbordar. El problema real nunca fue el grid de filtros — era otro elemento, más arriba en la jerarquía, que yo no había medido directamente.
 
-Verifiqué el CSS real servido en producción (no solo el archivo local) y until confirmé que el deploy sí tomó el cambio de V15.9 correctamente — no era un problema de caché ni de deploy. El problema es una regla de CSS más sutil: **cuando dos reglas con el mismo selector (`.filters`) y ambas con `!important` compiten, no gana la que está "dentro de un media query"** — en igualdad de especificidad, gana la que aparece **más abajo en el archivo**. La regla vieja "V8.1" está físicamente después del bloque `@media(max-width:760px)` en `styles.css`, así que seguía ganando ella pese al `!important` que agregué.
+## 2. Causa raíz real (confirmada midiendo el DOM en vivo)
 
-## 2. La corrección real (V15.10)
+El contenedor `.main` (que envuelve TODO el contenido de cada pestaña, incluida Hoja de Ruta) medía **388px de ancho real en un viewport de 375px** — un desborde de 13px — mientras `html`, `body`, `.app` y `.sidebar` medían correctamente 375px. Se aisló el problema probando en vivo: al quitarle a `.main` la propiedad `margin` (que en desktop es `margin:0 auto`, para centrar el contenido en pantallas anchas), su ancho volvió exactamente a 375px.
 
-En vez de competir en "quién tiene `!important`" (que ya estaba empatado), se sube la **especificidad** real del selector dentro del breakpoint móvil: `html body .filters{grid-template-columns:1fr!important}`. Con tres partes en el selector en vez de una, esta regla gana sin importar en qué orden aparezcan las reglas en el archivo. Verificado matemáticamente contra las reglas de especificidad CSS (no es una suposición): un selector con 3 elementos de especificidad (aunque sean etiquetas genéricas `html`, `body`) siempre le gana a uno con 1 clase (`.filters`), sin importar el orden de aparición, mientras ambos tengan `!important`.
+La explicación técnica: con `margin:auto` en un elemento de tipo `block` dentro de un contenedor flex con `flex-direction:column`, el navegador calcula el ancho "natural" de ese elemento usando su `max-width:1600px` casi como si tuviera espacio disponible ilimitado, en vez de limitarlo estrictamente al ancho real del padre. Es un comportamiento real de motor de renderizado, no una suposición — quedó verificado en el propio sitio en producción, no en una copia local.
 
-No se tocó la regla original de "V8.1" — sigue funcionando igual en escritorio, donde sí tiene sentido repartir los filtros en varias columnas.
+**Por qué solo se notaba en Hoja de Ruta:** este bug de 13px afecta a `.main` en TODAS las pestañas por igual (es el contenedor de toda la app), pero en la mayoría de pestañas el contenido interno no tiene tanta variedad de elementos anchos como para hacer evidente el desborde. Hoja de Ruta, con 8 filtros simultáneos y una tabla de cientos de clientes, es donde el movimiento lateral se nota de forma clara al usuario.
 
-## 3. Archivos de este paquete
+## 3. La corrección
+
+Se anula `margin` en `.main` dentro del breakpoint `@media(max-width:1100px)` (`.main{padding:14px;margin:0}`). En móvil no hace falta centrar nada — `.main` ya debe ocupar el 100% del ancho disponible. La regla original de desktop (`margin:0 auto`, para centrar contenido en pantallas anchas) no se toca, sigue funcionando igual ahí.
+
+**Verificación en vivo, no solo en teoría:** se probó el fix inyectándolo directamente en el sitio real en producción (sesión con datos reales de Hoja de Ruta cargados) y se confirmó que tras el cambio, `.main` mide exactamente 375px = viewport, y `document.body.scrollWidth` también queda en 375px, sin ningún desborde.
+
+## 4. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `styles.css` | Reemplazar — único cambio real: la regla de especificidad para `.filters` en móvil. |
-| `version.js` | Reemplazar — sube a V15.10. |
+| `styles.css` | Reemplazar — único cambio real: `margin:0` agregado a `.main` dentro del breakpoint móvil. |
+| `version.js` | Reemplazar — sube a V15.11. |
 
-No se tocó `index.html`, `soporte-v1.js` ni ningún otro archivo — este paquete es exclusivamente el fix de Hoja de Ruta, para no mezclar cambios mientras confirmas que este quedó resuelto (como pediste).
+No se tocó ningún otro archivo.
 
-## 4. Pasos para subir a GitHub
+## 5. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza `styles.css` y `version.js` con el contenido de este paquete.
-3. Espera 1-2 minutos y confirma en la pestaña "Deploys" de Netlify que el más reciente quede "Published".
-4. **Prueba en modo incógnito o borrando caché del sitio** (no solo cerrar y volver a abrir la pestaña) — así se descarta cualquier duda de caché del navegador móvil.
-5. Verifica en el celular: entra a Hoja de Ruta con los 8 filtros visibles (Perfil, Mes, Ordenar, Asesor, Tipo cliente, Estado, Clasificación, Buscar) y confirma que el layout se ve igual de estable que las demás pestañas, sin desbordar el ancho de la pantalla ni cortar el nav.
+2. Reemplaza `styles.css` y `version.js`.
+3. Espera el deploy de Netlify y confirma "Published" en la pestaña Deploys.
+4. Prueba en modo incógnito o borrando caché del sitio.
+5. Verifica en el celular: entra a Hoja de Ruta y confirma que el encabezado azul oscuro (arriba) y el contenido de abajo (filtros, KPIs, tabla) tienen exactamente el mismo ancho, sin ningún movimiento lateral al hacer scroll — igual que en las demás pestañas.
 
-## 5. Pendiente (sin tocar en esta entrega, a la espera de tu confirmación)
+## 6. Pendiente (sin tocar, a la espera de tu confirmación)
 
-- Nada más se toca hasta que confirmes que Hoja de Ruta quedó igual que las demás pestañas, según tu instrucción explícita.
-- Renombrar "Super Administrador" a "Administrador" sigue pendiente (instrucción explícita de dejarlo para un próximo cambio).
+- Nada más se toca hasta que confirmes que Hoja de Ruta quedó igual que las demás pestañas.
+- Renombrar "Super Administrador" a "Administrador" sigue pendiente.
 - Conexión real a la API de Claude para el Motor ARC — sigue pendiente.

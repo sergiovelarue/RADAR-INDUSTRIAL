@@ -44,7 +44,30 @@ input,select,textarea{font-size:16px}
     gap:10px;
   }
   .sidebar-footer small{margin-bottom:0;display:none}
-  .main{padding:14px}
+  /* V15.11 - causa raíz REAL y definitiva del desborde en Hoja de
+     Ruta (confirmada 03-sep-2026 midiendo el DOM en vivo, no por
+     inspección de código): no era ningún grid de filtros — esos ya
+     quedaban perfectamente contenidos en 360px con el fix de V15.10.
+     El propio contenedor ".main" media 388px de ancho real en un
+     viewport de 375px, mientras html/body/.app/.sidebar sí medían
+     375px correctamente. La causa es la regla de escritorio
+     ".main{margin:0 auto}" (ver arriba, fuera de este media query):
+     con "margin:auto" en un hijo block dentro de un flex
+     "flex-direction:column", el navegador calcula el ancho "natural"
+     del elemento usando su max-width:1600px casi como si tuviera
+     espacio libre infinito, en vez de limitarlo al ancho real del
+     padre — comportamiento verificado en vivo quitando margin y
+     viendo el ancho volver exactamente a 375px. Como .main es el
+     contenedor de TODO el contenido de la app (Hoja de Ruta incluida
+     y también todas las demás pestañas), este bug afecta a toda la
+     app por igual, pero solo se nota gravemente en Hoja de Ruta
+     porque es la única pestaña con contenido ancho variable (8
+     filtros + tabla de 566 clientes) que hace evidente el
+     movimiento lateral al hacer scroll. En pestañas con menos
+     contenido el desborde de 13px pasa desapercibido. Se anula el
+     margin:auto en este breakpoint — no se necesita centrar nada en
+     móvil, donde .main ya ocupa el 100% del ancho disponible. */
+  .main{padding:14px;margin:0}
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .type-grid,.breakdown{grid-template-columns:repeat(2,1fr)}
 
