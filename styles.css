@@ -926,3 +926,39 @@ tr.blocked-row .status{color:#b91c1c;font-weight:900}
   #recomendadasTable td[data-label=""]{justify-content:flex-end}
   #recomendadasTable td[data-label=""] button{width:100%}
 }
+
+.erp-config-block-v1620{background:#f9fafb;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.erp-config-header-v1620{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800}
+.erp-badge-superadmin-v1620{font-size:11px;font-weight:800;background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:8px;margin-left:auto}
+.erp-config-help-v1620{color:var(--muted);font-size:13px;margin:0 0 12px}
+.erp-config-grid-v1620{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.erp-config-grid-v1620 label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.erp-config-grid-v1620 select,.erp-config-grid-v1620 input{width:100%}
+.erp-url-label-v1620{display:block;font-size:12px;color:var(--muted);margin:0 0 4px}
+#erpUrlConexionV1620{width:100%;margin-bottom:10px}
+.erp-config-actions-v1620{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.erp-toggle-label-v1620{display:flex;align-items:center;gap:8px;font-size:13px;margin:0}
+.erp-toggle-label-v1620 input{width:16px;height:16px}
+.erp-config-status-v1620{font-size:12px;margin-top:8px;min-height:16px}
+.erp-config-status-ok-v1620{color:#15803d}
+.erp-config-status-error-v1620{color:#b91c1c}
+
+.erp-mode-selector-v1620{margin-bottom:14px}
+.erp-mode-title-v1620{font-size:13px;font-weight:800;margin:0 0 8px}
+.erp-mode-buttons-v1620{display:flex;gap:8px}
+.erp-mode-buttons-v1620 .btn{flex:1}
+
+.erp-link-panel-v1620{margin-bottom:14px}
+.erp-link-status-card-v1620{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.erp-link-status-row-v1620{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:13px;font-weight:800}
+.erp-badge-estado-v1620{font-size:12px;font-weight:800;padding:2px 8px;border-radius:8px;background:#f3f4f6;color:var(--muted)}
+.erp-badge-ok-v1620{background:#dcfce7;color:#15803d}
+.erp-badge-error-v1620{background:#fee2e2;color:#b91c1c}
+.erp-link-detalle-v1620{font-size:13px;margin:0 0 4px}
+.erp-link-nota-v1620{font-size:12px;color:var(--muted);margin:0}
+
+@media(max-width:760px){
+  .erp-config-grid-v1620{grid-template-columns:1fr}
+  .erp-config-actions-v1620{flex-direction:column;align-items:stretch}
+  .erp-config-actions-v1620 button{width:100%}
+}
