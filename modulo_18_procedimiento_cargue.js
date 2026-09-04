@@ -139,7 +139,21 @@ function wizPintarSemaforoV1625(semaforoId, detalleId, tieneReferencia, textoVer
   if (detalle) detalle.textContent = tieneReferencia ? textoVerde : textoRojo;
 }
 
+function wizMostrarSiExisteV1625(id, mostrar) {
+  const el = $w18(id);
+  if (el) el.style.display = mostrar ? "block" : "none";
+}
+
 function wizPintarSemaforosV1625() {
+  // Si el panel del wizard todavía no está en el DOM (usuario en otra
+  // pestaña, o esta función corre antes de que Ajustes/masterDataAdminPanel
+  // se haya montado), no hay nada que pintar todavía — se reintentará
+  // la próxima vez que se llame (login, cambio de perfil, entrar a
+  // Ajustes). Antes de este guard, un elemento faltante lanzaba una
+  // excepción a mitad de función y dejaba el resto sin pintar (paso 2
+  // nunca se desbloqueaba aunque el paso 1 sí tuviera datos).
+  if (!$w18("wizPanelV1625")) return;
+
   const m = wizMetadataV1625 || {};
   const tieneHistorico = !!m.historico_nombre_archivo;
   const tieneVentaActual = !!m.venta_actual_nombre_archivo;
@@ -150,19 +164,19 @@ function wizPintarSemaforosV1625() {
     `Archivo: ${m.historico_nombre_archivo} · cargado ${wizFormatearFechaV1625(m.historico_cargado_en)} · ${m.historico_total_clientes || 0} clientes.`,
     "Sin información de referencia todavía."
   );
-  $w18("wizWarning1V1625").style.display = tieneHistorico ? "block" : "none";
+  wizMostrarSiExisteV1625("wizWarning1V1625", tieneHistorico);
 
   wizPintarSemaforoV1625(
     "wizSemaforo2V1625", "wizDetalle2V1625", tieneVentaActual,
     `Archivo: ${m.venta_actual_nombre_archivo} · cargado ${wizFormatearFechaV1625(m.venta_actual_cargado_en)} · ${m.venta_actual_total_clientes || 0} clientes.`,
     "Sin información de referencia todavía."
   );
-  $w18("wizWarning2V1625").style.display = tieneVentaActual ? "block" : "none";
+  wizMostrarSiExisteV1625("wizWarning2V1625", tieneVentaActual);
 
   // Bloqueo/desbloqueo secuencial
   wizAplicarBloqueoV1625("wizPaso2V1625", "wizBloqueo2V1625", "wizContenido2V1625", tieneHistorico);
   wizAplicarBloqueoV1625("wizPaso3V1625", "wizBloqueo3V1625", "wizContenido3V1625", tieneHistorico && tieneVentaActual);
-  if (tieneHistorico && tieneVentaActual) {
+  if (tieneHistorico && tieneVentaActual && $w18("wizDetalle3V1625")) {
     $w18("wizDetalle3V1625").textContent = tieneClasificacion
       ? `Último cálculo: ${wizFormatearFechaV1625(m.clasificacion_calculada_en)}.`
       : "Listo para calcular.";
@@ -172,7 +186,7 @@ function wizPintarSemaforosV1625() {
   if (tieneHistorico && tieneVentaActual) {
     const radiosVenta = document.getElementsByName("wizModoVentaV1625");
     radiosVenta.forEach(r => { r.checked = r.value === (m.modo_venta || "manual"); });
-    $w18("wizErpConfigV1625").style.display = (m.modo_venta === "automatica_erp") ? "block" : "none";
+    wizMostrarSiExisteV1625("wizErpConfigV1625", m.modo_venta === "automatica_erp");
     const radiosClasif = document.getElementsByName("wizModoClasificacionV1625");
     radiosClasif.forEach(r => { r.checked = r.value === (m.modo_clasificacion || "manual"); });
   }
@@ -380,7 +394,8 @@ async function wizProcesarVentaActualV1625() {
       return;
     }
 
-    await supabaseClientV94.rpc("registrar_carga_venta_actual_v1", { p_nombre_archivo: fileName, p_total_clientes: data.coincidentes, p_usuario_email: usuarioEmail });
+    const { error: errRegistro } = await supabaseClientV94.rpc("registrar_carga_venta_actual_v1", { p_nombre_archivo: fileName, p_total_clientes: data.actualizados || 0, p_usuario_email: usuarioEmail });
+    if (errRegistro) console.error("[Radar-Wizard] Error registrando metadata de venta actual:", errRegistro);
 
     wizSetEstadoV1625("wizEstadoVentaActualV1625", "wiz-estado-ok-v1625", "<strong>Venta actual cargada.</strong> " + data.mensaje);
     $w18("wizConfirmVentaActualV1625").style.display = "none";
