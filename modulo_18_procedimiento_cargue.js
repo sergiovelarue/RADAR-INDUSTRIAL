@@ -86,6 +86,20 @@ function wizNormalizarFilasV1625(rows) {
   }).filter(f => f.NIT !== "" && f.NIT.toLowerCase() !== "total");
 }
 
+// disparar_historico_ventas_v1 (Edge Function cargar-historico-ventas,
+// V16.21) espera cada fila como {nit, meses:{Enero:.., Febrero:..}} —
+// formato distinto al plano {NIT, Enero, Febrero, ...} que usa el
+// resto del wizard (formato del maestro de activación). Esta función
+// adapta el formato plano al que esa función espera, sin tocar su
+// contrato ya probado.
+function wizAFormatoHistoricoVentasV1625(filas) {
+  return filas.map(f => {
+    const meses = {};
+    WIZ_MESES_V1625.forEach(m => { meses[m] = f[m] || 0; });
+    return { nit: f.NIT, meses };
+  });
+}
+
 function wizEsperarMs(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function wizEsperarResultadoV1625(rpcNombre, maxIntentos = 60, esperaMs = 1000) {
@@ -302,7 +316,7 @@ async function wizValidarVentaActualV1625() {
     wizFilasVentaActualV1625 = { filas, fileName };
 
     const { error: errDisparo } = await supabaseClientV94.rpc("disparar_historico_ventas_v1", {
-      p_anio: "2026", p_modo: "validar", p_filas: filas
+      p_anio: "2026", p_modo: "validar", p_filas: wizAFormatoHistoricoVentasV1625(filas)
     });
     if (errDisparo) throw errDisparo;
     const data = await wizEsperarResultadoV1625("leer_ultimo_resultado_historico_v1");
@@ -356,7 +370,7 @@ async function wizProcesarVentaActualV1625() {
     const { filas, fileName } = wizFilasVentaActualV1625;
     const usuarioEmail = (currentUserV84 && currentUserV84.email) || "";
     const { error: errDisparo } = await supabaseClientV94.rpc("disparar_historico_ventas_v1", {
-      p_anio: "2026", p_modo: "procesar", p_filas: filas
+      p_anio: "2026", p_modo: "procesar", p_filas: wizAFormatoHistoricoVentasV1625(filas)
     });
     if (errDisparo) throw errDisparo;
     const data = await wizEsperarResultadoV1625("leer_ultimo_resultado_historico_v1");
