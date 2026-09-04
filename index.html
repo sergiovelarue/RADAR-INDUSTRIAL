@@ -169,69 +169,16 @@
         </div>
         <button class="btn ghost" id="exportCsvBtn">Exportar CSV</button>
       </header>
-      <section class="admin-panel" id="dailyUpdatePanel">
-        <div class="panel-header"><div><h3>Actualización diaria de ventas 2026</h3><p>Solo reemplaza ventas operativas. No modifica histórico 2025 ni asignación.</p></div></div>
-
-        <div class="erp-config-block-v1620" id="erpConfigBlockV1620" style="display:none">
-          <div class="erp-config-header-v1620">
-            <span>Conexión remota (ERP)</span>
-            <span class="erp-badge-superadmin-v1620">Solo Super Administrador</span>
-          </div>
-          <p class="erp-config-help-v1620">Configura y habilita la fuente remota que el Administrador podrá usar para actualizar ventas sin subir archivo manual.</p>
-          <div class="erp-config-grid-v1620">
-            <div>
-              <label>Sistema de origen</label>
-              <select id="erpSistemaOrigenV1620">
-                <option>Siesa</option>
-                <option>Odoo</option>
-                <option>Siigo</option>
-                <option>Alegra</option>
-                <option selected>Otro (link genérico)</option>
-              </select>
-            </div>
-            <div>
-              <label>Hora programada (diaria)</label>
-              <input type="time" id="erpHoraProgramadaV1620" value="06:00"/>
-            </div>
-          </div>
-          <label class="erp-url-label-v1620">URL / link de conexión compartido (Google Sheet)</label>
-          <input type="text" id="erpUrlConexionV1620" placeholder="https://docs.google.com/spreadsheets/d/..."/>
-          <div class="erp-config-actions-v1620">
-            <label class="erp-toggle-label-v1620">
-              <input type="checkbox" id="erpHabilitadoV1620"/>
-              Habilitar actualización por link para el Administrador
-            </label>
-            <button class="btn ghost" id="erpGuardarConfigBtnV1620">Guardar configuración</button>
-          </div>
-          <div class="erp-config-status-v1620" id="erpConfigStatusV1620"></div>
-        </div>
-
-        <div class="erp-mode-selector-v1620" id="erpModeSelectorV1620" style="display:none">
-          <p class="erp-mode-title-v1620">Modo de actualización</p>
-          <div class="erp-mode-buttons-v1620">
-            <button class="btn" id="erpModoManualBtnV1620" type="button">Manual</button>
-            <button class="btn ghost" id="erpModoLinkBtnV1620" type="button">Por link de conexión</button>
-          </div>
-        </div>
-
-        <div class="upload-grid" id="dailyUpdateManualBlockV1620">
-          <article><h4>Ventas Espumas 2026</h4><input type="file" id="fileEspumas" accept=".xlsx,.xls,.csv"/></article>
-        </div>
-        <div class="actions" id="dailyUpdateManualActionsV1620"><button class="btn" id="validateBtn">Validar archivos</button><button class="btn secondary" id="applyBtn">Procesar actualización</button><button class="btn ghost" id="clearLocalBtn">Limpiar actualización local</button></div>
-
-        <div class="erp-link-panel-v1620" id="erpLinkPanelV1620" style="display:none">
-          <div class="erp-link-status-card-v1620">
-            <div class="erp-link-status-row-v1620">
-              <span>Fuente configurada</span>
-              <span class="erp-badge-estado-v1620" id="erpBadgeEstadoV1620">—</span>
-            </div>
-            <p class="erp-link-detalle-v1620" id="erpLinkDetalleV1620">Sin información todavía.</p>
-            <p class="erp-link-nota-v1620">Configurado por Super Administrador. Para cambiar la fuente, contacta a Super Administrador.</p>
-          </div>
-          <button class="btn" id="erpActualizarAhoraBtnV1620">Actualizar ahora desde ERP</button>
-        </div>
-
-        <div class="update-result" id="updateResult"><strong>Estado:</strong> pendiente de carga.</div>
+      <section class="admin-panel" id="dailyUpdatePanel" style="display:none">
+        <!-- V16.25: contenido movido al wizard "Activación primera vez" -->
+        <!-- (paso 2 = venta actual, paso 4 = modo de operación diaria). -->
+        <!-- Se conserva vacío por compatibilidad con AJUSTES_PANEL_IDS_V1. -->
+        <input type="file" id="fileEspumas" style="display:none" accept=".xlsx,.xls,.csv"/>
+        <button id="validateBtn" style="display:none"></button>
+        <button id="applyBtn" style="display:none"></button>
+        <button id="clearLocalBtn" style="display:none"></button>
+        <div id="updateResult" style="display:none"></div>
+        <button id="erpActualizarAhoraBtnV1620" style="display:none"></button>
       </section>
 
       <section class="admin-panel" id="growthConfigPanel">
@@ -326,110 +273,126 @@
           <button class="btn ghost" id="downloadMasterLogBtn">Descargar historial de cambios</button>
         </div>
 
-        <div class="activ-panel-v1623" id="activPanelV1623">
+        <div class="wiz-panel-v1625" id="wizPanelV1625">
           <div class="panel-header">
             <div>
-              <h3>Activación Primera vez</h3>
-              <p>Reemplaza por completo la base de clientes a partir de dos archivos maestro: histórico del año anterior y venta del año en curso. Úsalo solo al iniciar la app para un cliente nuevo.</p>
+              <h3>Activación primera vez</h3>
+              <p>Flujo por pasos para poner en marcha la app con los datos reales de un cliente. Cada paso se habilita cuando el anterior queda completo.</p>
             </div>
           </div>
 
-          <div class="activ-warning-v1623">
-            <div class="activ-warning-title-v1623"><span>Acción irreversible</span></div>
-            <ul>
-              <li>Borra TODOS los clientes actuales y su histórico, metas y comentarios — no hay respaldo automático en esta versión.</li>
-              <li>Crea clientes nuevos a partir de la unión de NIT de ambos archivos (un cliente puede aparecer solo en 2026 si es nuevo, sin histórico previo).</li>
-              <li>El asesor se asigna automáticamente si el nombre del archivo coincide exactamente con un asesor ya registrado. Si no coincide, el cliente queda "SIN ASIGNACION".</li>
-              <li>La meta de cada cliente queda igual a su venta total del año anterior hasta que se le asigne una clasificación (A/B/C/E/N).</li>
-            </ul>
-          </div>
-
-          <div class="activ-grid-v1623">
-            <div>
-              <label>Maestro histórico (año anterior)</label>
-              <input type="file" id="activArchivo2025V1623" accept=".xlsx,.xls,.csv"/>
+          <!-- Paso 1: Histórico año anterior -->
+          <div class="wiz-paso-v1625" id="wizPaso1V1625">
+            <div class="wiz-paso-header-v1625">
+              <span class="wiz-paso-titulo-v1625">Paso 1 · Histórico del año anterior</span>
+              <span class="wiz-semaforo-v1625" id="wizSemaforo1V1625"><span class="wiz-semaforo-punto-v1625"></span><span class="wiz-semaforo-texto-v1625">—</span></span>
             </div>
-            <div>
-              <label>Maestro venta actual (año en curso)</label>
-              <input type="file" id="activArchivo2026V1623" accept=".xlsx,.xls,.csv"/>
+            <p class="wiz-paso-detalle-v1625" id="wizDetalle1V1625">Sin información de referencia todavía.</p>
+
+            <div class="wiz-warning-v1625" id="wizWarning1V1625" style="display:none">
+              <span>Ya existe un histórico cargado. Subir un archivo nuevo lo <strong>reemplaza por completo</strong> — acción irreversible.</span>
             </div>
-          </div>
 
-          <div class="activ-actions-v1623">
-            <button class="btn ghost" id="activPlantillaBtnV1623">Descargar plantilla</button>
-            <button class="btn" id="activValidarBtnV1623">Validar archivos</button>
-            <button class="btn secondary" id="activProcesarBtnV1623" disabled>Procesar reemplazo</button>
-          </div>
-
-          <div class="activ-resultado-v1623" id="activResultadoV1623" style="display:none">
-            <p class="activ-resultado-titulo-v1623">Resultado de validación</p>
-            <div class="activ-resultado-grid-v1623">
-              <div class="activ-stat-v1623"><span>Clientes resultantes</span><strong id="activStatTotalV1623">—</strong></div>
-              <div class="activ-stat-v1623"><span>Nuevos sin histórico</span><strong id="activStatNuevosV1623">—</strong></div>
-              <div class="activ-stat-v1623 activ-stat-ok-v1623"><span>Asesores reconocidos</span><strong id="activStatAsesorOkV1623">—</strong></div>
-              <div class="activ-stat-v1623 activ-stat-error-v1623"><span>Asesores no reconocidos</span><strong id="activStatAsesorErrorV1623">—</strong></div>
+            <div class="wiz-grid-v1625">
+              <div>
+                <label>Archivo histórico (.xlsx, .xls, .csv)</label>
+                <input type="file" id="wizArchivoHistoricoV1625" accept=".xlsx,.xls,.csv"/>
+              </div>
             </div>
-            <p class="activ-resultado-nota-v1623" id="activNotaAsesoresV1623"></p>
-          </div>
-
-          <div class="activ-confirmacion-v1623" id="activConfirmacionV1623" style="display:none">
-            <label>Escribe <strong>REEMPLAZAR</strong> para confirmar el borrado total de la base actual</label>
-            <input type="text" id="activConfirmTextoV1623" autocomplete="off" placeholder="REEMPLAZAR"/>
-          </div>
-
-          <div class="activ-estado-v1623" id="activEstadoV1623"><strong>Estado:</strong> pendiente de carga.</div>
-        </div>
-
-        <div class="hist-panel-v1621" id="histPanelV1621">
-          <div class="panel-header">
-            <div>
-              <h3>Cargar histórico de ventas (año anterior)</h3>
-              <p>Establece la base comparativa (año anterior) usada por Cumplimiento, Alarmas y Proyección. Se ejecuta una vez por año, o al activar un cliente nuevo con datos previos.</p>
+            <div class="wiz-actions-v1625">
+              <button class="btn ghost" id="wizPlantillaHistoricoBtnV1625">Descargar plantilla</button>
+              <button class="btn" id="wizValidarHistoricoBtnV1625">Validar archivo</button>
+              <button class="btn secondary" id="wizProcesarHistoricoBtnV1625" disabled>Cargar histórico</button>
             </div>
-          </div>
-
-          <div class="hist-warning-v1621">
-            <div class="hist-warning-title-v1621"><span>Antes de cargar</span></div>
-            <ul>
-              <li>Los NIT del archivo deben coincidir exactamente con los NIT ya existentes en la base de clientes.</li>
-              <li>Esta carga <strong>reemplaza</strong> el histórico del año seleccionado. La venta del año en curso no se toca.</li>
-              <li>Se recomienda exportar un respaldo (sección "Sincronización de datos", más abajo en esta pestaña) antes de continuar.</li>
-              <li>Los NIT que no coincidan con ningún cliente existente NO se cargarán — este panel no crea clientes nuevos.</li>
-            </ul>
-          </div>
-
-          <div class="hist-grid-v1621">
-            <div>
-              <label>Año que se está cargando</label>
-              <select id="histAnioV1621">
-                <option value="2025" selected>2025</option>
-                <option value="2024">2024</option>
-              </select>
+            <div class="wiz-resultado-v1625" id="wizResultadoHistoricoV1625" style="display:none"></div>
+            <div class="wiz-confirmacion-v1625" id="wizConfirmHistoricoV1625" style="display:none">
+              <label>Escribe <strong>REEMPLAZAR</strong> para confirmar</label>
+              <input type="text" id="wizConfirmHistoricoTextoV1625" autocomplete="off" placeholder="REEMPLAZAR"/>
             </div>
-            <div>
-              <label>Archivo (.xlsx, .xls, .csv)</label>
-              <input type="file" id="histArchivoV1621" accept=".xlsx,.xls,.csv"/>
+            <div class="wiz-estado-v1625" id="wizEstadoHistoricoV1625"></div>
+          </div>
+
+          <!-- Paso 2: Venta actual -->
+          <div class="wiz-paso-v1625 wiz-paso-bloqueado-v1625" id="wizPaso2V1625">
+            <div class="wiz-paso-header-v1625">
+              <span class="wiz-paso-titulo-v1625">Paso 2 · Venta del año en curso</span>
+              <span class="wiz-semaforo-v1625" id="wizSemaforo2V1625"><span class="wiz-semaforo-punto-v1625"></span><span class="wiz-semaforo-texto-v1625">—</span></span>
+            </div>
+            <p class="wiz-paso-detalle-v1625" id="wizDetalle2V1625">Completa el paso 1 primero.</p>
+            <div class="wiz-bloqueo-v1625" id="wizBloqueo2V1625">Se habilita al completar el paso 1.</div>
+
+            <div class="wiz-contenido-v1625" id="wizContenido2V1625" style="display:none">
+              <div class="wiz-warning-v1625" id="wizWarning2V1625" style="display:none">
+                <span>Ya existe venta actual cargada. Subir un archivo nuevo la <strong>reemplaza</strong> — la información previa de este año se pierde.</span>
+              </div>
+              <div class="wiz-grid-v1625">
+                <div>
+                  <label>Archivo venta actual (.xlsx, .xls, .csv)</label>
+                  <input type="file" id="wizArchivoVentaActualV1625" accept=".xlsx,.xls,.csv"/>
+                </div>
+              </div>
+              <div class="wiz-actions-v1625">
+                <button class="btn ghost" id="wizPlantillaVentaActualBtnV1625">Descargar plantilla</button>
+                <button class="btn" id="wizValidarVentaActualBtnV1625">Validar archivo</button>
+                <button class="btn secondary" id="wizProcesarVentaActualBtnV1625" disabled>Cargar venta actual</button>
+              </div>
+              <div class="wiz-resultado-v1625" id="wizResultadoVentaActualV1625" style="display:none"></div>
+              <div class="wiz-confirmacion-v1625" id="wizConfirmVentaActualV1625" style="display:none">
+                <label>Escribe <strong>REEMPLAZAR</strong> para confirmar</label>
+                <input type="text" id="wizConfirmVentaActualTextoV1625" autocomplete="off" placeholder="REEMPLAZAR"/>
+              </div>
+              <div class="wiz-estado-v1625" id="wizEstadoVentaActualV1625"></div>
             </div>
           </div>
 
-          <div class="hist-actions-v1621">
-            <button class="btn ghost" id="histPlantillaBtnV1621">Descargar plantilla</button>
-            <button class="btn" id="histValidarBtnV1621">Validar archivo</button>
-            <button class="btn secondary" id="histProcesarBtnV1621" disabled>Procesar carga</button>
-          </div>
-
-          <div class="hist-resultado-v1621" id="histResultadoV1621" style="display:none">
-            <p class="hist-resultado-titulo-v1621">Resultado de validación</p>
-            <div class="hist-resultado-grid-v1621">
-              <div class="hist-stat-v1621"><span>Filas en archivo</span><strong id="histStatFilasV1621">—</strong></div>
-              <div class="hist-stat-v1621 hist-stat-ok-v1621"><span>NIT coincidentes</span><strong id="histStatOkV1621">—</strong></div>
-              <div class="hist-stat-v1621 hist-stat-error-v1621"><span>NIT sin coincidencia</span><strong id="histStatErrorV1621">—</strong></div>
+          <!-- Paso 3: Clasificación y estado -->
+          <div class="wiz-paso-v1625 wiz-paso-bloqueado-v1625" id="wizPaso3V1625">
+            <div class="wiz-paso-header-v1625">
+              <span class="wiz-paso-titulo-v1625">Paso 3 · Calcular clasificación y estado</span>
+              <span class="wiz-semaforo-v1625" id="wizSemaforo3V1625"><span class="wiz-semaforo-punto-v1625"></span><span class="wiz-semaforo-texto-v1625">—</span></span>
             </div>
-            <p class="hist-resultado-nota-v1621">Los NIT sin coincidencia no se cargarán. Descárgalos para revisarlos antes de procesar.</p>
-            <button class="btn ghost" id="histDescargarNoCoincidentesBtnV1621" style="display:none">Ver / descargar NIT sin coincidencia</button>
+            <p class="wiz-paso-detalle-v1625" id="wizDetalle3V1625">Completa los pasos 1 y 2 primero.</p>
+            <div class="wiz-bloqueo-v1625" id="wizBloqueo3V1625">Se habilita al completar los pasos 1 y 2.</div>
+            <div class="wiz-contenido-v1625" id="wizContenido3V1625" style="display:none">
+              <button class="btn" id="wizClasificarBtnV1625" disabled>Calcular clasificación y estado</button>
+              <p class="wiz-nota-v1625">Disponible próximamente — se conecta cuando el motor de clasificación esté definido.</p>
+            </div>
           </div>
 
-          <div class="hist-estado-v1621" id="histEstadoV1621"><strong>Estado:</strong> pendiente de carga.</div>
+          <!-- Paso 4: Modo de operación diaria -->
+          <div class="wiz-paso-v1625 wiz-paso-bloqueado-v1625" id="wizPaso4V1625">
+            <div class="wiz-paso-header-v1625">
+              <span class="wiz-paso-titulo-v1625">Paso 4 · Modo de operación diaria</span>
+            </div>
+            <p class="wiz-paso-detalle-v1625" id="wizDetalle4V1625">Completa los pasos 1, 2 y 3 primero.</p>
+            <div class="wiz-bloqueo-v1625" id="wizBloqueo4V1625">Se habilita cuando la referencia inicial esté completa.</div>
+            <div class="wiz-contenido-v1625" id="wizContenido4V1625" style="display:none">
+              <div class="wiz-modo-grupo-v1625">
+                <p class="wiz-modo-titulo-v1625">Actualización de venta</p>
+                <div class="wiz-modo-opciones-v1625">
+                  <label><input type="radio" name="wizModoVentaV1625" value="manual"/> Manual (subir Excel cuando haga falta)</label>
+                  <label><input type="radio" name="wizModoVentaV1625" value="automatica_erp"/> Automática por link (conexión ERP diaria)</label>
+                </div>
+                <div class="wiz-erp-config-v1625" id="wizErpConfigV1625" style="display:none">
+                  <label>Hora programada (diaria)</label>
+                  <input type="time" id="wizErpHoraV1625" value="06:00"/>
+                  <label>URL / link de conexión compartido</label>
+                  <input type="text" id="wizErpUrlV1625" placeholder="https://docs.google.com/spreadsheets/d/..."/>
+                </div>
+              </div>
+              <div class="wiz-modo-grupo-v1625">
+                <p class="wiz-modo-titulo-v1625">Cálculo de clasificación y estado</p>
+                <div class="wiz-modo-opciones-v1625">
+                  <label><input type="radio" name="wizModoClasificacionV1625" value="manual"/> Manual (botón cuando haga falta)</label>
+                  <label><input type="radio" name="wizModoClasificacionV1625" value="automatica_diaria"/> Automática cada día, junto con la venta</label>
+                </div>
+              </div>
+              <div class="wiz-actions-v1625">
+                <button class="btn" id="wizGuardarModoBtnV1625">Guardar modo de operación</button>
+              </div>
+              <div class="wiz-estado-v1625" id="wizEstadoModoV1625"></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1408,7 +1371,6 @@
   <script src="modulo_14_dashboard_top_movil.js"></script>
   <script src="modulo_15_conexion_erp.js"></script>
   <script src="modulo_16_historico_ventas.js"></script>
-  <script src="modulo_17_activacion_cliente.js"></script>
   <script src="modulo_18_procedimiento_cargue.js"></script>
   <script>
     var fy = document.getElementById("footerYear");
