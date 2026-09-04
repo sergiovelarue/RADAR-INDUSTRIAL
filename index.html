@@ -326,6 +326,60 @@
           <button class="btn ghost" id="downloadMasterLogBtn">Descargar historial de cambios</button>
         </div>
 
+        <div class="activ-panel-v1623" id="activPanelV1623">
+          <div class="panel-header">
+            <div>
+              <h3>Activación de cliente nuevo — reemplazo de base</h3>
+              <p>Reemplaza por completo la base de clientes a partir de dos archivos maestro: histórico del año anterior y venta del año en curso. Úsalo solo al iniciar la app para un cliente nuevo.</p>
+            </div>
+          </div>
+
+          <div class="activ-warning-v1623">
+            <div class="activ-warning-title-v1623"><span>Acción irreversible</span></div>
+            <ul>
+              <li>Borra TODOS los clientes actuales y su histórico, metas y comentarios — no hay respaldo automático en esta versión.</li>
+              <li>Crea clientes nuevos a partir de la unión de NIT de ambos archivos (un cliente puede aparecer solo en 2026 si es nuevo, sin histórico previo).</li>
+              <li>El asesor se asigna automáticamente si el nombre del archivo coincide exactamente con un asesor ya registrado. Si no coincide, el cliente queda "SIN ASIGNACION".</li>
+              <li>La meta de cada cliente queda igual a su venta total del año anterior hasta que se le asigne una clasificación (A/B/C/E/N).</li>
+            </ul>
+          </div>
+
+          <div class="activ-grid-v1623">
+            <div>
+              <label>Maestro histórico (año anterior)</label>
+              <input type="file" id="activArchivo2025V1623" accept=".xlsx,.xls,.csv"/>
+            </div>
+            <div>
+              <label>Maestro venta actual (año en curso)</label>
+              <input type="file" id="activArchivo2026V1623" accept=".xlsx,.xls,.csv"/>
+            </div>
+          </div>
+
+          <div class="activ-actions-v1623">
+            <button class="btn ghost" id="activPlantillaBtnV1623">Descargar plantilla</button>
+            <button class="btn" id="activValidarBtnV1623">Validar archivos</button>
+            <button class="btn secondary" id="activProcesarBtnV1623" disabled>Procesar reemplazo</button>
+          </div>
+
+          <div class="activ-resultado-v1623" id="activResultadoV1623" style="display:none">
+            <p class="activ-resultado-titulo-v1623">Resultado de validación</p>
+            <div class="activ-resultado-grid-v1623">
+              <div class="activ-stat-v1623"><span>Clientes resultantes</span><strong id="activStatTotalV1623">—</strong></div>
+              <div class="activ-stat-v1623"><span>Nuevos sin histórico</span><strong id="activStatNuevosV1623">—</strong></div>
+              <div class="activ-stat-v1623 activ-stat-ok-v1623"><span>Asesores reconocidos</span><strong id="activStatAsesorOkV1623">—</strong></div>
+              <div class="activ-stat-v1623 activ-stat-error-v1623"><span>Asesores no reconocidos</span><strong id="activStatAsesorErrorV1623">—</strong></div>
+            </div>
+            <p class="activ-resultado-nota-v1623" id="activNotaAsesoresV1623"></p>
+          </div>
+
+          <div class="activ-confirmacion-v1623" id="activConfirmacionV1623" style="display:none">
+            <label>Escribe <strong>REEMPLAZAR</strong> para confirmar el borrado total de la base actual</label>
+            <input type="text" id="activConfirmTextoV1623" autocomplete="off" placeholder="REEMPLAZAR"/>
+          </div>
+
+          <div class="activ-estado-v1623" id="activEstadoV1623"><strong>Estado:</strong> pendiente de carga.</div>
+        </div>
+
         <div class="hist-panel-v1621" id="histPanelV1621">
           <div class="panel-header">
             <div>
@@ -1354,6 +1408,7 @@
   <script src="modulo_14_dashboard_top_movil.js"></script>
   <script src="modulo_15_conexion_erp.js"></script>
   <script src="modulo_16_historico_ventas.js"></script>
+  <script src="modulo_17_activacion_cliente.js"></script>
   <script>
     var fy = document.getElementById("footerYear");
     if (fy) fy.textContent = new Date().getFullYear();

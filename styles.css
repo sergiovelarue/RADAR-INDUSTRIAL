@@ -995,3 +995,39 @@ tr.blocked-row .status{color:#b91c1c;font-weight:900}
   .hist-actions-v1621 button{width:100%}
   .hist-resultado-grid-v1621{grid-template-columns:1fr}
 }
+
+.activ-panel-v1623{border-top:1px solid var(--line);margin-bottom:18px;padding-bottom:18px}
+.activ-warning-v1623{background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px 14px;margin-bottom:16px}
+.activ-warning-title-v1623{font-size:13px;font-weight:800;color:#991b1b;margin-bottom:6px}
+.activ-warning-v1623 ul{margin:0;padding-left:20px;font-size:13px;color:#991b1b;line-height:1.6}
+.activ-grid-v1623{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.activ-grid-v1623 label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.activ-grid-v1623 input{width:100%}
+.activ-actions-v1623{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.activ-actions-v1623 button{flex:1;min-width:140px}
+.activ-resultado-v1623{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:14px}
+.activ-resultado-titulo-v1623{font-size:13px;font-weight:800;margin:0 0 10px}
+.activ-resultado-grid-v1623{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+.activ-stat-v1623{background:#f9fafb;border-radius:10px;padding:10px}
+.activ-stat-v1623 span{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.activ-stat-v1623 strong{font-size:20px}
+.activ-stat-ok-v1623{background:#dcfce7}
+.activ-stat-ok-v1623 span{color:#15803d}
+.activ-stat-ok-v1623 strong{color:#15803d}
+.activ-stat-error-v1623{background:#fee2e2}
+.activ-stat-error-v1623 span{color:#b91c1c}
+.activ-stat-error-v1623 strong{color:#b91c1c}
+.activ-resultado-nota-v1623{font-size:12px;color:var(--muted);margin:0}
+.activ-confirmacion-v1623{background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.activ-confirmacion-v1623 label{display:block;font-size:13px;color:#991b1b;margin-bottom:8px}
+.activ-confirmacion-v1623 input{width:100%}
+.activ-estado-v1623{font-size:13px;padding:10px 12px;border-radius:10px;background:#f9fafb}
+.activ-estado-ok-v1623{background:#dcfce7;color:#15803d}
+.activ-estado-error-v1623{background:#fee2e2;color:#b91c1c}
+
+@media(max-width:760px){
+  .activ-grid-v1623{grid-template-columns:1fr}
+  .activ-actions-v1623{flex-direction:column}
+  .activ-actions-v1623 button{width:100%}
+  .activ-resultado-grid-v1623{grid-template-columns:1fr 1fr}
+}
