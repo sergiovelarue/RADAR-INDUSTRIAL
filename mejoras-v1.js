@@ -211,7 +211,7 @@ function renderStatusAndClassCardsV98() {
   if (grid) {
     grid.innerHTML = "";
     // Las tarjetas de Estado respetan la Clasificación ya elegida (si hay).
-    const baseParaEstado = base.filter(c => !claseActiva || (c.clasificacion || "N") === claseActiva);
+    const baseParaEstado = base.filter(c => !claseActiva || (c.clasificacion || "SIN_CLASIFICAR") === claseActiva);
     ORDEN_ESTADOS_V98.forEach(estado => {
       const count = baseParaEstado.filter(c => (estado === "Bloqueado" ? blocked(c) : (!blocked(c) && c.estado === estado))).length;
       const art = document.createElement("article");
@@ -230,11 +230,13 @@ function renderStatusAndClassCardsV98() {
   if (gridClass) {
     gridClass.innerHTML = "";
     // Las tarjetas de Clasificación respetan el Estado ya elegido (si hay).
-    // "N" (Nuevo) se excluye: ya está cubierto por el Estado "Nuevo".
+    // Clientes sin clasificación calculada todavía (motor no corrido
+    // aún) se excluyen de las tarjetas — no hay una letra "sin
+    // clasificar" en el esquema A/B/C/D.
     const baseParaClase = base.filter(c => !blocked(c) && (!estadoActivo || c.estado === estadoActivo));
-    const clases = Array.from(new Set(base.map(c => c.clasificacion || "N"))).filter(k => k !== "N").sort();
-    (clases.length ? clases : ["A", "B", "C", "E"]).forEach(k => {
-      const count = baseParaClase.filter(c => (c.clasificacion || "N") === k).length;
+    const clases = Array.from(new Set(base.map(c => c.clasificacion).filter(Boolean))).sort();
+    (clases.length ? clases : ["A", "B", "C", "D"]).forEach(k => {
+      const count = baseParaClase.filter(c => c.clasificacion === k).length;
       const art = document.createElement("article");
       art.dataset.classCard = k;
       art.className = "status-card" + (state.classFilter === k ? " active" : "");
@@ -253,7 +255,7 @@ function fillClassFilterV98() {
   const sel = $("classFilter");
   if (!sel) return;
   const current = sel.value || "todos";
-  const clases = Array.from(new Set((DATA.clientes || []).map(c => c.clasificacion || "N"))).filter(k => k !== "N").sort();
+  const clases = Array.from(new Set((DATA.clientes || []).map(c => c.clasificacion).filter(Boolean))).sort();
   sel.innerHTML = '<option value="todos">Todas</option>' + clases.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join("");
   sel.value = clases.includes(current) ? current : "todos";
 }
@@ -294,7 +296,7 @@ filteredBase = function () {
       if (c.asesorAsignado !== state.profile) return false;
     }
     if (state.status !== "todos" && c.estado !== state.status) return false;
-    if (state.classFilter && state.classFilter !== "todos" && (c.clasificacion || "N") !== state.classFilter) return false;
+    if (state.classFilter && state.classFilter !== "todos" && c.clasificacion !== state.classFilter) return false;
     if (q && ![c.cliente, c.nit, c.asesorAsignado, c.ciudad, c.departamento, c.tipoCliente, c.canal].join(" ").toLowerCase().includes(q)) return false;
     return true;
   });
@@ -1229,10 +1231,11 @@ function aplicarModeloProbabilidadCumplimientoV15() {
   renderAccionesRecomendadasV102();
 }
 
-// Puntaje 0-100 por clasificación A-B-C-E-N (alto valor pesa más que
-// alta consecutividad, siguiendo el glosario comercial de la app).
-// Se conserva para el motor CF/CFE (ordenamiento por niveles).
-const SCORE_CLASIFICACION_V102 = { A: 100, E: 75, B: 60, C: 35, N: 20 };
+// Puntaje 0-100 por clasificación A/B/C/D (esquema único del motor de
+// clasificación, reemplaza el esquema previo A-E-B-C-N — ver
+// migración motor_clasificacion_v1, 2026-09-04). Se conserva para el
+// motor CF/CFE (ordenamiento por niveles).
+const SCORE_CLASIFICACION_V102 = { A: 100, B: 75, C: 50, D: 25 };
 // Orden de prioridad de nivel del motor CFE — Activos > Inactivos >
 // Posible Baja; Baja y Bloqueado se excluyen antes de llegar aquí
 // (ver candidatosRecomendadosV102, que ya descarta Baja/bloqueados).
@@ -2074,7 +2077,7 @@ function serieMensualPresupuestoProximoAnioClienteV2(c, serie2026) {
   const idxTodos = meses.map((m, i) => i);
   const modelo = modeloPresupuestoConfiguradoV2();
   if (modelo === "porcentual") {
-    const cfg = typeof growthConfigV810 === "function" ? growthConfigV810() : { A: 12, B: 10, C: 5, E: 15, N: 0 };
+    const cfg = typeof growthConfigV810 === "function" ? growthConfigV810() : { A: 15, B: 10, C: 5, D: 0 };
     const g = Number(cfg[c.clasificacion] ?? 0);
     const factor = 1 + g / 100;
     return serie2026.map(v => v * factor);

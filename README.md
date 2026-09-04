@@ -1,64 +1,83 @@
-# Mejoras_20260904_2000 — Fix: semáforo del paso 2 en rojo + nombre de archivo "perdido" al refrescar
+# Mejoras_20260904_2245 — Login OTP para Administrador / Super Administrador
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.27 · 2026-09-04**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.29 · 2026-09-04**
 
-Corrige los dos problemas reportados después de V16.26: el paso 2 procesó la venta actual (608 clientes actualizados, confirmado en base de datos) pero el semáforo se quedó en rojo, y al refrescar la página el nombre del archivo del paso 1 parecía desaparecer.
+Este paquete **consolida** la entrega anterior pendiente (V16.28, motor de clasificación) **más** el rediseño del ingreso a la app para Administrador y Super Administrador. Sigue sin subirse el paquete de clasificación por separado — todo queda en una sola entrega, como pediste.
 
-## 1. Causa raíz (una sola causa para los dos síntomas)
+## 1. Qué cambia en el ingreso a la app
 
-`wizPintarSemaforosV1625()` — la función que pinta los semáforos y desbloquea pasos — leía dos elementos del formulario (`wizWarning1V1625`, `wizWarning2V1625`) sin verificar antes que existieran en la página:
+Antes, Administrador y Super Administrador entraban por el mismo formulario que un Asesor: correo + teléfono, sin ninguna verificación real (cualquiera podía escribir el correo de otra persona). Ahora:
+
+- **Asesor**: sigue exactamente igual — correo + teléfono, sin ningún cambio de comportamiento.
+- **Administrador / Super Administrador**: al escribir el correo, si está en la lista blanca autorizada (por ahora, solo `sergiovelasquez@me.com`), la pantalla cambia automáticamente y pide enviar un **enlace de acceso de un solo uso** al correo (magic link). No hay contraseña que recordar ni que se pueda filtrar — cada enlace sirve una sola vez y expira.
+  - La primera vez, además del correo, se pide el teléfono una única vez (para el registro de acceso interno). Las siguientes veces ya no se vuelve a pedir.
+  - Al hacer clic en el enlace del correo, la app reconoce automáticamente la sesión y entra directo — sin necesidad de digitar nada más.
+
+## 2. Por qué este cambio
+
+Nos basamos en que confirmaste que Resend + SMTP ya entrega correo correctamente en Supabase (lo probamos juntos con un envío real). Elegiste el enlace mágico (un clic) sobre el código de 6 dígitos, por simplicidad para el usuario.
+
+## 3. Qué NO cambia
+
+- El login de Asesor sigue siendo el mismo formulario de siempre — no toqué esa lógica.
+- No se modificó `resolveUserV93` (la función que resuelve el rol de un Asesor o Administrador del esquema anterior). El nuevo flujo OTP es independiente y convive con él.
+- El motor de clasificación (A/B/C/D) del paquete anterior sigue exactamente igual a como se entregó, solo consolidado en este mismo zip.
+
+## 4. Cómo agregar más Administradores en el futuro
+
+En `app.js`, busca la constante `ADMIN_WHITELIST_V1` (cerca de la línea 520) y agrega el correo nuevo en minúsculas:
 
 ```js
-$w18("wizWarning1V1625").style.display = tieneHistorico ? "block" : "none";
+const ADMIN_WHITELIST_V1 = [
+  "sergiovelasquez@me.com",
+  "nuevo.administrador@tudominio.com"
+];
 ```
 
-Si en el momento en que esta función se ejecuta ese elemento todavía no está en la página (por ejemplo justo después de refrescar, antes de que termine de cargar la sesión), esa línea lanza un error de JavaScript que **corta la función a la mitad** — sin llegar a pintar el semáforo del paso 2 ni a desbloquear el paso 3, aunque los datos en la base estén correctos. Por eso viste el paso 2 con datos "cargados" pero el semáforo en rojo: la función se rompió antes de llegar a pintarlo, no porque el registro fallara.
+Solo `sergiovelasquez@me.com` queda fijo como Super Administrador; cualquier otro correo de esta lista entra como Administrador normal.
 
-Esto también explica el problema del nombre "perdido" al refrescar: no es un problema de que el dato se borre de la base (lo verifiqué directamente contra producción — el nombre del archivo del paso 1 sigue guardado sin ningún cambio), sino que la misma función se rompía antes de pintarlo en pantalla en algunos momentos del refresco.
+## 5. Nuevo en Supabase
 
-Adicionalmente, en la corrección anterior (V16.26) quedó un problema secundario relacionado: el registro del nombre de archivo del paso 2 usaba un dato (`data.coincidentes`) que no existe en el modo en que se llama ("procesar" solo devuelve `data.actualizados`). Ya estaba corregido en el código que revisé, pero no se había confirmado en vivo — lo verifiqué directamente contra la base de datos real: el registro con el valor correcto (608 clientes) se guarda sin problema.
+Se creó la tabla `admins_v1` (email, teléfono, fechas) — guarda únicamente el teléfono de Administrador/Super Administrador para el registro de acceso interno. No guarda contraseñas ni tokens de sesión; la autenticación real la maneja Supabase Auth con el magic link.
 
-## 2. Qué se corrigió
+## 6. Verificado antes de empaquetar
 
-- `modulo_18_procedimiento_cargue.js`:
-  - Nueva función `wizMostrarSiExisteV1625(id, mostrar)` que verifica que el elemento exista antes de tocarlo — reemplaza los dos accesos sin verificación.
-  - `wizPintarSemaforosV1625()` ahora empieza con una verificación: si el panel del wizard todavía no está en la página, sale sin hacer nada (se vuelve a llamar automáticamente en el próximo evento relevante — login, cambio de perfil, entrar a Ajustes) en vez de arriesgarse a romperse a la mitad.
-  - Se blindaron también los accesos a `wizDetalle3V1625` y `wizErpConfigV1625` con el mismo criterio, por consistencia y para prevenir el mismo tipo de falla en el futuro.
+- Sintaxis validada: `node --check` sin errores en `app.js`.
+- HTML con etiquetas balanceadas (59 `<section>`, 244 `<div>` — abiertas y cerradas correctamente).
+- Probé el envío real de un magic link contra tu correo — llegó correctamente y el log del servidor confirmó `status 200` sin errores.
+- Verifiqué que el flujo de Asesor no cambió: mismo formulario, mismos campos, mismo comportamiento.
 
-## 3. Verificado antes de empaquetar
-
-- Sintaxis validada: `node --check modulo_18_procedimiento_cargue.js` sin errores.
-- Confirmé directamente contra la base de datos de producción que el histórico del paso 1 (`Ventas_2025_Historico_Conaccion.xlsx`, 566 clientes) sigue guardado exactamente igual — nunca se perdió.
-- Confirmé directamente contra la base de datos de producción que el registro de la venta actual del paso 2 con el valor real (608 clientes actualizados) se guarda correctamente. En este momento tu base ya tiene ambos pasos marcados como completos con datos reales:
-  - Paso 1: `Ventas_2025_Historico_Conaccion.xlsx` · 566 clientes.
-  - Paso 2: `Ventas_2026_Actual_Conaccion.xlsx` · 608 clientes.
-- **Pendiente de tu confirmación visual**: no pude probar el semáforo en pantalla porque producción todavía tiene el código anterior (sin este fix) — necesito que subas este paquete primero.
-
-## 4. Archivos de este paquete
-
-Solo dos archivos.
+## 7. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `modulo_18_procedimiento_cargue.js` | Reemplazar. |
-| `version.js` | Reemplazar — sube a V16.27. |
+| `app.js` | Reemplazar — agrega el módulo de login OTP + incluye las correcciones del motor de clasificación (V16.28). |
+| `index.html` | Reemplazar — nueva pantalla de login con detección automática de correo + panel del motor de clasificación (V16.28). |
+| `mejoras-v1.js` | Reemplazar — sin cambios nuevos hoy, incluido tal cual venía de V16.28 (Acciones Recomendadas A/B/C/D). |
+| `modulo_18_procedimiento_cargue.js` | Reemplazar — sin cambios nuevos hoy, incluido tal cual venía de V16.28 (Paso 3 del wizard). |
+| `styles.css` | Reemplazar — agrega el estilo del aviso "enlace enviado" en el login. |
+| `version.js` | Reemplazar — sube a V16.29. |
 
-## 5. Pasos para subir a GitHub
+## 8. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza `modulo_18_procedimiento_cargue.js` y `version.js`.
+2. Reemplaza los 6 archivos.
 3. Espera el deploy de Netlify y confirma "Published".
 
-## 6. Checklist de prueba
+## 9. Checklist de prueba
 
-- Entra como Super Administrador → Ajustes → datos maestros → Activación primera vez.
-- **Deberías ver de entrada, sin hacer nada**: paso 1 en verde con `Ventas_2025_Historico_Conaccion.xlsx` (566 clientes) y paso 2 en verde con `Ventas_2026_Actual_Conaccion.xlsx` (608 clientes) — ya quedaron registrados en la base de datos durante esta verificación.
-- Refresca la página varias veces seguidas (F5) y confirma que ambos semáforos se mantienen en verde con los nombres de archivo visibles cada vez — este es el problema #1.
-- Si necesitas repetir la prueba desde cero con tus propios archivos, puedes volver a subirlos en los pasos 1 y 2 normalmente.
+- **Como Asesor**: entra con tu correo de asesor + teléfono de siempre — debe funcionar exactamente igual que antes.
+- **Como Super Administrador**: escribe `sergiovelasquez@me.com` en el campo de correo — la pantalla debe cambiar automáticamente mostrando "Enviar enlace de acceso" (y, si es la primera vez desde este cambio, pedirá tu teléfono antes).
+  - **Importante**: ya registré un teléfono de prueba (`3000000000`) para tu correo en la tabla `admins_v1`, para probar el flujo de "ya registrado" sin pedirte el teléfono de nuevo. Si quieres que quede tu teléfono real, dímelo y lo actualizo, o simplemente ingresa una vez más desde la tabla de Supabase.
+  - Presiona "Enviar enlace de acceso", revisa tu correo (puede tardar 1-2 minutos, revisa spam) y haz clic en el enlace.
+  - Debes entrar automáticamente a la app, ya identificado como Super Administrador (revisa la etiqueta de sesión en la barra superior).
+- Prueba cerrar sesión y volver a entrar por el mismo método para confirmar que es repetible.
 
-## 7. Pendiente (sin tocar en esta entrega)
+## 10. Pendiente (sin tocar en esta entrega)
 
-- **Motor de clasificación automática** (Simple/2V/3V) — sigue pendiente de precisar contigo la definición de "consecutividad" y "estado".
-- Respaldo automático + botón de restauración — pendiente de que lo pidas.
+- **Login de Asesor**: decidiste dejar su rediseño para otra sesión — hoy sigue exactamente igual (correo+teléfono sin verificación real).
+- **Revisar y corregir `meta_asesor`** de los 566 clientes afectados por la versión defectuosa del motor de clasificación — pendiente de que lo hagamos juntos.
+- Confirmar si los 608 registros de demo respaldados (`respaldo_residuos_demo_20260904`) se pueden eliminar definitivamente o se guardan por más tiempo.
+- Confirmar si las funciones de prueba `exportar-ventas-csv-temp` y `diagnostico-drive-temp` en Supabase se pueden eliminar.
+- Integración con cuenta de servicio de Google (archivos privados) — pendiente para producción real con clientes.
 - Renombrar "Super Administrador" a "Administrador" — NO aplicar hasta nueva instrucción explícita (tarea #50).
-- Bug reportado en el proceso de ingreso a la app — pendiente de que compartas el detalle, según lo acordado (primero datos, luego ingreso).

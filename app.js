@@ -210,31 +210,30 @@ bindEvents = function(){
 // ===============================
 // V8.2 - Crecimiento por clasificación + detalle ampliado
 // ===============================
+// V16.28 (2026-09-04) — Esquema de clasificación unificado a A/B/C/D
+// (reemplaza A/B/C/E/N — ver motor de clasificación, migración
+// motor_clasificacion_v1). growthByClass ahora se usa EXCLUSIVAMENTE
+// para el presupuesto/proyección del año siguiente (modelo
+// "porcentual" en mejoras-v1.js) — nunca para la meta del año en
+// curso. La meta del año en curso viene del Forecast cargado por
+// Excel o del ajuste manual (metas-v1.js / modalMetaInput), nunca de
+// este %. Por eso recalcGoalsV82() ya NO toca metaSugerida/metaAsesor
+// — antes lo hacía, lo cual contradecía esa regla; ver conversación
+// 2026-09-04 con Sergio.
 function getGrowthConfigV82(){
   const saved = localStorage.getItem("radarGrowthConfigV82");
   if(saved){
     try { return JSON.parse(saved); } catch(e){}
   }
-  return DATA.meta.growthByClass || {A:12,B:10,C:5,E:15,N:0};
+  return DATA.meta.growthByClass || {A:15,B:10,C:5,D:0};
 }
 
 function setGrowthInputsV82(){
   const cfg = getGrowthConfigV82();
-  if($("growthA")) $("growthA").value = cfg.A ?? 12;
+  if($("growthA")) $("growthA").value = cfg.A ?? 15;
   if($("growthB")) $("growthB").value = cfg.B ?? 10;
   if($("growthC")) $("growthC").value = cfg.C ?? 5;
-  if($("growthE")) $("growthE").value = cfg.E ?? 15;
-  if($("growthN")) $("growthN").value = cfg.N ?? 0;
-}
-
-function recalcGoalsV82(){
-  const cfg = getGrowthConfigV82();
-  DATA.clientes.forEach(c => {
-    const growth = Number(cfg[c.clasificacion] ?? 0);
-    const base = Number(salePrev(c) || c.ventaMismoMesAnterior || 0);
-    c.metaSugerida = base * (1 + growth/100);
-    if(!c.metaAsesor || Number(c.metaAsesor) === 0) c.metaAsesor = c.metaSugerida;
-  });
+  if($("growthD")) $("growthD").value = cfg.D ?? 0;
 }
 
 function applyGrowthConfigV82(){
@@ -242,14 +241,12 @@ function applyGrowthConfigV82(){
     A: Number($("growthA").value || 0),
     B: Number($("growthB").value || 0),
     C: Number($("growthC").value || 0),
-    E: Number($("growthE").value || 0),
-    N: Number($("growthN").value || 0)
+    D: Number($("growthD").value || 0)
   };
   localStorage.setItem("radarGrowthConfigV82", JSON.stringify(cfg));
   DATA.meta.growthByClass = cfg;
-  recalcGoalsV82();
   localStorage.setItem("radarV8Data", JSON.stringify(DATA));
-  alert("Crecimientos aplicados y metas recalculadas.");
+  alert("Porcentajes de crecimiento guardados — se usan para el presupuesto/proyección del próximo año. La meta del año en curso no cambia (viene del Forecast o del ajuste manual).");
   render();
 }
 
@@ -281,9 +278,6 @@ bindEvents = function(){
   setGrowthInputsV82();
   if($("applyGrowthBtn")) $("applyGrowthBtn").addEventListener("click", applyGrowthConfigV82);
 };
-
-recalcGoalsV82();
-
 
 // ===============================
 // V8.3 - Cálculo mensual real por mes seleccionado
@@ -325,13 +319,15 @@ salePrev = function(c){
   return monthValueV83(c.ventas2025EspumasPorMes, month);
 };
 
+// V16.28 (2026-09-04): suggestedGoalV83 ya NO calcula con
+// %crecimiento — esa fórmula es solo para el presupuesto del año
+// siguiente (growthByClass, ver mejoras-v1.js). La meta del año en
+// curso, cuando no hay ajuste manual del mes, cae a metaAsesor ||
+// metaSugerida (fijados por Forecast/ajuste manual, nunca por este
+// motor). Se conserva el nombre de la función por compatibilidad con
+// cualquier otro sitio que la referencie.
 function suggestedGoalV83(c){
-  const cfg = typeof getGrowthConfigV82 === "function"
-    ? getGrowthConfigV82()
-    : (DATA.meta.growthByClass || {A:12,B:10,C:5,E:15,N:0});
-
-  const growth = Number(cfg[c.clasificacion] ?? 0);
-  return salePrev(c) * (1 + growth / 100);
+  return Number(c.metaAsesor || c.metaSugerida || 0);
 }
 
 goal = function(c){
@@ -521,6 +517,19 @@ validateDailyFiles = async function(){
 // ===============================
 const ADMIN_EMAIL_V92 = "sergiovelasquez@me.com"; // Super Administrador fijo
 const BLOCKED_DOMAIN_V92 = "@comodisimos.com";
+
+// Lista blanca de correos autorizados a ingresar como Administrador o Super
+// Administrador vía enlace de acceso (magic link), en vez del formulario
+// tradicional de correo+teléfono usado por Asesores. sergiovelasquez@me.com
+// es siempre Super Administrador; cualquier otro correo de esta lista es
+// Administrador. Para agregar un nuevo Administrador, solo hay que sumar
+// su correo aquí (en minúsculas) — no requiere tocar Supabase manualmente.
+const ADMIN_WHITELIST_V1 = [
+  "sergiovelasquez@me.com"
+];
+function esCorreoAdminV1(email){
+  return ADMIN_WHITELIST_V1.includes(String(email || "").trim().toLowerCase());
+}
 
 function advisorEmailMapV92Get(){
   try { return JSON.parse(localStorage.getItem("radarAdvisorEmailMapV92") || "{}"); }
@@ -720,6 +729,169 @@ function logoutV84(){
   if(login) login.classList.remove("hidden");
   $("loginEmail").value = "";
   $("loginPhone").value = "";
+  if(typeof supabaseClientV94 !== "undefined" && supabaseClientV94){
+    supabaseClientV94.auth.signOut().catch(()=>{});
+  }
+  otpMostrarBloqueV1("asesor");
+}
+
+// ===============================
+// V1 — Login OTP (magic link) para Administrador / Super Administrador
+// ------------------------------------------------------------
+// No reemplaza el login de Asesor (correo+teléfono, resolveUserV93):
+// convive con él. Al escribir el correo, si coincide con
+// ADMIN_WHITELIST_V1 se muestra el bloque de enlace de acceso en vez
+// del formulario de Asesor. El teléfono de Admin/SuperAdmin se pide
+// una sola vez y se guarda en Supabase (tabla admins_v1), no en
+// localStorage, para que sobreviva a un cambio de equipo/navegador.
+// ===============================
+
+function otpMostrarBloqueV1(tipo){
+  const asesorWrap = $("loginAsesorWrapper");
+  const otpWrap = $("loginOtpWrapper");
+  const enviado = $("loginOtpEnviado");
+  const error = $("loginError");
+  if(error) error.textContent = "";
+  if(enviado) enviado.style.display = "none";
+  if(tipo === "admin"){
+    if(asesorWrap) asesorWrap.style.display = "none";
+    if(otpWrap) otpWrap.style.display = "";
+  } else {
+    if(asesorWrap) asesorWrap.style.display = "";
+    if(otpWrap) otpWrap.style.display = "none";
+  }
+}
+
+async function otpTelefonoYaRegistradoV1(email){
+  if(typeof supabaseClientV94 === "undefined" || !supabaseClientV94) return true; // sin Supabase, no bloquear el flujo
+  try {
+    const { data, error } = await supabaseClientV94
+      .from("admins_v1")
+      .select("telefono")
+      .eq("email", email)
+      .maybeSingle();
+    if(error) { console.error("otpTelefonoYaRegistradoV1:", error); return true; }
+    return !!(data && data.telefono);
+  } catch(e){ console.error("otpTelefonoYaRegistradoV1:", e); return true; }
+}
+
+async function otpGuardarTelefonoV1(email, telefono){
+  if(typeof supabaseClientV94 === "undefined" || !supabaseClientV94) return;
+  try {
+    await supabaseClientV94.from("admins_v1").upsert(
+      { email, telefono, actualizado_en: new Date().toISOString() },
+      { onConflict: "email" }
+    );
+  } catch(e){ console.error("otpGuardarTelefonoV1:", e); }
+}
+
+async function otpLeerTelefonoV1(email){
+  if(typeof supabaseClientV94 === "undefined" || !supabaseClientV94) return "";
+  try {
+    const { data, error } = await supabaseClientV94
+      .from("admins_v1")
+      .select("telefono")
+      .eq("email", email)
+      .maybeSingle();
+    if(error || !data) return "";
+    return data.telefono || "";
+  } catch(e){ return ""; }
+}
+
+async function otpSincronizarCampoTelefonoV1(){
+  const emailInput = $("loginEmail");
+  const email = String(emailInput && emailInput.value || "").trim().toLowerCase();
+  const telWrap = $("loginOtpTelefonoWrapper");
+  if(!telWrap) return;
+  if(!esCorreoAdminV1(email)){ otpMostrarBloqueV1("asesor"); return; }
+  otpMostrarBloqueV1("admin");
+  const yaRegistrado = await otpTelefonoYaRegistradoV1(email);
+  telWrap.style.display = yaRegistrado ? "none" : "";
+}
+
+async function otpEnviarEnlaceV1(){
+  const error = $("loginError");
+  if(error) error.textContent = "";
+  const emailInput = $("loginEmail");
+  const email = String(emailInput && emailInput.value || "").trim().toLowerCase();
+
+  if(!validEmailV84(email)){
+    if(error) error.textContent = "Ingresa un correo válido.";
+    return;
+  }
+  if(!esCorreoAdminV1(email)){
+    if(error) error.textContent = "Este correo no está autorizado para acceso de Administrador.";
+    return;
+  }
+  if(typeof supabaseClientV94 === "undefined" || !supabaseClientV94){
+    if(error) error.textContent = "No hay conexión con el servidor de autenticación. Intenta más tarde.";
+    return;
+  }
+
+  const telWrap = $("loginOtpTelefonoWrapper");
+  const telInput = $("loginOtpPhone");
+  const necesitaTelefono = telWrap && telWrap.style.display !== "none";
+  if(necesitaTelefono){
+    const telefono = String(telInput && telInput.value || "").trim();
+    if(!validPhoneV84(telefono)){
+      if(error) error.textContent = "Ingresa un teléfono válido de 10 dígitos.";
+      return;
+    }
+    await otpGuardarTelefonoV1(email, telefono.replace(/\D/g, ""));
+  }
+
+  const btn = $("loginOtpBtn");
+  if(btn) btn.disabled = true;
+  try {
+    const { error: errOtp } = await supabaseClientV94.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin + window.location.pathname }
+    });
+    if(errOtp) throw errOtp;
+    const enviado = $("loginOtpEnviado");
+    if(enviado) enviado.style.display = "";
+  } catch(e){
+    console.error("otpEnviarEnlaceV1:", e);
+    if(error) error.textContent = "No se pudo enviar el enlace. Intenta de nuevo en unos minutos.";
+  } finally {
+    if(btn) btn.disabled = false;
+  }
+}
+
+// Se ejecuta al cargar la app. Si el usuario llegó desde un clic en el
+// magic link, Supabase ya dejó una sesión de Auth activa en el navegador
+// (vía el SDK, a partir del token en la URL). Aquí la detectamos y
+// completamos el login local con el mismo currentUserV84 que usa el
+// resto de la app, sin tocar el flujo de Asesor.
+async function otpResolverSesionAlCargarV1(){
+  if(typeof supabaseClientV94 === "undefined" || !supabaseClientV94) return false;
+  try {
+    const { data, error } = await supabaseClientV94.auth.getSession();
+    if(error || !data || !data.session || !data.session.user) return false;
+    const email = String(data.session.user.email || "").trim().toLowerCase();
+    if(!esCorreoAdminV1(email)) return false; // sesión de Auth de otro tipo de correo: no aplica aquí
+
+    const telefono = await otpLeerTelefonoV1(email);
+    const esSuperAdmin = email === ADMIN_EMAIL_V92;
+    const fullUser = esSuperAdmin
+      ? { profile: "admin", tier: "superadmin", advisor: "SUPER ADMINISTRADOR", name: "SERGIO VELÁSQUEZ", email }
+      : { profile: "admin", tier: "admin", advisor: "ADMINISTRADOR", name: email.split("@")[0].replace(/[._]+/g, " ").trim().toUpperCase() || "ADMINISTRADOR", email };
+
+    setSessionV84(fullUser, telefono, true);
+    logAccessV84(fullUser, telefono);
+    applyUserProfileV84();
+    if(typeof renderUsageDashboardV84 === "function") renderUsageDashboardV84();
+    updateSessionRoleLabelV93();
+    if(typeof render === "function") render();
+    // Limpia el token del magic link de la URL (Supabase ya lo consumió).
+    if(window.history && window.history.replaceState){
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    return true;
+  } catch(e){
+    console.error("otpResolverSesionAlCargarV1:", e);
+    return false;
+  }
 }
 
 function summarizeUsageV84(){
@@ -880,6 +1052,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const downloadBtn = $("downloadAccessLogBtn");
   if(downloadBtn) downloadBtn.addEventListener("click", downloadAccessLogV84);
+
+  // --- V1 Login OTP: detección automática por correo (Admin/SuperAdmin) ---
+  const loginEmailEl = $("loginEmail");
+  if(loginEmailEl){
+    loginEmailEl.addEventListener("input", otpSincronizarCampoTelefonoV1);
+    loginEmailEl.addEventListener("blur", otpSincronizarCampoTelefonoV1);
+  }
+  const otpBtn = $("loginOtpBtn");
+  if(otpBtn) otpBtn.addEventListener("click", otpEnviarEnlaceV1);
+  ["loginOtpPhone"].forEach(id => {
+    const el = $(id);
+    if(el){
+      el.addEventListener("keydown", e => {
+        if(e.key === "Enter") otpEnviarEnlaceV1();
+      });
+    }
+  });
+
+  // Si venimos de un clic en el magic link, Supabase ya tiene la sesión
+  // activa: la resolvemos antes de mostrar el formulario de login vacío.
+  if(!savedOk){
+    otpResolverSesionAlCargarV1();
+  }
 });
 
 
@@ -1406,8 +1601,16 @@ businessLabel=function(){if(state.businessView==="espumas")return"Solo Espumas";
 applyUserProfileV84=function(){if(!currentUserV84)return;if(currentUserV84.profile==="admin"){state.profile="admin"}else{state.profile=currentUserV84.advisor;state.advisor="todos"}const ps=$("profileSelect");if(ps){ps.value=state.profile;const w=ps.closest("div");if(w)w.classList.add("profile-hidden")}const aw=$("advisorFilter")?.closest("div");if(aw)aw.style.display=currentUserV84.profile==="admin"?"":"none";const login=$("loginOverlay");if(login)login.classList.add("hidden")};
 saleCurrent=function(c){return totalMonth2026V810(c,selectedMonthV810(),state.businessView)};
 salePrev=function(c){return totalMonth2025V810(c,selectedMonthV810(),state.businessView)};
-function growthConfigV810(){if(typeof getGrowthConfigV82==="function")return getGrowthConfigV82();return DATA.meta.growthByClass||{A:12,B:10,C:5,E:15,N:0}}
-goal=function(c){const m=selectedMonthV810();if(c.metasAsesorPorMes&&c.metasAsesorPorMes[m]!==undefined&&c.metasAsesorPorMes[m]!=="")return Number(c.metasAsesorPorMes[m]||0);const cfg=growthConfigV810();const g=Number(cfg[c.clasificacion]??0);return salePrev(c)*(1+g/100)};
+function growthConfigV810(){if(typeof getGrowthConfigV82==="function")return getGrowthConfigV82();return DATA.meta.growthByClass||{A:15,B:10,C:5,D:0}}
+// V16.28 (2026-09-04): goal(c) ya NO calcula la meta del año en curso
+// con %crecimiento (growthConfigV810) — esa fórmula quedó reservada
+// exclusivamente para el presupuesto/proyección del año siguiente
+// (mejoras-v1.js, serieMensualPresupuestoProximoAnioClienteV2). La
+// meta del año en curso viene de metasAsesorPorMes (ajuste manual del
+// mes) o, si no hay, de metaAsesor/metaSugerida (Forecast cargado por
+// Excel o ajuste manual desde la ficha del cliente) — nunca de un %
+// recalculado aquí. Ver conversación con Sergio 2026-09-04.
+goal=function(c){const m=selectedMonthV810();if(c.metasAsesorPorMes&&c.metasAsesorPorMes[m]!==undefined&&c.metasAsesorPorMes[m]!=="")return Number(c.metasAsesorPorMes[m]||0);return Number(c.metaAsesor||c.metaSugerida||0)};
 compliance=function(c){const g=goal(c);return g?(saleCurrent(c)/g)*100:0};missing=function(c){return Math.max(goal(c)-saleCurrent(c),0)};
 filteredBase=function(){const q=String(state.search||"").toLowerCase().trim();return DATA.clientes.filter(c=>{const blocked=typeof isBlockedV87==="function"?isBlockedV87(c):false;const vip=typeof isVipGerenciaV88==="function"?isVipGerenciaV88(c):false;if(blocked){if(!(typeof isAdminV86==="function"&&isAdminV86()))return false;if(state.status!=="Bloqueado")return false}else if(state.status==="Bloqueado")return false;if(state.profile!=="admin"&&vip)return false;if(!businessMatchV810(c))return false;if(state.profile==="admin"){if(state.advisor!=="todos"&&c.asesorAsignado!==state.advisor)return false}else{if(c.asesorAsignado!==state.profile)return false}if(state.status!=="todos"&&state.status!=="Bloqueado"&&c.estado!==state.status)return false;if(q&&![c.cliente,c.nit,c.asesorAsignado,c.ciudad,c.departamento,c.tipoCliente,c.canal].join(" ").toLowerCase().includes(q))return false;return true})};
 function sortedRowsV810(arr){const copy=[...arr],sort=state.sort||"venta2025";copy.sort((a,b)=>{if(sort==="faltante")return missing(b)-missing(a);if(sort==="ventaActual")return saleCurrent(b)-saleCurrent(a);if(sort==="cumplimientoAsc")return compliance(a)-compliance(b);if(sort==="cliente")return String(a.cliente||"").localeCompare(String(b.cliente||""));return salePrev(b)-salePrev(a)});return copy}

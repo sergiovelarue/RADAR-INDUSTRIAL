@@ -93,35 +93,61 @@
       <div class="login-form">
         <label>Correo autorizado</label>
         <input type="email" id="loginEmail" placeholder="tucorreo@ejemplo.com" autocomplete="email"/>
+        <small class="field-help" id="loginEmailHelp">Escribe tu correo y presiona Tab o Continuar — el sistema detecta automáticamente tu tipo de acceso.</small>
 
-        <label>Teléfono celular</label>
-        <input type="tel" id="loginPhone" placeholder="3001234567" autocomplete="tel"/>
+        <!-- ============================================================
+             V1 Login OTP — Bloque Asesor (correo+teléfono), sin cambios
+             de comportamiento respecto a la versión anterior. Se muestra
+             cuando el correo NO está en la lista blanca de Admin/SuperAdmin.
+             ============================================================ -->
+        <div id="loginAsesorWrapper">
+          <label>Teléfono celular</label>
+          <input type="tel" id="loginPhone" placeholder="3001234567" autocomplete="tel"/>
 
-        <label>Tipo de acceso</label>
-        <select id="loginRoleSelect">
-          <option value="asesor">Asesor</option>
-        </select>
-        <small class="field-help">Solo la primera vez que ingresas con este correo, para registrarte como Asesor. Las cuentas Administrador las crea el Super Administrador desde la pestaña Sistema. Si ya ingresaste antes, se recuerda automáticamente.</small>
+          <label>Tipo de acceso</label>
+          <select id="loginRoleSelect">
+            <option value="asesor">Asesor</option>
+          </select>
+          <small class="field-help">Solo la primera vez que ingresas con este correo, para registrarte como Asesor. Si ya ingresaste antes, se recuerda automáticamente.</small>
 
-        <div id="loginAdvisorWrapper">
-          <label>Asesor</label>
-          <select id="loginAdvisorSelect"></select>
-        </div>
+          <div id="loginAdvisorWrapper">
+            <label>Asesor</label>
+            <select id="loginAdvisorSelect"></select>
+          </div>
 
-        <div id="loginDatosPersonalesWrapper" class="v107-datos-personales" style="display:none">
-          <label>
-            <input type="checkbox" id="loginAceptoDatos"/>
-            <span>Autorizo el tratamiento de mis datos personales por parte de <strong>ConAccion BPS</strong> y/o <strong>Sergio Velásquez</strong>, conforme a la Ley 1581 de 2012 (Colombia), para fines de gestión comercial, administración de la plataforma y contacto relacionado con mi actividad como usuario de Radar Comercial Industria.</span>
+          <div id="loginDatosPersonalesWrapper" class="v107-datos-personales" style="display:none">
+            <label>
+              <input type="checkbox" id="loginAceptoDatos"/>
+              <span>Autorizo el tratamiento de mis datos personales por parte de <strong>ConAccion BPS</strong> y/o <strong>Sergio Velásquez</strong>, conforme a la Ley 1581 de 2012 (Colombia), para fines de gestión comercial, administración de la plataforma y contacto relacionado con mi actividad como usuario de Radar Comercial Industria.</span>
+            </label>
+            <small class="field-help">Solo se pide una vez, al registrar tu correo por primera vez.</small>
+          </div>
+
+          <label class="remember-row">
+            <input type="checkbox" id="rememberSession" checked/>
+            Recordar sesión en este equipo
           </label>
-          <small class="field-help">Solo se pide una vez, al registrar tu correo por primera vez.</small>
+
+          <button class="btn login-btn" id="loginBtn">Ingresar a Radar</button>
         </div>
 
-        <label class="remember-row">
-          <input type="checkbox" id="rememberSession" checked/>
-          Recordar sesión en este equipo
-        </label>
+        <!-- ============================================================
+             V1 Login OTP — Bloque Administrador / Super Administrador.
+             Se muestra únicamente si el correo escrito arriba está en la
+             lista blanca ADMIN_WHITELIST_V1 (app.js). Sin contraseña:
+             el acceso se confirma con un enlace de un solo uso enviado
+             al correo (Supabase Auth · magic link).
+             ============================================================ -->
+        <div id="loginOtpWrapper" style="display:none">
+          <div id="loginOtpTelefonoWrapper" style="display:none">
+            <label>Teléfono celular</label>
+            <input type="tel" id="loginOtpPhone" placeholder="3001234567" autocomplete="tel"/>
+            <small class="field-help">Solo se pide una vez, la primera vez que ingresas con este correo.</small>
+          </div>
+          <button class="btn login-btn" id="loginOtpBtn">Enviar enlace de acceso</button>
+          <p class="login-otp-note" id="loginOtpEnviado" style="display:none">Revisa tu correo — te enviamos un enlace de acceso de un solo uso. Puede tardar 1-2 minutos y llegar a spam.</p>
+        </div>
 
-        <button class="btn login-btn" id="loginBtn">Ingresar a Radar</button>
         <p class="login-error" id="loginError"></p>
       </div>
 
@@ -185,15 +211,14 @@
         <div class="panel-header">
           <div>
             <h3>Configuración comercial por clasificación</h3>
-            <p>Solo Super Administrador. Define el crecimiento esperado para recalcular metas sugeridas.</p>
+            <p>Solo Super Administrador. Define el % de crecimiento esperado por categoría A/B/C/D — se usa para el presupuesto/proyección del año siguiente, no cambia la meta del año en curso.</p>
           </div>
         </div>
         <div class="growth-grid">
-          <label>A <input type="number" id="growthA" value="12"/>%</label>
+          <label>A <input type="number" id="growthA" value="15"/>%</label>
           <label>B <input type="number" id="growthB" value="10"/>%</label>
           <label>C <input type="number" id="growthC" value="5"/>%</label>
-          <label>E <input type="number" id="growthE" value="15"/>%</label>
-          <label>N <input type="number" id="growthN" value="0"/>%</label>
+          <label>D <input type="number" id="growthD" value="0"/>%</label>
         </div>
         <div class="actions">
           <button class="btn" id="applyGrowthBtn">Aplicar crecimientos</button>
@@ -229,6 +254,38 @@
         <div class="actions">
           <button class="btn" id="applyModeloCalculoBtn">Aplicar modelo de cálculo</button>
         </div>
+      </section>
+
+      <section class="admin-panel" id="clasifConfigPanelV1">
+        <div class="panel-header">
+          <div>
+            <h3>Motor de clasificación (A/B/C/D)</h3>
+            <p>Solo Super Administrador. Define cómo se calcula la clasificación de cada cliente al presionar "Calcular clasificación y estado" en Activación primera vez (paso 3). No cambia metas — solo la categoría A/B/C/D.</p>
+          </div>
+        </div>
+        <div class="growth-grid">
+          <label>Modelo de clasificación
+            <select id="clasifModeloSelectV1">
+              <option value="simple">Simple (por volumen de venta)</option>
+              <option value="2v">2V (volumen + consecutividad)</option>
+              <option value="3v">3V (volumen + consecutividad + estado)</option>
+            </select>
+          </label>
+          <label>Meses seguidos con venta para "Regular" (2V y 3V)
+            <input type="number" id="clasifUmbralRegularV1" value="3" min="1" max="12"/>
+          </label>
+        </div>
+        <p class="chart-note">Simple: A=top 20% por venta, B=siguiente 30%, C=siguiente 30%, D=último 20%. 2V: Volumen Alto/Bajo (mediana) cruzado con Consecutividad Regular/Irregular. 3V: puntaje por Volumen(1pt)+Consecutividad(2pt)+Estado favorable del CRM(1pt) — 4=A, 3=B, 2=C, 0-1=D. El % de crecimiento por categoría (arriba) es independiente de este motor.</p>
+        <div class="growth-grid">
+          <label>Nombre categoría A <input type="text" id="clasifNombreAV1" value="A" maxlength="20"/></label>
+          <label>Nombre categoría B <input type="text" id="clasifNombreBV1" value="B" maxlength="20"/></label>
+          <label>Nombre categoría C <input type="text" id="clasifNombreCV1" value="C" maxlength="20"/></label>
+          <label>Nombre categoría D <input type="text" id="clasifNombreDV1" value="D" maxlength="20"/></label>
+        </div>
+        <div class="actions">
+          <button class="btn" id="clasifGuardarConfigBtnV1">Guardar configuración</button>
+        </div>
+        <div class="wiz-estado-v1625" id="clasifEstadoConfigV1"></div>
       </section>
 
       
@@ -354,8 +411,9 @@
             <p class="wiz-paso-detalle-v1625" id="wizDetalle3V1625">Completa los pasos 1 y 2 primero.</p>
             <div class="wiz-bloqueo-v1625" id="wizBloqueo3V1625">Se habilita al completar los pasos 1 y 2.</div>
             <div class="wiz-contenido-v1625" id="wizContenido3V1625" style="display:none">
-              <button class="btn" id="wizClasificarBtnV1625" disabled>Calcular clasificación y estado</button>
-              <p class="wiz-nota-v1625">Disponible próximamente — se conecta cuando el motor de clasificación esté definido.</p>
+              <button class="btn" id="wizClasificarBtnV1625">Calcular clasificación y estado</button>
+              <p class="wiz-nota-v1625">Clasifica todos los clientes en A/B/C/D según el modelo activo (configurable en Super Administrador → Motor de clasificación) y actualiza su Meta Ajustada. La Meta Inicial de cada cliente solo se fija la primera vez.</p>
+              <div class="wiz-estado-v1625" id="wizEstadoClasificacionV1625"></div>
             </div>
           </div>
 

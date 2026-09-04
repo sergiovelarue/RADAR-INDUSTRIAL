@@ -411,16 +411,53 @@ async function wizProcesarVentaActualV1625() {
 }
 
 // ------------------------------------------------------------
-// Paso 3: clasificación (placeholder — motor pendiente)
+// Paso 3: clasificación — motor A/B/C/D (Simple/2V/3V)
 // ------------------------------------------------------------
-
+// Dispara calcular-clasificacion (Edge Function) vía RPC
+// disparar_clasificacion_v1 (fire-and-forget), luego hace polling de
+// leer_ultimo_resultado_clasificacion_v1 hasta ver el resultado real
+// (conteo por categoría, modelo usado, errores si los hubo). El botón
+// de registrar_calculo_clasificacion_v1 (metadata_activacion_v1, para
+// el semáforo del paso) se dispara automáticamente desde dentro de la
+// Edge Function al terminar con éxito — no hace falta llamarlo aparte.
 async function wizClasificarV1625() {
-  // Placeholder: cuando el motor de clasificación esté definido, aquí
-  // se dispara su RPC. Por ahora solo registra la marca de tiempo si
-  // el botón llegara a habilitarse manualmente en pruebas.
-  const usuarioEmail = (currentUserV84 && currentUserV84.email) || "";
-  await supabaseClientV94.rpc("registrar_calculo_clasificacion_v1", { p_usuario_email: usuarioEmail });
-  await wizCargarMetadataV1625();
+  const btn = $w18("wizClasificarBtnV1625");
+  if (btn) btn.disabled = true;
+  wizSetEstadoV1625("wizEstadoClasificacionV1625", "", "<strong>Estado:</strong> calculando clasificación de todos los clientes…");
+
+  try {
+    const usuarioEmail = (currentUserV84 && currentUserV84.email) || "";
+    const { error: errDisparo } = await supabaseClientV94.rpc("disparar_clasificacion_v1", { p_usuario_email: usuarioEmail });
+    if (errDisparo) throw errDisparo;
+
+    let data = null;
+    for (let i = 0; i < 30; i++) {
+      await wizEsperarMs(1000);
+      const { data: resultado, error } = await supabaseClientV94.rpc("leer_ultimo_resultado_clasificacion_v1");
+      if (error) throw error;
+      if (resultado && resultado.calculadoEn) { data = resultado; break; }
+    }
+    if (!data) throw new Error("El cálculo sigue en curso del lado del servidor. Espera un momento y vuelve a intentar.");
+    if (data.ok === false) {
+      wizSetEstadoV1625("wizEstadoClasificacionV1625", "wiz-estado-error-v1625", "<strong>Error:</strong> " + (data.error || "no se pudo calcular."));
+      return;
+    }
+
+    const conteo = data.conteoPorCategoria || {};
+    wizSetEstadoV1625("wizEstadoClasificacionV1625", "wiz-estado-ok-v1625",
+      `<strong>Clasificación calculada</strong> (modelo ${data.modelo}). ${data.actualizados} clientes: ` +
+      `A=${conteo.A || 0} · B=${conteo.B || 0} · C=${conteo.C || 0} · D=${conteo.D || 0}. ` +
+      `Ventana: ${(data.ventanaMeses || []).join(", ")}.`);
+
+    if (typeof cargarClientesDesdeSupabaseV94 === "function") await cargarClientesDesdeSupabaseV94();
+    if (typeof render === "function") render();
+    await wizCargarMetadataV1625();
+  } catch (e) {
+    console.error("[Radar-Wizard] Error calculando clasificación:", e);
+    wizSetEstadoV1625("wizEstadoClasificacionV1625", "wiz-estado-error-v1625", "<strong>Error:</strong> " + (e.message || "no se pudo calcular."));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 // ------------------------------------------------------------
@@ -488,6 +525,51 @@ function wizPintarVisibilidadV1625() {
   if (wizEsSuperAdminV1625()) wizCargarMetadataV1625();
 }
 
+// ------------------------------------------------------------
+// Panel Super Administrador: configuración del motor de
+// clasificación (modelo Simple/2V/3V, umbral de meses regular,
+// nombres de categoría). Independiente del panel de % de crecimiento
+// (growthByClass) — ese % es solo para presupuesto del año siguiente.
+// ------------------------------------------------------------
+
+async function clasifCargarConfigV1() {
+  const panel = $w18("clasifConfigPanelV1");
+  if (!panel) return;
+  panel.style.display = wizEsSuperAdminV1625() ? "block" : "none";
+  if (!wizEsSuperAdminV1625() || typeof supabaseClientV94 === "undefined") return;
+
+  const { data, error } = await supabaseClientV94.rpc("leer_config_clasificacion_v1");
+  if (error) { console.error("[Radar-Clasif] Error leyendo config:", error); return; }
+  if (!data) return;
+
+  if ($w18("clasifModeloSelectV1")) $w18("clasifModeloSelectV1").value = data.modelo || "simple";
+  if ($w18("clasifUmbralRegularV1")) $w18("clasifUmbralRegularV1").value = data.umbral_meses_regular || 3;
+  if ($w18("clasifNombreAV1")) $w18("clasifNombreAV1").value = data.nombre_a || "A";
+  if ($w18("clasifNombreBV1")) $w18("clasifNombreBV1").value = data.nombre_b || "B";
+  if ($w18("clasifNombreCV1")) $w18("clasifNombreCV1").value = data.nombre_c || "C";
+  if ($w18("clasifNombreDV1")) $w18("clasifNombreDV1").value = data.nombre_d || "D";
+}
+
+async function clasifGuardarConfigV1() {
+  const usuarioEmail = (currentUserV84 && currentUserV84.email) || "";
+  try {
+    const { error } = await supabaseClientV94.rpc("guardar_config_clasificacion_v1", {
+      p_modelo: $w18("clasifModeloSelectV1").value,
+      p_nombre_a: $w18("clasifNombreAV1").value || "A",
+      p_nombre_b: $w18("clasifNombreBV1").value || "B",
+      p_nombre_c: $w18("clasifNombreCV1").value || "C",
+      p_nombre_d: $w18("clasifNombreDV1").value || "D",
+      p_umbral_meses_regular: Number($w18("clasifUmbralRegularV1").value) || 3,
+      p_usuario_email: usuarioEmail
+    });
+    if (error) throw error;
+    wizSetEstadoV1625("clasifEstadoConfigV1", "wiz-estado-ok-v1625", "<strong>Configuración guardada.</strong> Se aplicará en el próximo cálculo de clasificación.");
+  } catch (e) {
+    console.error("[Radar-Clasif] Error guardando config:", e);
+    wizSetEstadoV1625("clasifEstadoConfigV1", "wiz-estado-error-v1625", "<strong>Error:</strong> " + (e.message || "no se pudo guardar."));
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   if ($w18("wizValidarHistoricoBtnV1625")) $w18("wizValidarHistoricoBtnV1625").addEventListener("click", wizValidarHistoricoV1625);
   if ($w18("wizProcesarHistoricoBtnV1625")) $w18("wizProcesarHistoricoBtnV1625").addEventListener("click", wizProcesarHistoricoV1625);
@@ -502,11 +584,14 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementsByName("wizModoVentaV1625").forEach(r => r.addEventListener("change", wizPintarModoVentaV1625));
   if ($w18("wizGuardarModoBtnV1625")) $w18("wizGuardarModoBtnV1625").addEventListener("click", wizGuardarModoV1625);
 
+  if ($w18("clasifGuardarConfigBtnV1")) $w18("clasifGuardarConfigBtnV1").addEventListener("click", clasifGuardarConfigV1);
+
   if (typeof applyUserProfileV84 === "function") {
     const _original = applyUserProfileV84;
     applyUserProfileV84 = function () {
       _original();
       wizPintarVisibilidadV1625();
+      clasifCargarConfigV1();
     };
   }
   if (typeof applyAdminVisibilityV811 === "function") {
@@ -514,8 +599,10 @@ document.addEventListener("DOMContentLoaded", () => {
     applyAdminVisibilityV811 = function () {
       _originalVis();
       wizPintarVisibilidadV1625();
+      clasifCargarConfigV1();
     };
   }
 
   wizPintarVisibilidadV1625();
+  clasifCargarConfigV1();
 });
