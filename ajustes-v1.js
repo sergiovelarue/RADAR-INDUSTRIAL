@@ -25,7 +25,8 @@
 const AJUSTES_PANEL_IDS_V1 = [
   "dailyUpdatePanel",
   "usageAdminPanel",
-  "syncAdminPanel"
+  "syncAdminPanel",
+  "masterDataAdminPanel"
 ];
 
 function ajustesEsAdminV1() {

@@ -1,63 +1,48 @@
-# Mejoras_20260903_2358 — Carga de histórico de ventas (año anterior)
+# Mejoras_20260904_1200 — Corrección: panel de datos maestros/histórico no visible
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.21 · 2026-09-03**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.22 · 2026-09-04**
 
-Nueva funcionalidad, exclusiva Super Administrador: un panel para cargar el histórico de ventas de un año anterior (base comparativa para Cumplimiento, Alarmas y Proyección) desde un archivo Excel/CSV, sin necesidad de intervención directa en la base de datos.
+Corrige el bug reportado: tras subir V16.20/V16.21, el panel de datos maestros (que contiene la carga de histórico de ventas del año anterior, entregada en V16.21) no aparecía en la pestaña Ajustes, ni siquiera para Super Administrador.
 
-## 1. Dónde vive y cómo funciona
+## 1. Causa raíz (dos problemas independientes, ambos preexistentes)
 
-Vive dentro de la pestaña **Ajustes**, en el panel de datos maestros (visible solo para Super Administrador — Administrador no lo ve). Flujo:
+1. **`masterDataAdminPanel` nunca estaba incluido en la lista de paneles que se reubican dentro de la pestaña Ajustes** (`AJUSTES_PANEL_IDS_V1` en `ajustes-v1.js`). Este es un bug que ya existía en el código antes de esta entrega — el panel de datos maestros (con los botones "Descargar asignación actualizada" / "Descargar historial de cambios") ya estaba mal ubicado desde antes; al construir el nuevo bloque de histórico *dentro* de ese panel en V16.21, heredó el mismo problema sin que fuera evidente hasta ahora.
+2. **El `<section>` de ese panel tenía un `style="display:none"` escrito directamente en el HTML**, una segunda forma de ocultarlo que no tiene relación con el sistema de clases (`admin-only-panel-hidden`, `hidden-view`) que controla la visibilidad de todos los demás paneles administrativos de la app. Aunque se hubiera resuelto el punto 1, este estilo en línea seguía bloqueando el panel para cualquier usuario, sin excepción.
 
-1. Selecciona el año que se está cargando (2025, 2024...).
-2. Sube el archivo (mismo formato que el de actualización diaria: primera columna NIT, columnas siguientes con nombre de mes Enero..Diciembre; columnas extra como Cliente/Asesor/Ciudad se ignoran).
-3. **Validar archivo**: consulta contra la base real y muestra cuántos NIT del archivo coinciden con clientes existentes y cuántos no — sin escribir nada todavía.
-4. Si hay NIT sin coincidencia, se pueden descargar para revisarlos antes de continuar.
-5. **Procesar carga**: pide confirmación y aplica el histórico SOLO a los NIT coincidentes. Nunca crea clientes nuevos — ese sigue siendo un proceso aparte (Gestión de clientes).
-6. Incluye un botón para descargar una plantilla en blanco con el formato exacto esperado.
+## 2. Qué se corrigió
 
-## 2. Qué se construyó del lado del servidor (Supabase, proyecto RADAR-INDUSTRIAL)
-
-- Edge Function `cargar-historico-ventas`: valida NIT contra la tabla `clientes` y, en modo procesar, actualiza `datos_venta.ventas<AÑO>EspumasPorMes` y `total_<AÑO>` (cuando el año es 2025 o 2026) por cliente, uno por uno vía `.update().eq("id", ...)` — no usa upsert masivo porque eso exigía repetir columnas `NOT NULL` de toda la tabla y fallaba.
-- Función RPC `disparar_historico_ventas_v1` (dispara la Edge Function con el secreto server-side, el navegador nunca lo ve) y `leer_ultimo_resultado_historico_v1` (el frontend hace polling corto de esta función hasta obtener el resultado, hasta 60 segundos de margen para archivos grandes).
-- Reutiliza el mismo secreto (`RADAR_CRON_SECRET`) que ya configuraste para la conexión ERP — no requiere ningún paso adicional de tu parte.
+- `ajustes-v1.js`: se agregó `"masterDataAdminPanel"` a `AJUSTES_PANEL_IDS_V1`.
+- `index.html`: se quitó el `style="display:none"` del `<section id="masterDataAdminPanel">` y se reemplazó por la clase `hidden-view`, el mismo mecanismo que usan los otros tres paneles de Ajustes (`dailyUpdatePanel`, `usageAdminPanel`, `syncAdminPanel`). Esto deja la visibilidad gobernada exclusivamente por clases CSS, sin una fuente de verdad duplicada.
 
 ## 3. Verificado en vivo antes de empaquetar
 
-- Probé el flujo completo (validar y procesar) directamente contra la base de datos real de Supabase, usando un cliente real (NIT 900116526) y un NIT inventado para confirmar que el conteo de "sin coincidencia" funciona.
-- **Encontré y corregí un bug real durante la prueba**: el primer diseño (`upsert` masivo) fallaba con "null value in column nit violates not-null constraint" porque el patch no incluía todas las columnas obligatorias de la tabla. Se corrigió usando `update()` por `id`, que sí funciona sin necesidad de repetir columnas no modificadas — confirmado con una carga de prueba real (histórico 2024 aplicado y verificado, luego revertido para no dejar datos de prueba).
-- También se detectó que el mecanismo de espera de la RPC original (con `pg_net` + polling dentro de la misma función SQL) tenía una condición de carrera bajo llamadas consecutivas rápidas — se rediseñó con un patrón más robusto (la Edge Function escribe su resultado en una tabla, y el frontend consulta esa tabla por separado), igual de seguro pero sin ese riesgo.
-- Sintaxis validada: `node --check modulo_16_historico_ventas.js` sin errores; `styles.css` con llaves balanceadas (443/443); `index.html` sin tags huérfanos ni IDs duplicados.
+- Se simuló sesión Super Administrador directamente sobre producción y se ejecutó el flujo real de navegación (`applyUserProfileV84` → `applyAdminVisibilityV811` → `showAjustesV1`), confirmando que el panel de datos maestros y, dentro de él, el panel de histórico de ventas (`histPanelV1621`, entregado en V16.21) quedan visibles (`display:block`) sin necesidad de manipulación manual del DOM.
+- Sintaxis validada: `node --check ajustes-v1.js` y `node --check modulo_16_historico_ventas.js` sin errores; `styles.css` con llaves balanceadas (443/443); `index.html` sin IDs duplicados.
 
 ## 4. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `index.html` | Reemplazar — agrega el bloque de carga de histórico dentro del panel de datos maestros, y el script `modulo_16_historico_ventas.js`. |
-| `styles.css` | Reemplazar — estilos del nuevo panel. |
-| `modulo_16_historico_ventas.js` | Nuevo — toda la lógica (wrapper, no toca app.js). |
-| `version.js` | Reemplazar — sube a V16.21. |
+| `index.html` | Reemplazar — quita el `style="display:none"` inline del panel de datos maestros. |
+| `ajustes-v1.js` | Reemplazar — agrega `masterDataAdminPanel` a la lista de paneles de Ajustes. |
+| `version.js` | Reemplazar — sube a V16.22. |
+
+No se modificaron `styles.css`, `modulo_16_historico_ventas.js` ni `modulo_15_conexion_erp.js` en esta entrega.
 
 ## 5. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza `index.html`, `styles.css`, `version.js`.
-3. Sube `modulo_16_historico_ventas.js` como archivo NUEVO.
-4. Espera el deploy de Netlify y confirma "Published".
+2. Reemplaza `index.html`, `ajustes-v1.js`, `version.js`.
+3. Espera el deploy de Netlify y confirma "Published".
 
 ## 6. Checklist de prueba
 
-- **Sesión Super Administrador → Ajustes**: en la sección de datos maestros, debe verse el nuevo panel "Cargar histórico de ventas (año anterior)".
-- **Sesión Administrador**: NO debe ver este panel (exclusivo Super Admin).
-- **Descargar plantilla**: confirma que baja un Excel con encabezado NIT + los 12 meses.
-- **Validar** con un archivo real: revisa que los conteos de coincidentes/no coincidentes sean correctos.
-- **Procesar** solo después de validar y confirmar que los números tienen sentido — la acción pide confirmación antes de aplicar.
+- **Sesión Super Administrador → Ajustes**: debe verse el panel de datos maestros completo, incluyendo el bloque "Cargar histórico de ventas (año anterior)" (V16.21).
+- **Sesión Administrador → Ajustes**: debe ver el panel de datos maestros (botones de descarga), pero NO el bloque de histórico (exclusivo Super Admin, sin cambios respecto a V16.21).
+- Confirmar que el resto de pestañas (Hoja de ruta, Prospección, etc.) no muestran este panel fuera de Ajustes.
 
-## 7. Nota sobre frecuencia de actualización (conexión ERP, recordatorio)
-
-Confirmaste que la actualización de ventas vía conexión remota (ERP) debe poder refrescarse máximo una vez al día, reflejando el consolidado del día anterior. El diseño actual ya cumple esto: el cron revisa cada 15 minutos si ya llegó la hora programada, pero solo dispara una vez dentro de esa ventana — no hay riesgo de refrescos múltiples en el mismo día.
-
-## 8. Pendiente (sin tocar en esta entrega)
+## 7. Pendiente (sin tocar en esta entrega)
 
 - Renombrar "Super Administrador" a "Administrador" sigue pendiente — NO aplicar hasta nueva instrucción explícita (tarea #50).
-- Regenerar el simulador de Google Drive con los NIT reales (archivos `Ventas_2025_Historico.xlsx`/`Ventas_2026_Actual.xlsx` ya entregados) para poder probar la conexión ERP con coincidencias reales.
-- Fase futura (mencionada pero no construida aún): proceso completo de activación de un cliente/empresa nueva desde cero, incluyendo carga de maestro de clientes — quedó explícitamente fuera de esta entrega por decisión tuya, se hace después de validar este flujo de histórico.
+- **Bug reportado por separado en el proceso de ingreso a la app** ("un error en el proceso de ingreso"): pendiente de detalle — se abordará en la próxima entrega, según lo acordado (primero datos, luego ingreso).
+- Regenerar el simulador de Google Drive con NIT reales para probar la conexión ERP con coincidencias — sigue pendiente del lado del usuario.
