@@ -1031,3 +1031,33 @@ tr.blocked-row .status{color:#b91c1c;font-weight:900}
   .activ-actions-v1623 button{width:100%}
   .activ-resultado-grid-v1623{grid-template-columns:1fr 1fr}
 }
+
+.cargue-cajon-v1624 .activ-panel-v1623,
+.cargue-cajon-v1624 .hist-panel-v1621{border-top:none;margin-top:0;padding-top:0}
+.cargue-details-v1624{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.cargue-details-v1624[open]{padding-bottom:4px}
+.cargue-summary-v1624{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 16px;font-weight:800;font-size:14px;background:#f9fafb}
+.cargue-summary-v1624::-webkit-details-marker{display:none}
+.cargue-summary-v1624::before{content:"▸";font-size:12px;color:var(--muted);transition:transform .15s}
+.cargue-details-v1624[open] .cargue-summary-v1624::before{transform:rotate(90deg)}
+.cargue-summary-num-v1624{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--line);font-size:11px;flex-shrink:0}
+.cargue-details-v1624 > div,
+.cargue-details-v1624 > .activ-panel-v1623,
+.cargue-details-v1624 > .hist-panel-v1621,
+.cargue-details-v1624 > .erp-config-block-v1620,
+.cargue-details-v1624 > .erp-mode-selector-v1620,
+.cargue-details-v1624 > .erp-link-panel-v1620,
+.cargue-details-v1624 > .upload-grid,
+.cargue-details-v1624 > .actions,
+.cargue-details-v1624 > .update-result,
+.cargue-details-v1624 > .usage-actions{margin:0 16px 12px}
+.cargue-details-danger-v1624{border-color:#fecaca}
+.cargue-details-danger-v1624 .cargue-summary-v1624{background:#fef2f2;color:#991b1b}
+.cargue-details-danger-v1624 .cargue-summary-num-v1624{background:#fecaca;color:#991b1b}
+.cargue-clasificacion-v1624{margin:0 16px 12px}
+.cargue-clasificacion-v1624 p{font-size:13px;color:var(--muted);margin:0 0 10px}
+.cargue-clasificacion-nota-v1624{font-size:12px;color:var(--muted);margin:8px 0 0!important}
+
+@media(max-width:760px){
+  .cargue-summary-v1624{padding:10px 12px}
+}

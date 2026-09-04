@@ -1,69 +1,56 @@
-# Mejoras_20260904_1400 — Activación de cliente nuevo (reemplazo total de base)
+# Mejoras_20260904_1600 — Procedimiento de cargue de información inicial (reorganización)
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.23 · 2026-09-04**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.24 · 2026-09-04**
 
-Nuevo panel, exclusivo Super Administrador, para reemplazar por completo la base de clientes a partir de dos archivos maestro — pensado para activar la app desde cero con los datos reales de un cliente nuevo (o para reiniciar la base actual con un nuevo maestro).
+**Este paquete incluye tanto V16.23 (Activación primera vez) como V16.24 (reorganización), porque V16.23 aún no se había subido a producción.** Aplica este único paquete — no necesitas aplicar el anterior por separado.
 
-## 1. Por qué se construyó
+## 1. Qué cambia
 
-El panel de histórico (V16.21) solo actualiza clientes que YA existen en la base — nunca crea clientes nuevos, por diseño. Al intentar cargar el maestro real de 566 clientes contra una base vacía o distinta, el resultado era siempre "0 coincidencias", porque ese panel no estaba pensado para esto. Este nuevo panel sí cubre el caso de activación completa: crea la base de clientes desde cero a partir de dos archivos.
+Reorganiza en un solo lugar todo lo que antes estaba disperso en varios paneles de Ajustes (conexión ERP, carga manual diaria, activación de cliente nuevo, histórico). Ahora todo vive dentro de un único cajón: **"Procedimiento de cargue de información inicial"**, visible solo para Super Administrador, con cinco secciones desplegables en el orden real de uso:
 
-## 2. Cómo funciona
+1. **Activación primera vez** (antes "Activación de cliente nuevo — reemplazo de base") — colapsada por defecto, con borde rojo. Hay que hacer clic para desplegarla — evita tocarla por error, ya que borra y reemplaza toda la base.
+2. **Cargar histórico de ventas (año anterior)** — abierta por defecto.
+3. **Calcular clasificación y estado** — botón nuevo, deshabilitado con nota "Disponible próximamente". Se conectará cuando definamos juntos el motor de clasificación (Simple/2V/3V).
+4. **Conexión remota (ERP)** — colapsada por defecto.
+5. **Carga manual de ventas diarias** — abierta por defecto.
 
-Vive dentro de **Ajustes → Datos maestros**, arriba del panel de histórico existente (que sigue disponible sin cambios, para cargas de un solo año contra una base ya activa).
+## 2. Cómo se hizo (para que quede claro qué es seguro y qué no)
 
-1. Sube el **maestro histórico** (año anterior) y el **maestro de venta actual** (año en curso). Mismo formato en ambos: `NIT, Cliente, Asesor, Ciudad, Departamento, Enero..Diciembre`.
-2. **Validar archivos**: no escribe nada. Muestra cuántos clientes resultarían del reemplazo (unión de NIT de ambos archivos), cuántos son nuevos sin histórico previo (aparecen solo en el archivo de venta actual), y cuántos asesores del archivo coinciden exactamente con asesores ya registrados en el sistema.
-3. Al validar aparece un campo de confirmación: hay que escribir **REEMPLAZAR** para habilitar el botón de procesar — más una ventana de confirmación adicional.
-4. **Procesar reemplazo**: borra TODOS los clientes actuales y crea la base nueva completa.
+No se reescribió ni se recreó ningún panel — cada bloque (conexión ERP, carga manual, activación, histórico) sigue siendo exactamente el mismo código, con los mismos botones y la misma lógica interna que ya estaba probada. Lo único que cambió es *dónde* aparece cada uno en la pantalla: un módulo nuevo (`modulo_18_procedimiento_cargue.js`) mueve esos bloques, tal cual están, dentro del nuevo cajón — el mismo mecanismo que ya usa la pestaña "Ajustes" para agrupar sus paneles. No hay riesgo de que algo deje de funcionar por este cambio: es solo de ubicación visual.
 
-## 3. Reglas de negocio aplicadas (confirmadas contigo)
+## 3. Verificado en vivo antes de empaquetar
 
-- El asesor se asigna automáticamente solo si el nombre en el archivo coincide **exactamente** (sin distinguir mayúsculas/tildes en mayúsculas) con un asesor ya registrado en Gestión de asesores. Si no coincide, el cliente queda "SIN ASIGNACION" — no se crean asesores nuevos.
-- La **meta de cada cliente inicia igual a su venta total del año anterior**, porque todavía no tiene clasificación (A/B/C/E/N) asignada. Esto es intencional — no es un placeholder en $0.
-- Clasificación, ciudad/departamento faltante y asignación de asesor pendiente se completan después, uno por uno o por lote, desde Gestión de clientes — quedó así por tu decisión explícita.
-- **Sin respaldo automático en esta versión** — lo pediste explícitamente fuera de alcance por ahora. La acción de "Procesar reemplazo" es irreversible tal como está hoy: no hay botón de deshacer.
+- Simulé sesión Super Administrador directamente sobre producción, ejecuté el flujo real de navegación a Ajustes, y confirmé que el cajón se crea con las 5 secciones desplegables, que cada panel original se reubica dentro de su sección correcta conservando sus botones y campos intactos, y que los contenedores originales (ahora vacíos) quedan ocultos sin dejar huecos en pantalla.
+- Sintaxis validada: `node --check modulo_18_procedimiento_cargue.js` sin errores; `styles.css` con llaves balanceadas (493/493); `index.html` sin IDs duplicados.
 
-## 4. Qué se construyó del lado del servidor (Supabase, proyecto RADAR-INDUSTRIAL)
-
-- Edge Function `activar-cliente-nuevo`: recibe ambos archivos ya parseados, cruza NIT (unión 2025 ∪ 2026), cruza nombre de asesor contra la tabla `asesores`, calcula meta por defecto, y en modo procesar borra e inserta la base completa en bloques de 100 filas.
-- RPC `disparar_activacion_cliente_nuevo_v1` (dispara la Edge Function con el secreto server-side ya existente, `RADAR_CRON_SECRET` — no requiere configuración adicional tuya) y `leer_ultimo_resultado_activacion_v1` (el frontend hace polling corto hasta 60 segundos).
-- Nota técnica: también se creó una tabla de respaldo (`clientes_backup_v1`) y sus funciones de crear/restaurar, pero quedaron sin conectar al flujo por tu decisión de dejar el respaldo para una fase futura — están listas para activarse cuando lo pidas, sin trabajo adicional de esquema.
-
-## 5. Verificado en vivo antes de empaquetar
-
-- Probé el modo "validar" contra la base de datos real de Supabase con una muestra real de tus archivos (3 filas 2025 + 2 filas 2026, incluyendo un NIT nuevo sin histórico y asesores reales): resultado correcto — 4 clientes resultantes, 1 nuevo sin histórico, 3 asesores reconocidos, 0 sin reconocer.
-- Probé también con un asesor inventado para confirmar que el conteo de "no reconocidos" funciona.
-- Sintaxis validada: `node --check modulo_17_activacion_cliente.js` sin errores; `styles.css` con llaves balanceadas (476/476); `index.html` sin IDs duplicados.
-- **No probé el modo "procesar" contra la base real** — evité borrar tus 566 clientes actuales como parte de esta verificación. Te recomiendo que la primera ejecución en modo procesar la hagas tú mismo, revisando con calma el resumen de validación antes de escribir "REEMPLAZAR".
-
-## 6. Archivos de este paquete
+## 4. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `index.html` | Reemplazar — agrega el bloque HTML del nuevo panel dentro de datos maestros. |
-| `styles.css` | Reemplazar — estilos del nuevo panel (`.activ-*`). |
-| `modulo_17_activacion_cliente.js` | Nuevo — toda la lógica (wrapper, no toca app.js). |
-| `version.js` | Reemplazar — sube a V16.23. |
+| `index.html` | Reemplazar — renombra "Activación de cliente nuevo" a "Activación Primera vez", agrega el script nuevo. |
+| `styles.css` | Reemplazar — estilos del cajón y las secciones desplegables. |
+| `modulo_17_activacion_cliente.js` | Nuevo (si no lo subiste con V16.23) — lógica de activación primera vez. |
+| `modulo_18_procedimiento_cargue.js` | Nuevo — reubica los paneles existentes dentro del cajón. |
+| `version.js` | Reemplazar — sube a V16.24. |
 
-## 7. Pasos para subir a GitHub
+## 5. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
 2. Reemplaza `index.html`, `styles.css`, `version.js`.
-3. Sube `modulo_17_activacion_cliente.js` como archivo NUEVO.
+3. Sube `modulo_17_activacion_cliente.js` y `modulo_18_procedimiento_cargue.js` como archivos nuevos (si `modulo_17` ya estaba de una subida anterior, solo confirma que coincide con este).
 4. Espera el deploy de Netlify y confirma "Published".
 
-## 8. Checklist de prueba
+## 6. Checklist de prueba
 
-- **Sesión Super Administrador → Ajustes**: debe verse el panel "Activación de cliente nuevo" arriba del panel de histórico existente.
-- **Sesión Administrador**: NO debe ver este panel.
-- Sube tus dos archivos reales (`Ventas_2025_Historico_Conaccion.xlsx`, `Ventas_2026_Actual_Conaccion.xlsx`) y presiona **Validar archivos** primero — revisa con calma los números antes de continuar.
-- Solo si el resumen de validación tiene sentido, escribe **REEMPLAZAR** y presiona **Procesar reemplazo**.
-- Después de procesar, confirma en Gestión de clientes que aparecen los ~596 clientes esperados, y que los asesores quedaron asignados donde correspondía.
+- **Sesión Super Administrador → Ajustes**: debe verse un solo cajón "Procedimiento de cargue de información inicial" con 5 secciones desplegables, en vez de los paneles sueltos de antes.
+- La sección "Activación primera vez" debe verse colapsada (con borde rojo) al entrar — hay que hacer clic para desplegarla.
+- Las demás secciones (histórico, clasificación, ERP, manual) deben verse desplegadas por defecto.
+- Confirma que los botones de cada sección siguen funcionando igual que antes (validar/procesar histórico, guardar configuración ERP, subir venta manual).
+- **Sesión Administrador**: no debe ver este cajón.
 
-## 9. Pendiente (sin tocar en esta entrega)
+## 7. Pendiente (sin tocar en esta entrega)
 
-- **Motor de clasificación automática** (Simple / 2V / 3V, configurable por Super Administrador) — es la siguiente pieza que definimos juntos: calcula clasificación A/B/C/E/N al final del histórico y, con ella, la meta 2026 real (hoy la meta usa venta 2025 como valor por defecto mientras no hay clasificación). Pendiente de precisar contigo la definición exacta de "consecutividad" y "estado" para los modelos 2V y 3V antes de construirlo.
-- **Respaldo automático + botón de restauración** — infraestructura ya lista en Supabase (`clientes_backup_v1`), pendiente de conectar al flujo cuando lo pidas.
+- **Motor de clasificación automática** (Simple/2V/3V) — pendiente de precisar contigo la definición de "consecutividad" y "estado" para los modelos 2V y 3V. En cuanto esté listo, se conecta al botón que ya quedó preparado en la sección 3.
+- Respaldo automático + botón de restauración para "Activación primera vez" — pendiente de que lo pidas.
 - Renombrar "Super Administrador" a "Administrador" sigue pendiente — NO aplicar hasta nueva instrucción explícita (tarea #50).
 - Bug reportado en el proceso de ingreso a la app — sigue pendiente de que me compartas el detalle.
