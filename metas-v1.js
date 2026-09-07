@@ -88,6 +88,22 @@ function metasAcumuladoAnioAsesorV2(nombreAsesor) {
 }
 
 let metasAjustesCacheV2 = [];
+// V2 (2026-09-07) — corrige el bucle infinito de renders en el
+// Dashboard reportado por Sergio ("la gráfica está loca", la línea
+// Meta Ajustada cambiaba de valor sin parar). Causa encontrada:
+// metasAjustesCacheV2 arranca como un array vacío [], EXACTAMENTE
+// igual a como queda después de una carga real que sí devuelve cero
+// filas (por ejemplo, tras limpiar ajustes_meta_asesor en la entrega
+// V16.34) — el wrapper de renderDirectorDashboardV812 más abajo no
+// podía distinguir "todavía no se ha intentado cargar" de "ya se
+// cargó y está legítimamente vacía", así que cada render volvía a
+// disparar una nueva carga, que al terminar volvía a llamar
+// render(), que volvía a disparar otra carga... en un ciclo sin fin,
+// cada vuelta con timing de red ligeramente distinto (de ahí el
+// "salto" visible de la línea). Esta bandera aparte SÍ distingue los
+// dos estados: solo pasa a true una vez, después de la primera
+// respuesta real del servidor (con o sin filas).
+let metasAjustesCacheV2CargadaV1 = false;
 
 // ============================================================
 // Fase 6 (2026-08-20) — Carga masiva de meta nueva por Excel.
@@ -348,6 +364,7 @@ async function metasAjusteCargarV1() {
     });
     if (error) { console.error("[Radar-Metas] Error listando ajustes:", error); return; }
     metasAjustesCacheV2 = data || [];
+    metasAjustesCacheV2CargadaV1 = true;
     metasAjusteRenderTablaV1();
     // Fase 2 (2026-08-19): el resumen "Metas y presupuestos" (tabla y
     // gráficas metasChart/metasMensualChart de mejoras-v1.js) también
@@ -710,6 +727,7 @@ async function metasCacheAjustesParaDashboardV1() {
     });
     if (error) { console.error("[Radar-Metas] Error cargando ajustes para el Dashboard:", error); return; }
     metasAjustesCacheV2 = data || [];
+    metasAjustesCacheV2CargadaV1 = true;
     if (typeof renderDirectorDashboardV812 === "function" && typeof currentViewV812 !== "undefined" && currentViewV812 === "dashboard") {
       renderDirectorDashboardV812();
     }
@@ -763,7 +781,14 @@ document.addEventListener("DOMContentLoaded", () => {
     renderDirectorDashboardV812 = function (...args) {
       const r = _renderDashboardOriginalV1.apply(this, args);
       if (metasAjusteEsAdminV1()) {
-        if (!metasAjustesCacheV2 || !metasAjustesCacheV2.length) {
+        // V2 (2026-09-07): antes se usaba "!metasAjustesCacheV2.length"
+        // para decidir si hacía falta cargar — pero eso es indistinguible
+        // de "ya se cargó y está legítimamente vacía" (ver comentario
+        // junto a metasAjustesCacheV2CargadaV1 más arriba), lo que producía
+        // un ciclo infinito de carga→render→carga→render apenas la tabla
+        // de ajustes quedaba en 0 filas. Ahora se usa la bandera dedicada,
+        // que solo permite UNA carga por sesión de página.
+        if (!metasAjustesCacheV2CargadaV1) {
           metasCacheAjustesParaDashboardV1();
         }
         metasDashboardAgregarSerieAjustadaV1();
