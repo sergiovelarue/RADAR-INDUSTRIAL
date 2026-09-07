@@ -412,17 +412,32 @@
             <div class="wiz-bloqueo-v1625" id="wizBloqueo3V1625">Se habilita al completar los pasos 1 y 2.</div>
             <div class="wiz-contenido-v1625" id="wizContenido3V1625" style="display:none">
               <button class="btn" id="wizClasificarBtnV1625">Calcular clasificación y estado</button>
-              <p class="wiz-nota-v1625">Clasifica todos los clientes en A/B/C/D según el modelo activo (configurable en Super Administrador → Motor de clasificación) y actualiza su Meta Ajustada. La Meta Inicial de cada cliente solo se fija la primera vez.</p>
+              <p class="wiz-nota-v1625">Clasifica todos los clientes en A/B/C/D según el modelo activo (configurable en Super Administrador → Motor de clasificación) y actualiza su Meta Ajustada.</p>
               <div class="wiz-estado-v1625" id="wizEstadoClasificacionV1625"></div>
             </div>
           </div>
 
-          <!-- Paso 4: Modo de operación diaria -->
+          <!-- Paso 4: Calcular Meta Inicial y Presupuesto (2026-09-07) -->
+          <div class="wiz-paso-v1625 wiz-paso-bloqueado-v1625" id="wizPaso4MetasV1625">
+            <div class="wiz-paso-header-v1625">
+              <span class="wiz-paso-titulo-v1625">Paso 4 · Calcular Meta Inicial y Presupuesto</span>
+              <span class="wiz-semaforo-v1625" id="wizSemaforo4MetasV1625"><span class="wiz-semaforo-punto-v1625"></span><span class="wiz-semaforo-texto-v1625">—</span></span>
+            </div>
+            <p class="wiz-paso-detalle-v1625" id="wizDetalle4MetasV1625">Completa el Paso 3 (Clasificación) primero.</p>
+            <div class="wiz-bloqueo-v1625" id="wizBloqueo4MetasV1625">Se habilita al completar el Paso 3.</div>
+            <div class="wiz-contenido-v1625" id="wizContenido4MetasV1625" style="display:none">
+              <button class="btn" id="wizCalcularMetasBtnV1625">Calcular Meta Inicial y Presupuesto</button>
+              <p class="wiz-nota-v1625">Meta Inicial 2026 de cada cliente = venta del mismo mes de 2025 × (1 + % de crecimiento de su clasificación). Se calcula <strong>una sola vez</strong> por cada carga nueva de Histórico (Paso 1) — después de la primera vez, este botón solo actualiza el Presupuesto 2027, sin volver a mover la Meta Inicial ya fijada. Cualquier ajuste manual posterior (Meta Ajustada) siempre tiene prioridad sobre la Meta Inicial.</p>
+              <div class="wiz-estado-v1625" id="wizEstadoMetasV1625"></div>
+            </div>
+          </div>
+
+          <!-- Paso 5: Modo de operación diaria -->
           <div class="wiz-paso-v1625 wiz-paso-bloqueado-v1625" id="wizPaso4V1625">
             <div class="wiz-paso-header-v1625">
-              <span class="wiz-paso-titulo-v1625">Paso 4 · Modo de operación diaria</span>
+              <span class="wiz-paso-titulo-v1625">Paso 5 · Modo de operación diaria</span>
             </div>
-            <p class="wiz-paso-detalle-v1625" id="wizDetalle4V1625">Completa los pasos 1, 2 y 3 primero.</p>
+            <p class="wiz-paso-detalle-v1625" id="wizDetalle4V1625">Completa los pasos 1, 2, 3 y 4 primero.</p>
             <div class="wiz-bloqueo-v1625" id="wizBloqueo4V1625">Se habilita cuando la referencia inicial esté completa.</div>
             <div class="wiz-contenido-v1625" id="wizContenido4V1625" style="display:none">
               <div class="wiz-modo-grupo-v1625">

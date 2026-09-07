@@ -53,6 +53,17 @@ async function cargarAsesoresV94() {
     ASESOR_ID_MAP_V94[a.nombre] = a.id;
     ASESOR_NAME_MAP_V94[a.id] = a.nombre;
   });
+  // DATA.meta.asesores nunca se reasignaba desde ningún otro punto del
+  // código — su único origen era el dataset embebido de data.js. Al
+  // vaciar data.js (2026-09-07, corrección del bug de repoblación con
+  // datos de ejemplo), DATA.meta.asesores quedó permanentemente en []
+  // y con eso toda vista que dependa de esa lista (Metas y
+  // presupuestos, entre otras) dejó de tener sobre qué iterar — no
+  // mostraba ni siquiera "$0", porque no se generaba ninguna fila.
+  // Se pobla aquí, desde la tabla real de Supabase, como corresponde.
+  if (typeof DATA !== "undefined" && DATA && DATA.meta) {
+    DATA.meta.asesores = (data || []).map(a => a.nombre).filter(Boolean).sort();
+  }
 }
 
 // Convierte una fila de Supabase de vuelta a la forma exacta de
@@ -155,11 +166,66 @@ async function cargarClientesDesdeSupabaseV94() {
     DATA.clientes = data.map(filaSupabaseAClienteV94);
     DATA.meta.totalClientes = DATA.clientes.length;
     clientesListoV94 = true;
+    // No se espera (await) para no retrasar el render principal — la
+    // Meta Inicial se sirve como "aún no calculada" (fallback) hasta
+    // que termine, y goal(c)/las vistas de Metas se recalculan solas
+    // en el siguiente render() o recarga de pestaña.
+    cargarMetasInicialesDesdeSupabaseV94();
     return true;
   } catch (e) {
     console.error('[Radar-Supabase] Fallo de conexión:', e);
     return false;
   }
+}
+
+// ------------------------------------------------------------
+// Meta Inicial 2026 (2026-09-07) — tabla metas_iniciales_v1,
+// indexada por cliente_id + mes. Se trae en un solo select anidado
+// (clientes!inner(nit)) para poder indexar el caché por NIT en vez de
+// por el uuid interno de Supabase, que es lo que usa el resto del
+// frontend (clientes no exponía su "id" de Supabase hasta ahora,
+// filaSupabaseAClienteV94 solo copia columnas visibles al usuario).
+// METAS_INICIALES_CACHE_V1["NIT|Mes"] = { metaInicial, clasificacionUsada }.
+// ------------------------------------------------------------
+let METAS_INICIALES_CACHE_V1 = {};
+let metasInicialesListoV94 = false;
+
+async function cargarMetasInicialesDesdeSupabaseV94() {
+  try {
+    const { data, error } = await supabaseClientV94
+      .from('metas_iniciales_v1')
+      .select('mes, meta_inicial, clasificacion_usada, clientes!inner(nit)')
+      .eq('anio', 2026)
+      .range(0, 19999);
+    if (error) {
+      console.error('[Radar-Supabase] Error cargando metas iniciales:', error);
+      return false;
+    }
+    const cache = {};
+    (data || []).forEach(fila => {
+      const nit = fila.clientes && fila.clientes.nit;
+      if (!nit) return;
+      cache[nit + "|" + fila.mes] = {
+        metaInicial: Number(fila.meta_inicial || 0),
+        clasificacionUsada: fila.clasificacion_usada || ""
+      };
+    });
+    METAS_INICIALES_CACHE_V1 = cache;
+    metasInicialesListoV94 = true;
+    return true;
+  } catch (e) {
+    console.error('[Radar-Supabase] Fallo de conexión cargando metas iniciales:', e);
+    return false;
+  }
+}
+
+// Lee la Meta Inicial 2026 de un cliente en un mes específico, o null
+// si todavía no se ha calculado para ese cliente/mes (caso: Paso 4 del
+// wizard nunca se ha corrido, o el cliente es nuevo y llegó después
+// del último cálculo). goal(c) en app.js decide el fallback.
+function metaInicialClienteMesV1(nit, mes) {
+  const entrada = METAS_INICIALES_CACHE_V1[nit + "|" + mes];
+  return entrada ? entrada.metaInicial : null;
 }
 
 // ------------------------------------------------------------

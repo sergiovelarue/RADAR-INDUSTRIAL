@@ -183,6 +183,18 @@ function wizPintarSemaforosV1625() {
       ? `Último cálculo: ${wizFormatearFechaV1625(m.clasificacion_calculada_en)}.`
       : "Listo para calcular.";
   }
+  // Paso 4 (2026-09-07): Calcular Meta Inicial y Presupuesto — gated a
+  // que Clasificación (Paso 3) ya se haya calculado al menos una vez,
+  // porque la fórmula necesita clientes.clasificacion.
+  const tieneMetaInicial = !!m.meta_inicial_calculada_en;
+  wizAplicarBloqueoV1625("wizPaso4MetasV1625", "wizBloqueo4MetasV1625", "wizContenido4MetasV1625", tieneClasificacion);
+  wizPintarSemaforoV1625(
+    "wizSemaforo4MetasV1625", "wizDetalle4MetasV1625", tieneMetaInicial,
+    `Meta Inicial fijada el ${wizFormatearFechaV1625(m.meta_inicial_calculada_en)}. Presupuesto 2027 actualizado el ${wizFormatearFechaV1625(m.presupuesto_calculado_en)}.`,
+    tieneClasificacion ? "Listo para calcular (primera vez: fija la Meta Inicial 2026 y el Presupuesto 2027)." : "Completa el Paso 3 (Clasificación) primero."
+  );
+
+  // Paso 5 (antes Paso 4): Modo de operación diaria.
   wizAplicarBloqueoV1625("wizPaso4V1625", "wizBloqueo4V1625", "wizContenido4V1625", tieneHistorico && tieneVentaActual);
 
   if (tieneHistorico && tieneVentaActual) {
@@ -473,7 +485,69 @@ async function wizClasificarV1625() {
 }
 
 // ------------------------------------------------------------
-// Paso 4: modo de operación diaria
+// Paso 4 (2026-09-07): Calcular Meta Inicial 2026 y Presupuesto 2027.
+// Dispara calcular-metas-iniciales (Edge Function) vía RPC
+// disparar_calculo_metas_iniciales_v1 (fire-and-forget), luego hace
+// polling de leer_ultimo_resultado_metas_iniciales_v1. El registro en
+// metadata_activacion_v1 (para el semáforo) lo hace la propia Edge
+// Function al terminar, vía registrar_calculo_metas_iniciales_v1.
+//
+// forzarMetaInicial se envía en true SIEMPRE que se llegue a este
+// botón inmediatamente después de una carga de Histórico nueva (Paso
+// 1 ya implica "recálculo de la meta sí o sí", instrucción explícita
+// de Sergio 2026-09-07). Como el wizard es secuencial y el Paso 1
+// vacía toda la base de clientes cada vez que se usa, en la práctica
+// esto significa: se envía true siempre que el wizard esté abierto en
+// esta sesión y el usuario llegue hasta este paso — es la forma más
+// simple y segura de garantizar "si cambia el histórico cambia la
+// meta inicial" sin tener que rastrear aparte si hubo o no una carga
+// de histórico entremedio. Si el usuario solo quiere refrescar el
+// Presupuesto 2027 sin tocar la Meta Inicial ya fijada (mismo
+// histórico, otro mes del año), el Edge Function de todas formas NO
+// vuelve a calcular la Meta Inicial salvo que sea la primera vez —
+// ver comentario dentro de la Edge Function.
+async function wizCalcularMetasV1625() {
+  const btn = $w18("wizCalcularMetasBtnV1625");
+  if (btn) btn.disabled = true;
+  wizSetEstadoV1625("wizEstadoMetasV1625", "", "<strong>Estado:</strong> calculando Meta Inicial y Presupuesto…");
+
+  try {
+    const usuarioEmail = (currentUserV84 && currentUserV84.email) || "";
+    const { error: errDisparo } = await supabaseClientV94.rpc("disparar_calculo_metas_iniciales_v1", {
+      p_usuario_email: usuarioEmail, p_forzar_meta_inicial: true
+    });
+    if (errDisparo) throw errDisparo;
+
+    let data = null;
+    for (let i = 0; i < 30; i++) {
+      await wizEsperarMs(1000);
+      const { data: resultado, error } = await supabaseClientV94.rpc("leer_ultimo_resultado_metas_iniciales_v1");
+      if (error) throw error;
+      if (resultado && resultado.calculadoEn) { data = resultado; break; }
+    }
+    if (!data) throw new Error("El cálculo sigue en curso del lado del servidor. Espera un momento y vuelve a intentar.");
+    if (data.ok === false) {
+      wizSetEstadoV1625("wizEstadoMetasV1625", "wiz-estado-error-v1625", "<strong>Error:</strong> " + (data.error || "no se pudo calcular."));
+      return;
+    }
+
+    if (typeof cargarMetasInicialesDesdeSupabaseV94 === "function") await cargarMetasInicialesDesdeSupabaseV94();
+    if (typeof render === "function") render();
+
+    wizSetEstadoV1625("wizEstadoMetasV1625", "wiz-estado-ok-v1625",
+      `<strong>✔ Listo.</strong> ${data.mensaje} Ya puedes revisar "Metas y presupuestos" con la información actualizada.`);
+
+    await wizCargarMetadataV1625();
+  } catch (e) {
+    console.error("[Radar-Wizard] Error calculando Meta Inicial/Presupuesto:", e);
+    wizSetEstadoV1625("wizEstadoMetasV1625", "wiz-estado-error-v1625", "<strong>Error:</strong> " + (e.message || "no se pudo calcular."));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ------------------------------------------------------------
+// Paso 5 (antes Paso 4): modo de operación diaria
 // ------------------------------------------------------------
 
 function wizPintarModoVentaV1625() {
@@ -612,6 +686,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if ($w18("wizClasificarBtnV1625")) $w18("wizClasificarBtnV1625").addEventListener("click", wizClasificarV1625);
+
+  if ($w18("wizCalcularMetasBtnV1625")) $w18("wizCalcularMetasBtnV1625").addEventListener("click", wizCalcularMetasV1625);
 
   document.getElementsByName("wizModoVentaV1625").forEach(r => r.addEventListener("change", wizPintarModoVentaV1625));
   if ($w18("wizGuardarModoBtnV1625")) $w18("wizGuardarModoBtnV1625").addEventListener("click", wizGuardarModoV1625);

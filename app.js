@@ -1618,7 +1618,26 @@ function growthConfigV810(){if(typeof getGrowthConfigV82==="function")return get
 // mes) o, si no hay, de metaAsesor/metaSugerida (Forecast cargado por
 // Excel o ajuste manual desde la ficha del cliente) — nunca de un %
 // recalculado aquí. Ver conversación con Sergio 2026-09-04.
-goal=function(c){const m=selectedMonthV810();if(c.metasAsesorPorMes&&c.metasAsesorPorMes[m]!==undefined&&c.metasAsesorPorMes[m]!=="")return Number(c.metasAsesorPorMes[m]||0);return Number(c.metaAsesor||c.metaSugerida||0)};
+//
+// V2 (2026-09-07) — Meta Inicial 2026 por cliente/mes (tabla Supabase
+// metas_iniciales_v1, calculada en el Paso 4 del wizard "Activación
+// primera vez": venta del mismo mes de 2025 × (1+%crecimiento de la
+// clasificación)). Prioridad final confirmada por Sergio: 1) ajuste
+// manual del mes (metasAsesorPorMes, sin cambios); 2) Meta Inicial de
+// metas_iniciales_v1 para ese cliente/mes, si ya se calculó; 3)
+// metaAsesor/metaSugerida (valor plano, fallback para clientes/meses
+// que todavía no tienen Meta Inicial calculada — ej. antes de correr
+// el Paso 4 por primera vez, o clientes cargados después del último
+// cálculo).
+goal=function(c){
+  const m=selectedMonthV810();
+  if(c.metasAsesorPorMes&&c.metasAsesorPorMes[m]!==undefined&&c.metasAsesorPorMes[m]!=="")return Number(c.metasAsesorPorMes[m]||0);
+  if(typeof metaInicialClienteMesV1==="function"){
+    const metaInicial=metaInicialClienteMesV1(c.nit,m);
+    if(metaInicial!==null&&metaInicial!==undefined)return Number(metaInicial||0);
+  }
+  return Number(c.metaAsesor||c.metaSugerida||0);
+};
 compliance=function(c){const g=goal(c);return g?(saleCurrent(c)/g)*100:0};missing=function(c){return Math.max(goal(c)-saleCurrent(c),0)};
 filteredBase=function(){const q=String(state.search||"").toLowerCase().trim();return DATA.clientes.filter(c=>{const blocked=typeof isBlockedV87==="function"?isBlockedV87(c):false;const vip=typeof isVipGerenciaV88==="function"?isVipGerenciaV88(c):false;if(blocked){if(!(typeof isAdminV86==="function"&&isAdminV86()))return false;if(state.status!=="Bloqueado")return false}else if(state.status==="Bloqueado")return false;if(state.profile!=="admin"&&vip)return false;if(!businessMatchV810(c))return false;if(state.profile==="admin"){if(state.advisor!=="todos"&&c.asesorAsignado!==state.advisor)return false}else{if(c.asesorAsignado!==state.profile)return false}if(state.status!=="todos"&&state.status!=="Bloqueado"&&c.estado!==state.status)return false;if(q&&![c.cliente,c.nit,c.asesorAsignado,c.ciudad,c.departamento,c.tipoCliente,c.canal].join(" ").toLowerCase().includes(q))return false;return true})};
 function sortedRowsV810(arr){const copy=[...arr],sort=state.sort||"venta2025";copy.sort((a,b)=>{if(sort==="faltante")return missing(b)-missing(a);if(sort==="ventaActual")return saleCurrent(b)-saleCurrent(a);if(sort==="cumplimientoAsc")return compliance(a)-compliance(b);if(sort==="cliente")return String(a.cliente||"").localeCompare(String(b.cliente||""));return salePrev(b)-salePrev(a)});return copy}
