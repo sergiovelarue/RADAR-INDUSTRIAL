@@ -164,7 +164,9 @@ function wizPintarSemaforosV1625() {
     `Archivo: ${m.historico_nombre_archivo} · cargado ${wizFormatearFechaV1625(m.historico_cargado_en)} · ${m.historico_total_clientes || 0} clientes.`,
     "Sin información de referencia todavía."
   );
-  wizMostrarSiExisteV1625("wizWarning1V1625", tieneHistorico);
+  // V2 (2026-09-07): el aviso de reemplazo total es permanente — el
+  // riesgo aplica siempre (incluso con la base vacía, para que quede
+  // claro qué va a pasar), no solo cuando ya hay un histórico previo.
 
   wizPintarSemaforoV1625(
     "wizSemaforo2V1625", "wizDetalle2V1625", tieneVentaActual,
@@ -237,44 +239,34 @@ async function wizValidarHistoricoV1625() {
       return;
     }
 
-    // Conteo actual de la base ANTES de procesar, para que Sergio pueda
-    // detectar a simple vista una carga anómala (ej. "566 nuevos" sobre
-    // una base que ya tenía 566 clientes reales — señal de estar
-    // cargando un archivo de prueba o duplicado en vez del real).
-    let totalClientesActual = null;
-    try {
-      const { count } = await supabaseClientV94.from("clientes").select("id", { count: "exact", head: true });
-      totalClientesActual = count;
-    } catch (eConteo) { console.error("[Radar-Wizard] No se pudo leer el conteo actual de clientes:", eConteo); }
-
-    const pctNuevos = data.totalFilas > 0 ? (data.nuevos / data.totalFilas) : 0;
-    const alertaNuevosSospechosos = totalClientesActual !== null && totalClientesActual > 0 && pctNuevos >= 0.5;
+    // V2 (2026-09-07) — Cargar Histórico ahora SIEMPRE reemplaza por
+    // completo la base de clientes (decisión explícita de Sergio, tras
+    // un incidente de datos): ya no importa si el nombre del archivo
+    // coincide con la referencia anterior — cualquier carga en el
+    // Paso 1 borra todos los clientes existentes y crea los del
+    // archivo nuevo desde cero. Por eso SIEMPRE se pide la
+    // confirmación explícita "REEMPLAZAR", sin excepción.
+    const totalClientesActual = data.totalClientesActual || 0;
 
     $w18("wizResultadoHistoricoV1625").style.display = "block";
     $w18("wizResultadoHistoricoV1625").innerHTML =
-      (totalClientesActual !== null ? `<p>La base tiene actualmente <strong>${totalClientesActual}</strong> clientes.</p>` : "") +
-      `<p><strong>${data.totalFilas}</strong> clientes en el archivo · <strong>${data.nuevos}</strong> nuevos · <strong>${data.actualizables}</strong> ya existentes (se actualiza su histórico, sin tocar venta actual)${data.asesoresNoReconocidos ? " · <strong>" + data.asesoresNoReconocidos + "</strong> asesores sin reconocer (" + data.asesoresNoReconocidosLista.join(", ") + ")" : ""}.</p>` +
-      (alertaNuevosSospechosos
-        ? `<p class="wiz-alerta-conteo-v1625"><strong>Atención:</strong> más de la mitad de los clientes del archivo (${data.nuevos} de ${data.totalFilas}) serían nuevos, sobre una base que ya tiene ${totalClientesActual}. Si esperabas que este archivo actualizara clientes existentes, verifica que sea el archivo correcto antes de continuar — cargar un archivo equivocado aquí duplicaría la cartera.</p>`
+      `<p>La base tiene actualmente <strong>${totalClientesActual}</strong> clientes.</p>` +
+      `<p>Este archivo tiene <strong>${data.totalFilas}</strong> clientes.</p>` +
+      `<p class="wiz-alerta-conteo-v1625"><strong>Atención — reemplazo total:</strong> al procesar, se eliminan los <strong>${totalClientesActual}</strong> clientes actuales (clasificación, metas y seguimientos incluidos) y se crean los <strong>${data.totalFilas}</strong> del archivo, desde cero. Si ya habías cargado Venta actual (Paso 2), deberás volver a cargarla después.</p>` +
+      (data.asesoresNoReconocidos ? `<p><strong>${data.asesoresNoReconocidos}</strong> asesores sin reconocer (${data.asesoresNoReconocidosLista.join(", ")}).</p>` : "") +
+      (data.nitsDuplicadosArchivo && data.nitsDuplicadosArchivo.length
+        ? `<p class="wiz-alerta-conteo-v1625"><strong>Error:</strong> el archivo tiene NIT duplicados dentro de sí mismo (${data.nitsDuplicadosArchivo.join(", ")}). Corrige el archivo antes de continuar.</p>`
         : "");
 
-    // Mismo nombre de archivo que la referencia actual = actualización
-    // normal (sin fricción extra). Nombre distinto = reemplazo de la
-    // referencia — pide confirmación explícita.
-    const nombreAnterior = wizMetadataV1625 && wizMetadataV1625.historico_nombre_archivo;
-    const esReemplazoDeReferencia = nombreAnterior && nombreAnterior !== fileName;
-    if (esReemplazoDeReferencia) {
+    if (data.nitsDuplicadosArchivo && data.nitsDuplicadosArchivo.length) {
+      $w18("wizProcesarHistoricoBtnV1625").disabled = true;
+    } else {
       $w18("wizConfirmHistoricoV1625").style.display = "block";
       $w18("wizConfirmHistoricoTextoV1625").value = "";
       $w18("wizProcesarHistoricoBtnV1625").disabled = true;
-    } else {
-      $w18("wizProcesarHistoricoBtnV1625").disabled = false;
     }
 
-    wizSetEstadoV1625("wizEstadoHistoricoV1625", "wiz-estado-ok-v1625",
-      (esReemplazoDeReferencia
-        ? `<strong>Atención:</strong> este archivo (${fileName}) es distinto al usado como referencia (${nombreAnterior}) — al procesar, reemplaza la referencia del año anterior. `
-        : "<strong>Validación correcta.</strong> ") + "Archivo: " + fileName + ".");
+    wizSetEstadoV1625("wizEstadoHistoricoV1625", "wiz-estado-ok-v1625", "<strong>Validación correcta.</strong> Archivo: " + fileName + ".");
   } catch (e) {
     console.error("[Radar-Wizard] Error validando histórico:", e);
     wizSetEstadoV1625("wizEstadoHistoricoV1625", "wiz-estado-error-v1625", "<strong>Error:</strong> " + (e.message || "no se pudo validar."));
@@ -283,17 +275,15 @@ async function wizValidarHistoricoV1625() {
 
 async function wizProcesarHistoricoV1625() {
   if (!wizFilasHistoricoV1625) return;
-  const nombreAnterior = wizMetadataV1625 && wizMetadataV1625.historico_nombre_archivo;
-  const esReemplazoDeReferencia = nombreAnterior && nombreAnterior !== wizFilasHistoricoV1625.fileName;
-  if (esReemplazoDeReferencia) {
-    const texto = ($w18("wizConfirmHistoricoTextoV1625").value || "").trim().toUpperCase();
-    if (texto !== "REEMPLAZAR") {
-      wizSetEstadoV1625("wizEstadoHistoricoV1625", "wiz-estado-error-v1625", "<strong>Error:</strong> escribe REEMPLAZAR para confirmar.");
-      return;
-    }
-    const confirmado = confirm("Vas a reemplazar la referencia del año anterior por un archivo distinto (" + wizFilasHistoricoV1625.fileName + "). Esto NO afecta la venta actual. ¿Continuar?");
-    if (!confirmado) return;
+  // V2 (2026-09-07) — Reemplazo total siempre requiere escribir
+  // REEMPLAZAR: ya no depende de si el nombre del archivo cambió.
+  const texto = ($w18("wizConfirmHistoricoTextoV1625").value || "").trim().toUpperCase();
+  if (texto !== "REEMPLAZAR") {
+    wizSetEstadoV1625("wizEstadoHistoricoV1625", "wiz-estado-error-v1625", "<strong>Error:</strong> escribe REEMPLAZAR para confirmar.");
+    return;
   }
+  const confirmado = confirm("Vas a ELIMINAR todos los clientes actuales (clasificación, metas y seguimientos incluidos) y reemplazarlos por los " + wizFilasHistoricoV1625.filas.length + " del archivo " + wizFilasHistoricoV1625.fileName + ". Esta acción no se puede deshacer desde la app. ¿Continuar?");
+  if (!confirmado) return;
 
   const btn = $w18("wizProcesarHistoricoBtnV1625");
   btn.disabled = true;

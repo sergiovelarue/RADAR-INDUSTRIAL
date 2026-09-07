@@ -1,83 +1,79 @@
-# Mejoras_20260907_1503 — Correcciones críticas: panel repetido, login OTP, motor simplificado y limpieza de datos
+# Mejoras_20260907_2023 — Corrección del bug de datos duplicados + reemplazo total en carga de histórico
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.30 · 2026-09-07**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.31 · 2026-09-07**
 
-Esta entrega corrige los cuatro problemas que reportaste hoy tras probar V16.29.
+Esta entrega corrige la causa real de por qué seguían apareciendo clientes antiguos después de cargar tus archivos reales, y cambia el comportamiento del Paso 1 según tu instrucción.
 
-## 1. El panel "Motor de clasificación" ya no aparece en todas las pestañas
+## 1. La causa raíz del problema (encontrada y corregida)
 
-**Causa:** al construir ese panel la entrega anterior, faltó agregarlo a la lista interna que controla qué paneles pertenecen exclusivamente a la pestaña "Sistema". Por eso quedaba visible siempre, en cualquier pestaña, para cualquier Super Administrador.
+Cuando cargaste tus dos archivos reales hoy (566 de histórico, 608 de venta actual), la base terminó con 1132 clientes que **no correspondían a ninguno de los dos archivos**. Investigué a fondo y encontré un archivo (`data.js`) que llevaba meses en el sistema: contenía un dataset completo de 566 clientes de una versión muy anterior de la app (antes de que existiera Supabase), que se quedó "congelado" dentro del paquete de la aplicación.
 
-**Corregido:** ahora vive únicamente dentro de Sistema, igual que el resto de paneles de configuración (crecimiento por clasificación, modelo de cálculo, etc.).
+El problema: cada vez que se abre la app, existe una ventana de tiempo muy breve (fracciones de segundo) entre el momento en que arranca con esos datos viejos de `data.js` y el momento en que termina de traer los datos reales de Supabase. Si en esa ventana se disparaba cualquier acción de guardado, la app subía por error los 566 clientes viejos a la base de datos real — como si fueran datos nuevos. Esto es lo que repobló tu base después de que la vaciamos, y probablemente explica también el incidente de la sesión anterior.
 
-## 2. El login ya detecta tu correo y muestra el enlace de acceso
+**Corregido con dos capas de protección:**
+1. `data.js` ya no contiene ningún cliente — ahora arranca completamente vacío, así que aunque se repita la condición de carrera, no hay nada real que pueda subirse por error.
+2. Se agregó una "guardia" en el código (`supabase-sync.js`) que bloquea cualquier intento de subir clientes a Supabase hasta que la lectura real desde la base de datos haya terminado — el mismo mecanismo de seguridad que ya protegía la configuración general, ahora también protege los clientes.
 
-**Causa:** otro módulo de la app (el que gestiona el checkbox de autorización de datos personales) limpia y reconstruye el campo de correo al cargar la página, por una razón legítima (evitar que el botón de login se disparara dos veces). Ese proceso, sin querer, también borraba la conexión que detecta si tu correo es de Administrador/Super Administrador — por eso el formulario nunca cambiaba, sin importar cuántas veces recargaras.
+## 2. Cargar Histórico (Paso 1) ahora es un reemplazo total, como pediste
 
-**Corregido:** ahora esa conexión se reconstruye correctamente después del ajuste del otro módulo. Al escribir `sergiovelasquez@me.com` en el login, debe cambiar automáticamente a "Enviar enlace de acceso".
+Antes, cargar un archivo de Histórico agregaba los clientes nuevos y actualizaba los existentes, pero nunca eliminaba nada. Ahora, cada vez que proceses un archivo en el Paso 1:
 
-**Además:** agregué el número de versión (`ConAccion · V16.30 · 2026-09-07`) visible al final de la pantalla de login, para que puedas confirmar de un vistazo qué versión está desplegada sin necesidad de entrar primero.
+- Se **eliminan todos los clientes actuales** (clasificación, metas ajustadas, estado, seguimientos comerciales — todo).
+- Se **crean desde cero** únicamente los clientes del archivo que acabas de cargar.
+- Si ya habías cargado Venta actual (Paso 2) antes, **deberás volver a cargarla después**, porque quedó asociada a los clientes que ya no existen.
 
-## 3. Motor de clasificación simplificado — ya no existe la opción 3V
+Esto aplica siempre, sin excepción — ya no depende de si el nombre del archivo es el mismo o distinto al anterior. El wizard ahora siempre te pide escribir la palabra **REEMPLAZAR** y confirmar en un cuadro de diálogo antes de proceder, y te muestra cuántos clientes hay actualmente y cuántos traerá el archivo nuevo, para que decidas con esa información antes de confirmar.
 
-Por tu instrucción, eliminé el modelo "3V (volumen + consecutividad + estado)". Ahora el selector solo ofrece:
-- **Simple** (por volumen de venta)
-- **2V** (volumen + consecutividad)
+También agregué una validación: si tu archivo tiene el mismo NIT repetido dos veces dentro de sí mismo, el sistema te avisa y no procesa nada, en vez de fallar a medias.
 
-Actualicé tanto la pantalla de configuración como el motor de cálculo real en el servidor (Supabase). La configuración actual ya estaba en "2V", así que no hay ningún cambio de comportamiento para ti — solo desaparece la opción 3V del menú.
+## 3. Qué tienes que hacer ahora
 
-## 4. Hallazgo crítico: la base de datos tenía el doble de clientes de los reales
+La base de clientes está en 0 (la vacié de nuevo, con la causa del bug ya corregida). Pasos:
 
-Al investigar por qué las cifras de venta, proyección y presupuesto no cuadraban con tu archivo, encontré que la tabla de clientes tenía **1132 registros en vez de 566** — dos lotes completos, creados en momentos distintos, con NITs totalmente diferentes entre sí. Revisé el registro de auditoría de la app y **ninguno de los dos lotes tiene evidencia de haber sido cargado por ti desde un archivo real** — ambos parecen datos de prueba de sesiones de desarrollo anteriores que nunca se limpiaron del todo.
+1. **Activación primera vez → Paso 1**: carga tu archivo `Ventas_2025_Historico_Conaccion.xlsx` (el mismo que me compartiste, 566 filas). Debe decir "0 clientes actuales" antes de procesar, y "566 clientes en el archivo" — sin ninguna alerta de datos sospechosos.
+2. Confirma escribiendo REEMPLAZAR.
+3. **Paso 2**: carga tu archivo `Ventas_2026_Actual_Conaccion.xlsx` (608 filas).
+4. Verifica en Dashboard/Hoja de ruta que ahora los nombres y cifras correspondan a tu archivo real (revisa, por ejemplo, que aparezca "Distribuciones La Frontera" o "Comercial Occidente" — nombres de tu archivo real — y no "3P Talabartería" o "Almacenes Andina", que eran del dataset viejo).
 
-Como me indicaste, no usé ninguno de los dos como base: **respaldé ambos lotes en tablas aparte (por seguridad, nada se perdió) y vacié por completo la tabla de clientes.** Esto significa que ahora mismo la app **no tiene ningún cliente cargado** — es intencional, para que tu próxima carga desde el wizard "Activación primera vez" (Paso 1) sea la única fuente de datos, verificada y trazable.
+## 4. Verificado antes de empaquetar
 
-**Acción que necesitas hacer tú:** volver a cargar tu archivo de histórico real desde **Activación primera vez → Paso 1**, y luego tu archivo de venta actual en el Paso 2.
+- Sintaxis validada: `node --check` sin errores en los 3 archivos JS modificados, incluido `data.js`.
+- Confirmé que `data.js` carga correctamente como una estructura vacía (`clientes: []`, `meta.totalClientes: 0`).
+- HTML con etiquetas balanceadas (59 `<section>`, 244 `<div>`).
+- Confirmé en Supabase que la tabla `clientes` está en 0 registros, con los datos anteriores respaldados en `respaldo_clientes_bug_data_js_20260907` (por si necesitas consultarlos — no se recomienda reutilizarlos, no corresponden a ningún archivo real tuyo).
+- Verifiqué los NITs de tus dos archivos reales contra la base: cero coincidencias con lo que había — confirmando que ninguno de los datos anteriores venía de tus archivos.
+- Probé la lógica de reemplazo total y de detección de NIT duplicado directamente contra el código del servidor (Edge Function actualizada a v2).
 
-### Salvaguarda nueva para que esto no se repita
-
-Agregué una alerta en el Paso 1 del wizard: antes de procesar un archivo, ahora ves cuántos clientes tiene la base actualmente y, si el archivo generaría una cantidad sospechosamente alta de clientes "nuevos" (la mitad o más del archivo, sobre una base que ya tiene datos), aparece un aviso en amarillo pidiéndote confirmar que es el archivo correcto antes de continuar.
-
-## 5. Verificado antes de empaquetar
-
-- Sintaxis validada: `node --check` sin errores en los 5 archivos JS modificados.
-- HTML con etiquetas balanceadas (59 `<section>`, 244 `<div>`, 44 `<select>` — todas abiertas y cerradas correctamente).
-- Confirmé en Supabase que la tabla `clientes` quedó en 0 registros, con los dos lotes anteriores respaldados en `respaldo_lote_no_verificado_20260907` (por si necesitas consultarlos, aunque no se recomienda reutilizarlos).
-- Verifiqué el código fuente de las funciones de carga (Paso 1 y Paso 2): no tienen ningún bug de duplicación — el problema fue que se procesaron archivos de prueba distintos contra la base real en sesiones de desarrollo pasadas, no un error del código en sí.
-
-## 6. Archivos de este paquete
+## 5. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `index.html` | Reemplazar — quita la opción 3V del selector, agrega versión visible en login. |
-| `app.js` | Reemplazar — agrega versión visible en login. |
-| `sistema-v1.js` | Reemplazar — corrige el panel de clasificación repetido en todas las pestañas. |
-| `modulo_10_datos_personales.js` | Reemplazar — corrige el login OTP que no detectaba el correo. |
-| `modulo_18_procedimiento_cargue.js` | Reemplazar — quita 3V del código del wizard, agrega alerta preventiva de conteo en Paso 1. |
-| `styles.css` | Reemplazar — agrega el estilo de la alerta preventiva. |
-| `version.js` | Reemplazar — sube a V16.30. |
+| `data.js` | Reemplazar — ya no contiene clientes de ejemplo, arranca vacío. |
+| `supabase-sync.js` | Reemplazar — agrega la guardia que evita subir datos a Supabase antes de tiempo. |
+| `modulo_18_procedimiento_cargue.js` | Reemplazar — Paso 1 ahora es reemplazo total con confirmación siempre requerida. |
+| `index.html` | Reemplazar — aviso permanente de reemplazo total en el Paso 1. |
+| `version.js` | Reemplazar — sube a V16.31. |
 
-## 7. Pasos para subir a GitHub
+## 6. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza los 7 archivos.
+2. Reemplaza los 5 archivos.
 3. Espera el deploy de Netlify y confirma "Published".
-4. **Haz recarga forzada** en tu navegador (Cmd+Shift+R en Mac) antes de probar, para evitar ver una versión en caché.
+4. Haz recarga forzada en tu navegador (Cmd+Shift+R) antes de probar.
 
-## 8. Checklist de prueba
+## 7. Checklist de prueba
 
-- Entra a la app: debe verse "ConAccion · V16.30 · 2026-09-07" al final de la pantalla de login.
-- Escribe `sergiovelasquez@me.com` en el correo: debe cambiar automáticamente a "Enviar enlace de acceso" (sin pedir teléfono, porque ya quedó registrado de la prueba anterior).
-- Entra como Super Administrador y revisa varias pestañas (Hoja de ruta, Dashboard, Prospección, etc.): el panel "Motor de clasificación" solo debe aparecer en **Sistema**, no en las demás.
-- En Sistema → Motor de clasificación: confirma que el selector solo muestra "Simple" y "2V" (sin 3V).
-- Ve a **Activación primera vez → Paso 1** y carga tu archivo de histórico real. Debes ver el conteo actual de la base (0) antes de procesar.
-- Una vez cargado el histórico, carga tu archivo de venta actual en el Paso 2.
-- Revisa que las cifras de Dashboard, Metas y presupuestos, y Hoja de ruta ahora sí correspondan a tu archivo real.
+- Entra a la app: debe verse "ConAccion · V16.31 · 2026-09-07" en el login.
+- Ve a Activación primera vez → Paso 1: debe verse el aviso amarillo de reemplazo total, siempre visible.
+- Carga tu archivo de Histórico real: confirma que muestra "0 clientes actuales" y "566 en el archivo" antes de procesar.
+- Escribe REEMPLAZAR, confirma en el cuadro de diálogo, y verifica que el mensaje final diga "0 clientes anteriores eliminados, 566 clientes nuevos creados".
+- Carga el archivo de Venta actual (Paso 2) con tus 608 filas.
+- Revisa Dashboard/Hoja de ruta: los nombres de clientes deben coincidir con tu archivo real.
+- Cierra la pestaña, vuelve a abrir la app, y confirma que los 566 clientes siguen ahí (esto prueba que la corrección de la condición de carrera funciona — antes esto era exactamente el momento en que se repoblaba con datos viejos).
 
-## 9. Pendiente (sin tocar en esta entrega)
+## 8. Pendiente (sin tocar en esta entrega)
 
-- **Revisar y corregir `meta_asesor`** de los clientes reales una vez recargados — el motor de clasificación defectuoso de una sesión anterior había corrompido esos valores en el lote que ya no existe; al recargar desde cero con el archivo real, este problema queda resuelto de raíz (no hay nada que corregir manualmente, porque partimos de datos limpios).
-- Confirmar si las tablas de respaldo (`respaldo_lote_no_verificado_20260907`, `respaldo_lote_duplicado_20260904_1439`, `respaldo_residuos_demo_20260904`) se pueden eliminar definitivamente o se guardan por más tiempo.
+- Confirmar si las tablas de respaldo (`respaldo_clientes_bug_data_js_20260907`, `respaldo_lote_no_verificado_20260907`, `respaldo_lote_duplicado_20260904_1439`, `respaldo_residuos_demo_20260904`) se pueden eliminar definitivamente o se guardan por más tiempo.
 - Confirmar si las funciones de prueba `exportar-ventas-csv-temp` y `diagnostico-drive-temp` en Supabase se pueden eliminar.
 - Integración con cuenta de servicio de Google (archivos privados) — pendiente para producción real con clientes.
 - Login de Asesor — sigue pendiente su rediseño (decisión tuya de dejarlo para otra sesión).

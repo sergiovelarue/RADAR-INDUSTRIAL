@@ -114,6 +114,21 @@ function clienteAFilaSupabaseV94(c) {
 // ------------------------------------------------------------
 // CARGA: trae los clientes reales desde Supabase
 // ------------------------------------------------------------
+// clientesListoV94: mismo patrón de guardia que configListoV98
+// (mejoras-v1.js) — evita que la sincronización hacia Supabase
+// (sincronizarTodosLosClientesV94, más abajo) se dispare ANTES de
+// que esta carga inicial haya terminado. Sin esta guardia, app.js
+// dispara saveDataV93() de forma SÍNCRONA en su propio
+// DOMContentLoaded (ver initV93()), lo que sube a Supabase el
+// DATA.clientes que trae data.js (dataset legado embebido en el
+// deploy) en la ventana de tiempo en que esta función async
+// todavía no ha reemplazado DATA.clientes con los datos reales.
+// Esto causó, el 2026-09-07, que se repoblaran en Supabase 566
+// clientes de data.js encima de una base recién vaciada — ver
+// incidente documentado en Mejoras_20260907_1503 y la corrección
+// de este mismo día.
+let clientesListoV94 = false;
+
 async function cargarClientesDesdeSupabaseV94() {
   try {
     await cargarAsesoresV94();
@@ -126,12 +141,20 @@ async function cargarClientesDesdeSupabaseV94() {
       console.error('[Radar-Supabase] Error cargando clientes:', error);
       return false;
     }
-    if (!data || data.length === 0) {
-      console.warn('[Radar-Supabase] Supabase no devolvió clientes todavía.');
+    // Nota: data puede ser un array vacío legítimamente (base recién
+    // vaciada a propósito, ej. tras "Activación primera vez"). Antes
+    // este caso se trataba como "todavía no llegó" y se abortaba sin
+    // tocar DATA.clientes ni marcar clientesListoV94 — dejando
+    // colada la ventana de carrera que causó el incidente del
+    // 2026-09-07. Ahora SIEMPRE se refleja lo que diga Supabase
+    // (incluida una base vacía) y SIEMPRE se marca clientesListoV94.
+    if (!data) {
+      console.warn('[Radar-Supabase] Error de red leyendo clientes — no se tocó DATA.clientes.');
       return false;
     }
     DATA.clientes = data.map(filaSupabaseAClienteV94);
     DATA.meta.totalClientes = DATA.clientes.length;
+    clientesListoV94 = true;
     return true;
   } catch (e) {
     console.error('[Radar-Supabase] Fallo de conexión:', e);
@@ -147,6 +170,15 @@ let syncEnCursoV94 = false;
 let syncPendienteV94 = false;
 
 async function sincronizarTodosLosClientesV94() {
+  // Guardia: nunca subir clientes a Supabase antes de haber
+  // completado al menos una lectura real desde Supabase en esta
+  // carga de página (ver comentario en cargarClientesDesdeSupabaseV94
+  // arriba). Si algo intenta sincronizar antes de tiempo, se
+  // reintenta automáticamente en cuanto la lectura inicial termine.
+  if (!clientesListoV94) {
+    syncPendienteV94 = true;
+    return;
+  }
   if (syncEnCursoV94) { syncPendienteV94 = true; return; }
   syncEnCursoV94 = true;
   try {
@@ -163,6 +195,17 @@ async function sincronizarTodosLosClientesV94() {
     if (syncPendienteV94) { syncPendienteV94 = false; sincronizarTodosLosClientesV94(); }
   }
 }
+
+// Reintento automático: en cuanto clientesListoV94 pase a true (la
+// carga inicial desde Supabase terminó), si quedó una sincronización
+// pendiente por la guardia de arriba, se ejecuta de inmediato en vez
+// de esperar a la próxima edición del usuario.
+const _chequeoClientesListoV94 = setInterval(() => {
+  if (clientesListoV94) {
+    clearInterval(_chequeoClientesListoV94);
+    if (syncPendienteV94) { syncPendienteV94 = false; sincronizarTodosLosClientesV94(); }
+  }
+}, 300);
 
 // ------------------------------------------------------------
 // ENGANCHES: ampliamos las funciones existentes sin borrarlas
