@@ -1833,7 +1833,26 @@ function lineSaleMonthV813(c, year, month){
   return Number((c.ventas2026EspumasPorMes||{})[month]||0);
 }
 function lineClientIncludedV813(c){
-  return c.tipoCliente==="Espumas"||c.tipoCliente==="Mixto"||Number(c.totalEspumas2025||0)>0||Number(c.totalEspumas2026||0)>0;
+  // V2 (2026-09-07, corrección Sergio) — el Dashboard mostraba $0 en
+  // Venta 2026/2025/Crecimiento/Clientes con venta/Pareto/Ticket
+  // promedio, aunque el resto de la app (Hoja de ruta, Metas y
+  // presupuestos) sí mostraba cifras correctas. Causa encontrada: este
+  // filtro exigía c.tipoCliente==="Espumas"/"Mixto" o
+  // c.totalEspumas2025/2026 > 0 — campos que existían en una versión
+  // muy anterior de la app (cuando había dos líneas de negocio,
+  // Espumas y Colchones, y un selector para elegir cuál mostrar). Esos
+  // campos NUNCA se generan al cargar el histórico/venta actual reales
+  // (confirmado en la base de datos: tipo_cliente es NULL en los 566
+  // clientes reales) — así que el filtro excluía absolutamente a todos
+  // los clientes, dejando directorClientsV813() vacío. Como ya no
+  // existe ningún control de UI para elegir línea de negocio
+  // (directorLineV813 arriba está fijo en "espumas" desde que se
+  // retiró Colchones), TODOS los clientes cargados pertenecen por
+  // definición a esa única línea — no hay ningún caso real en el que
+  // este filtro deba excluir a alguien. Se simplifica a "incluir
+  // siempre", eliminando el filtro obsoleto en vez de intentar
+  // repararlo con campos que el resto de la app nunca llena.
+  return true;
 }
 // V15.0: filtrado por asesor (decisión del cliente, Ago 20) — CRÍTICO.
 // Antes el Dashboard no filtraba por asesorAsignado (a diferencia del
