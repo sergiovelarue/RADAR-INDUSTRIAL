@@ -567,13 +567,13 @@
         </section>
 
         <section class="chart-grid">
-          <article class="chart-card wide"><div class="chart-header"><h3>Venta mensual 2025 vs 2026</h3><p>Comparativo mes a mes por valor vendido.</p></div><canvas id="monthlySalesChart"></canvas></article>
-          <article class="chart-card" id="advisorSalesChartCard"><div class="chart-header"><h3>Venta por asesor 2025 vs 2026</h3><p>Comparativo acumulado al mes disponible.</p></div><canvas id="advisorSalesChart"></canvas></article>
-          <article class="chart-card"><div class="chart-header"><h3>Clasificación: clientes y facturación</h3><p>Número de clientes y participación en facturación del mes seleccionado.</p></div><canvas id="classSalesChart"></canvas></article>
-          <article class="chart-card"><div class="chart-header"><h3>Estado comercial: clientes por estado</h3><p>Número de clientes según estado en el mes seleccionado.</p></div><canvas id="statusChart"></canvas></article>
+          <article class="chart-card wide"><div class="chart-header"><h3>Venta mensual 2025 vs 2026</h3><p>Comparativo mes a mes por valor vendido.</p></div><div class="chart-card-canvas-wrap"><canvas id="monthlySalesChart"></canvas></div></article>
+          <article class="chart-card" id="advisorSalesChartCard"><div class="chart-header"><h3>Venta por asesor 2025 vs 2026</h3><p>Comparativo acumulado al mes disponible.</p></div><div class="chart-card-canvas-wrap"><canvas id="advisorSalesChart"></canvas></div></article>
+          <article class="chart-card"><div class="chart-header"><h3>Clasificación: clientes y facturación</h3><p>Número de clientes y participación en facturación del mes seleccionado.</p></div><div class="chart-card-canvas-wrap"><canvas id="classSalesChart"></canvas></div></article>
+          <article class="chart-card"><div class="chart-header"><h3>Estado comercial: clientes por estado</h3><p>Número de clientes según estado en el mes seleccionado.</p></div><div class="chart-card-canvas-wrap"><canvas id="statusChart"></canvas></div></article>
         </section>
 
-        <section class="chart-grid"><article class="chart-card wide"><div class="chart-header"><h3>Clientes facturando y orden promedio mensual</h3><p>Permite ver si el crecimiento viene por más clientes comprando o por mayor valor promedio por cliente.</p></div><canvas id="monthlyCustomersChart"></canvas></article></section>
+        <section class="chart-grid"><article class="chart-card wide"><div class="chart-header"><h3>Clientes facturando y orden promedio mensual</h3><p>Permite ver si el crecimiento viene por más clientes comprando o por mayor valor promedio por cliente.</p></div><div class="chart-card-canvas-wrap"><canvas id="monthlyCustomersChart"></canvas></div></article></section>
         <section class="commercial-segment-section" id="commercialSegmentSection">
           <div class="chart-header">
             <h3>Segmentos Comerciales</h3>
@@ -586,7 +586,7 @@
                 <h3>Evolución mensual por segmento</h3>
                 <p>Venta mensual 2026 por segmento comercial.</p>
               </div>
-              <canvas id="segmentEvolutionChart"></canvas>
+              <div class="chart-card-canvas-wrap"><canvas id="segmentEvolutionChart"></canvas></div>
             </article>
 
             <article class="chart-card">
@@ -594,7 +594,7 @@
                 <h3>Venta por segmento</h3>
                 <p>Participación acumulada en el año actual.</p>
               </div>
-              <canvas id="segmentSalesChart"></canvas>
+              <div class="chart-card-canvas-wrap"><canvas id="segmentSalesChart"></canvas></div>
             </article>
 
             <article class="chart-card">
@@ -602,7 +602,7 @@
                 <h3>Activación por segmento</h3>
                 <p>Clientes que facturaron en el mes vs portafolio del segmento.</p>
               </div>
-              <canvas id="segmentActivationChart"></canvas>
+              <div class="chart-card-canvas-wrap"><canvas id="segmentActivationChart"></canvas></div>
             </article>
           </section>
 
@@ -670,7 +670,7 @@
           <section class="chart-grid">
             <article class="chart-card wide">
               <div class="chart-header"><h3>Evolución del Portafolio de Clientes</h3><p>Activos, nuevos, PB, baja y reingresados mes a mes.</p></div>
-              <canvas id="portfolioEvolutionChart"></canvas>
+              <div class="chart-card-canvas-wrap"><canvas id="portfolioEvolutionChart"></canvas></div>
             </article>
           </section>
           <section class="director-tables">
@@ -984,11 +984,11 @@
               <p>Venta 2025, Meta Inicial, Meta Ajustada, Venta 2026 real + proyectada, y Presupuesto venta 2027, mes a mes. Total organización.</p>
               <p class="chart-note">Meses transcurridos 2026: <strong id="metasMesesTranscurridos">—</strong>. La Venta proyectada 2026 usa el promedio real transcurrido ajustado por la estacionalidad de 2025. El Presupuesto venta 2027 aplica el % de crecimiento por clasificación definido en "Configuración comercial por clasificación" (pestaña Sistema). La Meta Ajustada es la meta vigente que ven los asesores: Meta Inicial, o el Forecast/ajuste más reciente si ya se cargó alguno para ese mes.</p>
             </div>
-            <canvas id="metasMensualChart"></canvas>
+            <div class="chart-card-canvas-wrap"><canvas id="metasMensualChart"></canvas></div>
           </article>
           <article class="chart-card wide">
             <div class="chart-header"><h3>Venta anual comparada</h3><p>Venta 2025, Meta Inicial, Meta Ajustada, Venta proyectada 2026, y Presupuesto venta 2027, por asesor.</p></div>
-            <canvas id="metasChart"></canvas>
+            <div class="chart-card-canvas-wrap"><canvas id="metasChart"></canvas></div>
           </article>
         </section>
 

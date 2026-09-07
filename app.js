@@ -1748,10 +1748,21 @@ function chartV812(id,config){
   if(!canvas||typeof Chart==="undefined")return;
   destroyChartV812(id);
   config.options=config.options||{};
-  if(config.options.aspectRatio===undefined){
-    const w=window.innerWidth||1200;
-    config.options.aspectRatio=w<480?1.05:(w<760?1.3:(w<1100?1.6:2));
-  }
+  // V2 (2026-09-07) — corrige gráficas del Dashboard/Metas moviéndose
+  // sin parar (reportado por Sergio). Causa: se fijaba options.aspectRatio
+  // (relación ancho/alto) SIN fijar maintainAspectRatio:false, y por
+  // defecto Chart.js SÍ mantiene ese aspect ratio — es decir, Chart.js
+  // intentaba controlar la altura del canvas para cumplir el ratio, al
+  // mismo tiempo que el contenedor (styles.css, .chart-card-canvas-wrap)
+  // le imponía una altura fija por CSS. Cada medición de Chart.js
+  // chocaba con la altura ya fijada por CSS, producía un nuevo cálculo
+  // de tamaño, y así indefinidamente (ResizeObserver interno de
+  // Chart.js retroalimentándose a sí mismo, sin parar nunca). Con
+  // maintainAspectRatio:false, Chart.js deja de intentar imponer su
+  // propia relación ancho/alto y simplemente llena el contenedor (que
+  // ya tiene una altura fija y estable por CSS) — se elimina el ciclo.
+  config.options.maintainAspectRatio=false;
+  delete config.options.aspectRatio;
   dashboardChartsV812[id]=new Chart(canvas.getContext("2d"),config);
 }
 function renderDirectorDashboardV812(){

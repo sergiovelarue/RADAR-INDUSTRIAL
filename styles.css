@@ -793,7 +793,26 @@ input,select,textarea{font-size:16px}
 .director-kpi-grid article,.chart-card,.director-table-card,.insight-card{background:white;border:1px solid #e5e7eb;border-radius:22px;padding:18px}
 .director-kpi-grid span{display:block;color:#6b7280;font-size:12px;font-weight:900}.director-kpi-grid strong{display:block;font-size:24px;margin-top:5px}.director-kpi-grid small{display:block;color:#6b7280;margin-top:3px;font-size:11px}
 .chart-grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:16px;margin-bottom:18px}.chart-card.wide{grid-column:1/-1}
-.chart-header h3{margin:0;font-size:18px}.chart-header p{margin:4px 0 12px;color:#6b7280;font-size:13px}.chart-card canvas{width:100%!important;max-height:360px}
+.chart-header h3{margin:0;font-size:18px}.chart-header p{margin:4px 0 12px;color:#6b7280;font-size:13px}
+/* V2 (2026-09-07) — corrección de gráficas "en movimiento constante"
+   reportada por Sergio en el Dashboard. Causa: Chart.js (responsive:
+   true) envuelve cada <canvas> en un div interno con position:relative
+   y observa el TAMAÑO DE ESE DIV (no del canvas) con ResizeObserver
+   para decidir el tamaño en píxeles del canvas. El "width:100%
+   !important" de abajo forzaba el propio <canvas> a estirarse al 100%
+   del contenedor por CSS, compitiendo con el tamaño en píxeles que
+   Chart.js ya le había puesto por atributo — cada vez que Chart.js
+   medía, el CSS volvía a estirar, Chart.js volvía a medir un tamaño
+   distinto, y así en un ciclo sin fin (el "movimiento constante e
+   indefinido" reportado, no una animación única de carga). Se
+   reemplaza por una altura FIJA en el contenedor .chart-card-canvas-
+   wrap (nuevo, ver index.html) para que Chart.js tenga un tamaño
+   estable que medir una sola vez, y se retira el !important del
+   ancho del canvas para dejar que Chart.js controle sus propias
+   dimensiones sin que el CSS compita con él. */
+.chart-card-canvas-wrap{position:relative;width:100%;height:280px}
+.chart-card-canvas-wrap canvas{max-height:360px}
+.chart-card canvas{max-height:360px}
 .director-tables{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}.insight-card h3{margin:0 0 10px}.insight-card ul{margin:0;padding-left:18px;color:#374151;line-height:1.5}
 @media(max-width:1100px){.director-kpi-grid{grid-template-columns:repeat(2,1fr)}.chart-grid,.director-tables{grid-template-columns:1fr}}@media(max-width:760px){.director-kpi-grid{grid-template-columns:1fr}.dashboard-title{flex-direction:column}}
 
