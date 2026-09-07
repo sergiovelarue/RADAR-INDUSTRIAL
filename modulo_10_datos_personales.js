@@ -171,4 +171,18 @@ document.addEventListener("DOMContentLoaded", () => {
     emailInputFinal.addEventListener("input", actualizarVisibilidadConsentimientoV107);
     emailInputFinal.addEventListener("blur", actualizarVisibilidadConsentimientoV107);
   }
+
+  // El mismo clonado también eliminó el listener "input"/"blur" que
+  // app.js había enganchado sobre el #loginEmail ORIGINAL para el
+  // login OTP de Administrador/Super Administrador
+  // (otpSincronizarCampoTelefonoV1 — detecta si el correo está en
+  // ADMIN_WHITELIST_V1 y muestra el bloque de enlace de acceso en
+  // vez del formulario de Asesor). Sin esta reconexión, el campo de
+  // correo nunca detecta nada y el login queda siempre en el
+  // formulario de Asesor. Se reconecta aquí, sobre el input ya
+  // clonado y final, igual que el resto de listeners de este bloque.
+  if (emailInputFinal && typeof otpSincronizarCampoTelefonoV1 === "function") {
+    emailInputFinal.addEventListener("input", otpSincronizarCampoTelefonoV1);
+    emailInputFinal.addEventListener("blur", otpSincronizarCampoTelefonoV1);
+  }
 });

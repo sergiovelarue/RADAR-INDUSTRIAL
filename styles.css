@@ -1070,6 +1070,7 @@ tr.blocked-row .status{color:#b91c1c;font-weight:900}
 .wiz-estado-v1625{font-size:13px;padding:10px 12px;border-radius:10px;background:#f9fafb}
 .wiz-estado-ok-v1625{background:#dcfce7;color:#15803d}
 .wiz-estado-error-v1625{background:#fee2e2;color:#b91c1c}
+.wiz-alerta-conteo-v1625{background:#fffbeb;border:1.5px solid #fde68a;color:#92400e;border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13px;font-weight:600}
 .wiz-nota-v1625{font-size:12px;color:var(--muted);margin:8px 0 0}
 .wiz-modo-grupo-v1625{margin-bottom:16px}
 .wiz-modo-titulo-v1625{font-size:13px;font-weight:800;margin:0 0 8px}

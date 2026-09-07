@@ -152,6 +152,7 @@
       </div>
 
       <small class="login-note">El acceso queda registrado para seguimiento de uso interno.</small>
+      <small class="login-note" id="loginVersionLabel"></small>
     </div>
   </div>
 
@@ -268,14 +269,13 @@
             <select id="clasifModeloSelectV1">
               <option value="simple">Simple (por volumen de venta)</option>
               <option value="2v">2V (volumen + consecutividad)</option>
-              <option value="3v">3V (volumen + consecutividad + estado)</option>
             </select>
           </label>
-          <label>Meses seguidos con venta para "Regular" (2V y 3V)
+          <label>Meses seguidos con venta para "Regular" (2V)
             <input type="number" id="clasifUmbralRegularV1" value="3" min="1" max="12"/>
           </label>
         </div>
-        <p class="chart-note">Simple: A=top 20% por venta, B=siguiente 30%, C=siguiente 30%, D=último 20%. 2V: Volumen Alto/Bajo (mediana) cruzado con Consecutividad Regular/Irregular. 3V: puntaje por Volumen(1pt)+Consecutividad(2pt)+Estado favorable del CRM(1pt) — 4=A, 3=B, 2=C, 0-1=D. El % de crecimiento por categoría (arriba) es independiente de este motor.</p>
+        <p class="chart-note">Simple: A=top 20% por venta, B=siguiente 30%, C=siguiente 30%, D=último 20%. 2V: Volumen Alto/Bajo (mediana) cruzado con Consecutividad Regular/Irregular. El % de crecimiento por categoría (arriba) es independiente de este motor.</p>
         <div class="growth-grid">
           <label>Nombre categoría A <input type="text" id="clasifNombreAV1" value="A" maxlength="20"/></label>
           <label>Nombre categoría B <input type="text" id="clasifNombreBV1" value="B" maxlength="20"/></label>

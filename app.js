@@ -1075,6 +1075,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if(!savedOk){
     otpResolverSesionAlCargarV1();
   }
+
+  // Versión visible en la pantalla de login (antes solo aparecía en el
+  // sidebar tras entrar) — permite confirmar qué versión está desplegada
+  // sin necesidad de loguearse primero.
+  const loginVersionLabel = $("loginVersionLabel");
+  if(loginVersionLabel && typeof window.RADAR_VERSION === "string"){
+    loginVersionLabel.textContent = "ConAccion · " + window.RADAR_VERSION;
+  }
 });
 
 

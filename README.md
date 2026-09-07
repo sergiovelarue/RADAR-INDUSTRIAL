@@ -1,83 +1,84 @@
-# Mejoras_20260904_2245 — Login OTP para Administrador / Super Administrador
+# Mejoras_20260907_1503 — Correcciones críticas: panel repetido, login OTP, motor simplificado y limpieza de datos
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.29 · 2026-09-04**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.30 · 2026-09-07**
 
-Este paquete **consolida** la entrega anterior pendiente (V16.28, motor de clasificación) **más** el rediseño del ingreso a la app para Administrador y Super Administrador. Sigue sin subirse el paquete de clasificación por separado — todo queda en una sola entrega, como pediste.
+Esta entrega corrige los cuatro problemas que reportaste hoy tras probar V16.29.
 
-## 1. Qué cambia en el ingreso a la app
+## 1. El panel "Motor de clasificación" ya no aparece en todas las pestañas
 
-Antes, Administrador y Super Administrador entraban por el mismo formulario que un Asesor: correo + teléfono, sin ninguna verificación real (cualquiera podía escribir el correo de otra persona). Ahora:
+**Causa:** al construir ese panel la entrega anterior, faltó agregarlo a la lista interna que controla qué paneles pertenecen exclusivamente a la pestaña "Sistema". Por eso quedaba visible siempre, en cualquier pestaña, para cualquier Super Administrador.
 
-- **Asesor**: sigue exactamente igual — correo + teléfono, sin ningún cambio de comportamiento.
-- **Administrador / Super Administrador**: al escribir el correo, si está en la lista blanca autorizada (por ahora, solo `sergiovelasquez@me.com`), la pantalla cambia automáticamente y pide enviar un **enlace de acceso de un solo uso** al correo (magic link). No hay contraseña que recordar ni que se pueda filtrar — cada enlace sirve una sola vez y expira.
-  - La primera vez, además del correo, se pide el teléfono una única vez (para el registro de acceso interno). Las siguientes veces ya no se vuelve a pedir.
-  - Al hacer clic en el enlace del correo, la app reconoce automáticamente la sesión y entra directo — sin necesidad de digitar nada más.
+**Corregido:** ahora vive únicamente dentro de Sistema, igual que el resto de paneles de configuración (crecimiento por clasificación, modelo de cálculo, etc.).
 
-## 2. Por qué este cambio
+## 2. El login ya detecta tu correo y muestra el enlace de acceso
 
-Nos basamos en que confirmaste que Resend + SMTP ya entrega correo correctamente en Supabase (lo probamos juntos con un envío real). Elegiste el enlace mágico (un clic) sobre el código de 6 dígitos, por simplicidad para el usuario.
+**Causa:** otro módulo de la app (el que gestiona el checkbox de autorización de datos personales) limpia y reconstruye el campo de correo al cargar la página, por una razón legítima (evitar que el botón de login se disparara dos veces). Ese proceso, sin querer, también borraba la conexión que detecta si tu correo es de Administrador/Super Administrador — por eso el formulario nunca cambiaba, sin importar cuántas veces recargaras.
 
-## 3. Qué NO cambia
+**Corregido:** ahora esa conexión se reconstruye correctamente después del ajuste del otro módulo. Al escribir `sergiovelasquez@me.com` en el login, debe cambiar automáticamente a "Enviar enlace de acceso".
 
-- El login de Asesor sigue siendo el mismo formulario de siempre — no toqué esa lógica.
-- No se modificó `resolveUserV93` (la función que resuelve el rol de un Asesor o Administrador del esquema anterior). El nuevo flujo OTP es independiente y convive con él.
-- El motor de clasificación (A/B/C/D) del paquete anterior sigue exactamente igual a como se entregó, solo consolidado en este mismo zip.
+**Además:** agregué el número de versión (`ConAccion · V16.30 · 2026-09-07`) visible al final de la pantalla de login, para que puedas confirmar de un vistazo qué versión está desplegada sin necesidad de entrar primero.
 
-## 4. Cómo agregar más Administradores en el futuro
+## 3. Motor de clasificación simplificado — ya no existe la opción 3V
 
-En `app.js`, busca la constante `ADMIN_WHITELIST_V1` (cerca de la línea 520) y agrega el correo nuevo en minúsculas:
+Por tu instrucción, eliminé el modelo "3V (volumen + consecutividad + estado)". Ahora el selector solo ofrece:
+- **Simple** (por volumen de venta)
+- **2V** (volumen + consecutividad)
 
-```js
-const ADMIN_WHITELIST_V1 = [
-  "sergiovelasquez@me.com",
-  "nuevo.administrador@tudominio.com"
-];
-```
+Actualicé tanto la pantalla de configuración como el motor de cálculo real en el servidor (Supabase). La configuración actual ya estaba en "2V", así que no hay ningún cambio de comportamiento para ti — solo desaparece la opción 3V del menú.
 
-Solo `sergiovelasquez@me.com` queda fijo como Super Administrador; cualquier otro correo de esta lista entra como Administrador normal.
+## 4. Hallazgo crítico: la base de datos tenía el doble de clientes de los reales
 
-## 5. Nuevo en Supabase
+Al investigar por qué las cifras de venta, proyección y presupuesto no cuadraban con tu archivo, encontré que la tabla de clientes tenía **1132 registros en vez de 566** — dos lotes completos, creados en momentos distintos, con NITs totalmente diferentes entre sí. Revisé el registro de auditoría de la app y **ninguno de los dos lotes tiene evidencia de haber sido cargado por ti desde un archivo real** — ambos parecen datos de prueba de sesiones de desarrollo anteriores que nunca se limpiaron del todo.
 
-Se creó la tabla `admins_v1` (email, teléfono, fechas) — guarda únicamente el teléfono de Administrador/Super Administrador para el registro de acceso interno. No guarda contraseñas ni tokens de sesión; la autenticación real la maneja Supabase Auth con el magic link.
+Como me indicaste, no usé ninguno de los dos como base: **respaldé ambos lotes en tablas aparte (por seguridad, nada se perdió) y vacié por completo la tabla de clientes.** Esto significa que ahora mismo la app **no tiene ningún cliente cargado** — es intencional, para que tu próxima carga desde el wizard "Activación primera vez" (Paso 1) sea la única fuente de datos, verificada y trazable.
 
-## 6. Verificado antes de empaquetar
+**Acción que necesitas hacer tú:** volver a cargar tu archivo de histórico real desde **Activación primera vez → Paso 1**, y luego tu archivo de venta actual en el Paso 2.
 
-- Sintaxis validada: `node --check` sin errores en `app.js`.
-- HTML con etiquetas balanceadas (59 `<section>`, 244 `<div>` — abiertas y cerradas correctamente).
-- Probé el envío real de un magic link contra tu correo — llegó correctamente y el log del servidor confirmó `status 200` sin errores.
-- Verifiqué que el flujo de Asesor no cambió: mismo formulario, mismos campos, mismo comportamiento.
+### Salvaguarda nueva para que esto no se repita
 
-## 7. Archivos de este paquete
+Agregué una alerta en el Paso 1 del wizard: antes de procesar un archivo, ahora ves cuántos clientes tiene la base actualmente y, si el archivo generaría una cantidad sospechosamente alta de clientes "nuevos" (la mitad o más del archivo, sobre una base que ya tiene datos), aparece un aviso en amarillo pidiéndote confirmar que es el archivo correcto antes de continuar.
+
+## 5. Verificado antes de empaquetar
+
+- Sintaxis validada: `node --check` sin errores en los 5 archivos JS modificados.
+- HTML con etiquetas balanceadas (59 `<section>`, 244 `<div>`, 44 `<select>` — todas abiertas y cerradas correctamente).
+- Confirmé en Supabase que la tabla `clientes` quedó en 0 registros, con los dos lotes anteriores respaldados en `respaldo_lote_no_verificado_20260907` (por si necesitas consultarlos, aunque no se recomienda reutilizarlos).
+- Verifiqué el código fuente de las funciones de carga (Paso 1 y Paso 2): no tienen ningún bug de duplicación — el problema fue que se procesaron archivos de prueba distintos contra la base real en sesiones de desarrollo pasadas, no un error del código en sí.
+
+## 6. Archivos de este paquete
 
 | Archivo | Acción |
 |---|---|
-| `app.js` | Reemplazar — agrega el módulo de login OTP + incluye las correcciones del motor de clasificación (V16.28). |
-| `index.html` | Reemplazar — nueva pantalla de login con detección automática de correo + panel del motor de clasificación (V16.28). |
-| `mejoras-v1.js` | Reemplazar — sin cambios nuevos hoy, incluido tal cual venía de V16.28 (Acciones Recomendadas A/B/C/D). |
-| `modulo_18_procedimiento_cargue.js` | Reemplazar — sin cambios nuevos hoy, incluido tal cual venía de V16.28 (Paso 3 del wizard). |
-| `styles.css` | Reemplazar — agrega el estilo del aviso "enlace enviado" en el login. |
-| `version.js` | Reemplazar — sube a V16.29. |
+| `index.html` | Reemplazar — quita la opción 3V del selector, agrega versión visible en login. |
+| `app.js` | Reemplazar — agrega versión visible en login. |
+| `sistema-v1.js` | Reemplazar — corrige el panel de clasificación repetido en todas las pestañas. |
+| `modulo_10_datos_personales.js` | Reemplazar — corrige el login OTP que no detectaba el correo. |
+| `modulo_18_procedimiento_cargue.js` | Reemplazar — quita 3V del código del wizard, agrega alerta preventiva de conteo en Paso 1. |
+| `styles.css` | Reemplazar — agrega el estilo de la alerta preventiva. |
+| `version.js` | Reemplazar — sube a V16.30. |
 
-## 8. Pasos para subir a GitHub
+## 7. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza los 6 archivos.
+2. Reemplaza los 7 archivos.
 3. Espera el deploy de Netlify y confirma "Published".
+4. **Haz recarga forzada** en tu navegador (Cmd+Shift+R en Mac) antes de probar, para evitar ver una versión en caché.
 
-## 9. Checklist de prueba
+## 8. Checklist de prueba
 
-- **Como Asesor**: entra con tu correo de asesor + teléfono de siempre — debe funcionar exactamente igual que antes.
-- **Como Super Administrador**: escribe `sergiovelasquez@me.com` en el campo de correo — la pantalla debe cambiar automáticamente mostrando "Enviar enlace de acceso" (y, si es la primera vez desde este cambio, pedirá tu teléfono antes).
-  - **Importante**: ya registré un teléfono de prueba (`3000000000`) para tu correo en la tabla `admins_v1`, para probar el flujo de "ya registrado" sin pedirte el teléfono de nuevo. Si quieres que quede tu teléfono real, dímelo y lo actualizo, o simplemente ingresa una vez más desde la tabla de Supabase.
-  - Presiona "Enviar enlace de acceso", revisa tu correo (puede tardar 1-2 minutos, revisa spam) y haz clic en el enlace.
-  - Debes entrar automáticamente a la app, ya identificado como Super Administrador (revisa la etiqueta de sesión en la barra superior).
-- Prueba cerrar sesión y volver a entrar por el mismo método para confirmar que es repetible.
+- Entra a la app: debe verse "ConAccion · V16.30 · 2026-09-07" al final de la pantalla de login.
+- Escribe `sergiovelasquez@me.com` en el correo: debe cambiar automáticamente a "Enviar enlace de acceso" (sin pedir teléfono, porque ya quedó registrado de la prueba anterior).
+- Entra como Super Administrador y revisa varias pestañas (Hoja de ruta, Dashboard, Prospección, etc.): el panel "Motor de clasificación" solo debe aparecer en **Sistema**, no en las demás.
+- En Sistema → Motor de clasificación: confirma que el selector solo muestra "Simple" y "2V" (sin 3V).
+- Ve a **Activación primera vez → Paso 1** y carga tu archivo de histórico real. Debes ver el conteo actual de la base (0) antes de procesar.
+- Una vez cargado el histórico, carga tu archivo de venta actual en el Paso 2.
+- Revisa que las cifras de Dashboard, Metas y presupuestos, y Hoja de ruta ahora sí correspondan a tu archivo real.
 
-## 10. Pendiente (sin tocar en esta entrega)
+## 9. Pendiente (sin tocar en esta entrega)
 
-- **Login de Asesor**: decidiste dejar su rediseño para otra sesión — hoy sigue exactamente igual (correo+teléfono sin verificación real).
-- **Revisar y corregir `meta_asesor`** de los 566 clientes afectados por la versión defectuosa del motor de clasificación — pendiente de que lo hagamos juntos.
-- Confirmar si los 608 registros de demo respaldados (`respaldo_residuos_demo_20260904`) se pueden eliminar definitivamente o se guardan por más tiempo.
+- **Revisar y corregir `meta_asesor`** de los clientes reales una vez recargados — el motor de clasificación defectuoso de una sesión anterior había corrompido esos valores en el lote que ya no existe; al recargar desde cero con el archivo real, este problema queda resuelto de raíz (no hay nada que corregir manualmente, porque partimos de datos limpios).
+- Confirmar si las tablas de respaldo (`respaldo_lote_no_verificado_20260907`, `respaldo_lote_duplicado_20260904_1439`, `respaldo_residuos_demo_20260904`) se pueden eliminar definitivamente o se guardan por más tiempo.
 - Confirmar si las funciones de prueba `exportar-ventas-csv-temp` y `diagnostico-drive-temp` en Supabase se pueden eliminar.
 - Integración con cuenta de servicio de Google (archivos privados) — pendiente para producción real con clientes.
+- Login de Asesor — sigue pendiente su rediseño (decisión tuya de dejarlo para otra sesión).
 - Renombrar "Super Administrador" a "Administrador" — NO aplicar hasta nueva instrucción explícita (tarea #50).

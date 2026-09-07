@@ -237,8 +237,26 @@ async function wizValidarHistoricoV1625() {
       return;
     }
 
+    // Conteo actual de la base ANTES de procesar, para que Sergio pueda
+    // detectar a simple vista una carga anómala (ej. "566 nuevos" sobre
+    // una base que ya tenía 566 clientes reales — señal de estar
+    // cargando un archivo de prueba o duplicado en vez del real).
+    let totalClientesActual = null;
+    try {
+      const { count } = await supabaseClientV94.from("clientes").select("id", { count: "exact", head: true });
+      totalClientesActual = count;
+    } catch (eConteo) { console.error("[Radar-Wizard] No se pudo leer el conteo actual de clientes:", eConteo); }
+
+    const pctNuevos = data.totalFilas > 0 ? (data.nuevos / data.totalFilas) : 0;
+    const alertaNuevosSospechosos = totalClientesActual !== null && totalClientesActual > 0 && pctNuevos >= 0.5;
+
     $w18("wizResultadoHistoricoV1625").style.display = "block";
-    $w18("wizResultadoHistoricoV1625").innerHTML = `<p><strong>${data.totalFilas}</strong> clientes en el archivo · <strong>${data.nuevos}</strong> nuevos · <strong>${data.actualizables}</strong> ya existentes (se actualiza su histórico, sin tocar venta actual)${data.asesoresNoReconocidos ? " · <strong>" + data.asesoresNoReconocidos + "</strong> asesores sin reconocer (" + data.asesoresNoReconocidosLista.join(", ") + ")" : ""}.</p>`;
+    $w18("wizResultadoHistoricoV1625").innerHTML =
+      (totalClientesActual !== null ? `<p>La base tiene actualmente <strong>${totalClientesActual}</strong> clientes.</p>` : "") +
+      `<p><strong>${data.totalFilas}</strong> clientes en el archivo · <strong>${data.nuevos}</strong> nuevos · <strong>${data.actualizables}</strong> ya existentes (se actualiza su histórico, sin tocar venta actual)${data.asesoresNoReconocidos ? " · <strong>" + data.asesoresNoReconocidos + "</strong> asesores sin reconocer (" + data.asesoresNoReconocidosLista.join(", ") + ")" : ""}.</p>` +
+      (alertaNuevosSospechosos
+        ? `<p class="wiz-alerta-conteo-v1625"><strong>Atención:</strong> más de la mitad de los clientes del archivo (${data.nuevos} de ${data.totalFilas}) serían nuevos, sobre una base que ya tiene ${totalClientesActual}. Si esperabas que este archivo actualizara clientes existentes, verifica que sea el archivo correcto antes de continuar — cargar un archivo equivocado aquí duplicaría la cartera.</p>`
+        : "");
 
     // Mismo nombre de archivo que la referencia actual = actualización
     // normal (sin fricción extra). Nombre distinto = reemplazo de la

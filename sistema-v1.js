@@ -161,7 +161,7 @@ if (typeof attemptLoginV84 === "function") {
 // 2) Pestaña "Sistema" — exclusiva Super Administrador
 // ------------------------------------------------------------
 
-const SISTEMA_PANEL_IDS_V1 = ["growthConfigPanel", "modeloCalculoPanel", "pesosScorePanel"];
+const SISTEMA_PANEL_IDS_V1 = ["growthConfigPanel", "modeloCalculoPanel", "pesosScorePanel", "clasifConfigPanelV1"];
 
 function sistemaEsSuperAdminV1() {
   return typeof isSuperAdminV93 === "function" && isSuperAdminV93();
