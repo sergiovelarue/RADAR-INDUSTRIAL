@@ -286,8 +286,10 @@ async function wizProcesarHistoricoV1625() {
   if (!confirmado) return;
 
   const btn = $w18("wizProcesarHistoricoBtnV1625");
+  const textoBtnOriginal = btn.textContent;
   btn.disabled = true;
-  wizSetEstadoV1625("wizEstadoHistoricoV1625", "", "<strong>Estado:</strong> procesando…");
+  btn.textContent = "Procesando…";
+  wizSetEstadoV1625("wizEstadoHistoricoV1625", "", "<strong>Estado:</strong> eliminando clientes actuales y creando los del archivo nuevo — no cierres ni recargues esta pantalla…");
 
   try {
     const { filas, fileName } = wizFilasHistoricoV1625;
@@ -298,23 +300,25 @@ async function wizProcesarHistoricoV1625() {
     if (errDisparo) throw errDisparo;
     const data = await wizEsperarResultadoV1625("leer_ultimo_resultado_historico_referencia_v1");
     if (!data || data.ok === false) {
-      wizSetEstadoV1625("wizEstadoHistoricoV1625", "wiz-estado-error-v1625", "<strong>Error:</strong> " + ((data && data.error) || "no se pudo procesar."));
-      btn.disabled = false;
+      wizSetEstadoV1625("wizEstadoHistoricoV1625", "wiz-estado-error-v1625", "<strong>Error:</strong> " + ((data && data.error) || "no se pudo procesar.") + " La base NO fue modificada.");
       return;
     }
 
     await supabaseClientV94.rpc("registrar_carga_historico_v1", { p_nombre_archivo: fileName, p_total_clientes: data.totalFilas, p_usuario_email: usuarioEmail });
 
-    wizSetEstadoV1625("wizEstadoHistoricoV1625", "wiz-estado-ok-v1625", "<strong>Histórico cargado.</strong> " + data.mensaje);
     $w18("wizConfirmHistoricoV1625").style.display = "none";
     if (typeof cargarClientesDesdeSupabaseV94 === "function") await cargarClientesDesdeSupabaseV94();
     if (typeof render === "function") render();
     await wizCargarMetadataV1625();
+
+    wizSetEstadoV1625("wizEstadoHistoricoV1625", "wiz-estado-ok-v1625",
+      `<strong>✔ Histórico cargado correctamente.</strong> ${data.mensaje}<br/>Ya puedes continuar con el <strong>Paso 2 · Venta del año en curso</strong>, más abajo.`);
   } catch (e) {
     console.error("[Radar-Wizard] Error procesando histórico:", e);
-    wizSetEstadoV1625("wizEstadoHistoricoV1625", "wiz-estado-error-v1625", "<strong>Error:</strong> " + (e.message || "no se pudo procesar."));
+    wizSetEstadoV1625("wizEstadoHistoricoV1625", "wiz-estado-error-v1625", "<strong>Error:</strong> " + (e.message || "no se pudo procesar.") + " La base puede haber quedado a medio reemplazar — verifica con Sergio/soporte antes de continuar.");
   } finally {
     btn.disabled = false;
+    btn.textContent = textoBtnOriginal;
   }
 }
 
@@ -582,10 +586,30 @@ document.addEventListener("DOMContentLoaded", () => {
   if ($w18("wizValidarHistoricoBtnV1625")) $w18("wizValidarHistoricoBtnV1625").addEventListener("click", wizValidarHistoricoV1625);
   if ($w18("wizProcesarHistoricoBtnV1625")) $w18("wizProcesarHistoricoBtnV1625").addEventListener("click", wizProcesarHistoricoV1625);
   if ($w18("wizPlantillaHistoricoBtnV1625")) $w18("wizPlantillaHistoricoBtnV1625").addEventListener("click", wizDescargarPlantillaV1625);
+  // V2 (2026-09-07) — el botón "Cargar histórico" arranca deshabilitado
+  // tras validar (siempre se pide escribir REEMPLAZAR primero) y hasta
+  // ahora nada lo reactivaba: el usuario escribía REEMPLAZAR pero el
+  // botón seguía inerte, sin ningún error visible. Se habilita en cuanto
+  // el texto coincide exactamente, y se deshabilita si se borra o edita.
+  if ($w18("wizConfirmHistoricoTextoV1625")) {
+    $w18("wizConfirmHistoricoTextoV1625").addEventListener("input", () => {
+      const coincide = ($w18("wizConfirmHistoricoTextoV1625").value || "").trim().toUpperCase() === "REEMPLAZAR";
+      if ($w18("wizProcesarHistoricoBtnV1625")) $w18("wizProcesarHistoricoBtnV1625").disabled = !coincide;
+    });
+  }
 
   if ($w18("wizValidarVentaActualBtnV1625")) $w18("wizValidarVentaActualBtnV1625").addEventListener("click", wizValidarVentaActualV1625);
   if ($w18("wizProcesarVentaActualBtnV1625")) $w18("wizProcesarVentaActualBtnV1625").addEventListener("click", wizProcesarVentaActualV1625);
   if ($w18("wizPlantillaVentaActualBtnV1625")) $w18("wizPlantillaVentaActualBtnV1625").addEventListener("click", wizDescargarPlantillaV1625);
+  // Mismo problema latente en el Paso 2 (venta actual) cuando el
+  // archivo reemplaza la referencia anterior — corregido en paralelo
+  // aunque no fue el caso reportado, para que no ocurra ahí también.
+  if ($w18("wizConfirmVentaActualTextoV1625")) {
+    $w18("wizConfirmVentaActualTextoV1625").addEventListener("input", () => {
+      const coincide = ($w18("wizConfirmVentaActualTextoV1625").value || "").trim().toUpperCase() === "REEMPLAZAR";
+      if ($w18("wizProcesarVentaActualBtnV1625")) $w18("wizProcesarVentaActualBtnV1625").disabled = !coincide;
+    });
+  }
 
   if ($w18("wizClasificarBtnV1625")) $w18("wizClasificarBtnV1625").addEventListener("click", wizClasificarV1625);
 
