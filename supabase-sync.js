@@ -180,11 +180,22 @@ async function cargarClientesDesdeSupabaseV94() {
 
 // ------------------------------------------------------------
 // Meta Inicial 2026 (2026-09-07) — tabla metas_iniciales_v1,
-// indexada por cliente_id + mes. Se trae en un solo select anidado
-// (clientes!inner(nit)) para poder indexar el caché por NIT en vez de
-// por el uuid interno de Supabase, que es lo que usa el resto del
-// frontend (clientes no exponía su "id" de Supabase hasta ahora,
-// filaSupabaseAClienteV94 solo copia columnas visibles al usuario).
+// indexada por cliente_id + mes.
+//
+// V2 (2026-09-07, corrección): la V1 usaba un select anidado
+// (clientes!inner(nit)) que dependía de que PostgREST detectara
+// automáticamente la relación por la foreign key metas_iniciales_v1_
+// cliente_id_fkey. En la práctica, en el navegador de Sergio esto
+// devolvió 0 filas de forma silenciosa (el error solo se veía en la
+// consola, nunca alertó al usuario) — el caché quedaba vacío y goal(c)
+// caía siempre al fallback plano (metaAsesor/metaSugerida, un valor
+// único anual repetido en los 12 meses), que es exactamente la curva
+// "Meta Inicial" plana en ~24.000 que Sergio reportó en la gráfica de
+// Venta mensual comparada. Se reemplaza por dos consultas simples sin
+// relación anidada: 1) todas las filas de metas_iniciales_v1 (cliente_id
+// plano), 2) id+nit de todos los clientes, y se arma el mapa NIT en
+// JavaScript — más lento pero sin depender de la detección automática
+// de relaciones de PostgREST/el caché de esquema.
 // METAS_INICIALES_CACHE_V1["NIT|Mes"] = { metaInicial, clasificacionUsada }.
 // ------------------------------------------------------------
 let METAS_INICIALES_CACHE_V1 = {};
@@ -192,18 +203,25 @@ let metasInicialesListoV94 = false;
 
 async function cargarMetasInicialesDesdeSupabaseV94() {
   try {
-    const { data, error } = await supabaseClientV94
-      .from('metas_iniciales_v1')
-      .select('mes, meta_inicial, clasificacion_usada, clientes!inner(nit)')
-      .eq('anio', 2026)
-      .range(0, 19999);
-    if (error) {
-      console.error('[Radar-Supabase] Error cargando metas iniciales:', error);
+    const [{ data: filasMetas, error: errorMetas }, { data: clientesIdNit, error: errorClientes }] = await Promise.all([
+      supabaseClientV94.from('metas_iniciales_v1').select('cliente_id, mes, meta_inicial, clasificacion_usada').eq('anio', 2026).range(0, 19999),
+      supabaseClientV94.from('clientes').select('id, nit').range(0, 4999)
+    ]);
+    if (errorMetas) {
+      console.error('[Radar-Supabase] Error cargando metas iniciales:', errorMetas);
       return false;
     }
+    if (errorClientes) {
+      console.error('[Radar-Supabase] Error cargando clientes (para mapa de metas iniciales):', errorClientes);
+      return false;
+    }
+
+    const nitPorClienteId = {};
+    (clientesIdNit || []).forEach(c => { nitPorClienteId[c.id] = c.nit; });
+
     const cache = {};
-    (data || []).forEach(fila => {
-      const nit = fila.clientes && fila.clientes.nit;
+    (filasMetas || []).forEach(fila => {
+      const nit = nitPorClienteId[fila.cliente_id];
       if (!nit) return;
       cache[nit + "|" + fila.mes] = {
         metaInicial: Number(fila.meta_inicial || 0),
@@ -212,6 +230,7 @@ async function cargarMetasInicialesDesdeSupabaseV94() {
     });
     METAS_INICIALES_CACHE_V1 = cache;
     metasInicialesListoV94 = true;
+    console.log('[Radar-Supabase] Meta Inicial cargada:', Object.keys(cache).length, 'filas (esperado: clientes × 12 meses).');
     return true;
   } catch (e) {
     console.error('[Radar-Supabase] Fallo de conexión cargando metas iniciales:', e);
