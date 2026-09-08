@@ -23,6 +23,28 @@
 const ORDEN_ESTADOS_V98 = ["Activo", "Inactivo", "Posible Baja", "Baja", "Reingreso", "Nuevo", "Bloqueado"];
 
 // ------------------------------------------------------------
+// V16.42 — Estado automático por ventas (ya no se lee ni se
+// edita el campo plano c.estado de Supabase, que llegaba vacío
+// para toda la cartera real). En su lugar, se calcula en vivo
+// con el mismo motor que ya usa el Dashboard Director → Salud
+// del Portafolio (statusByMonthV814), sobre el mes operativo
+// vigente (latestIdxV812). Se normaliza "PB" -> "Posible Baja"
+// para que coincida con ORDEN_ESTADOS_V98. El único estado que
+// sigue siendo manual es "Bloqueado" (no depende de ventas).
+// ------------------------------------------------------------
+const MAPA_ESTADO_MOTOR_V1642 = { PB: "Posible Baja" };
+
+function estadoAutomaticoV1642(c) {
+  if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return "Bloqueado";
+  if (typeof statusByMonthV814 !== "function" || typeof latestIdxV812 !== "function") {
+    return c.estado || "Activo";
+  }
+  const idx = latestIdxV812();
+  const st = statusByMonthV814(c, 2026, idx);
+  return MAPA_ESTADO_MOTOR_V1642[st] || st;
+}
+
+// ------------------------------------------------------------
 // 5) FIX de condición de carrera Canal/Zona (Punto 5)
 // ------------------------------------------------------------
 // app.js llama ensureCanalCatalogV94() + saveDataV93() de forma
@@ -213,7 +235,7 @@ function renderStatusAndClassCardsV98() {
     // Las tarjetas de Estado respetan la Clasificación ya elegida (si hay).
     const baseParaEstado = base.filter(c => !claseActiva || (c.clasificacion || "SIN_CLASIFICAR") === claseActiva);
     ORDEN_ESTADOS_V98.forEach(estado => {
-      const count = baseParaEstado.filter(c => (estado === "Bloqueado" ? blocked(c) : (!blocked(c) && c.estado === estado))).length;
+      const count = baseParaEstado.filter(c => estadoAutomaticoV1642(c) === estado).length;
       const art = document.createElement("article");
       art.dataset.statusCard = estado;
       art.className = "status-card" + (state.status === estado ? " active" : "");
@@ -233,7 +255,7 @@ function renderStatusAndClassCardsV98() {
     // Clientes sin clasificación calculada todavía (motor no corrido
     // aún) se excluyen de las tarjetas — no hay una letra "sin
     // clasificar" en el esquema A/B/C/D.
-    const baseParaClase = base.filter(c => !blocked(c) && (!estadoActivo || c.estado === estadoActivo));
+    const baseParaClase = base.filter(c => !blocked(c) && (!estadoActivo || estadoAutomaticoV1642(c) === estadoActivo));
     const clases = Array.from(new Set(base.map(c => c.clasificacion).filter(Boolean))).sort();
     (clases.length ? clases : ["A", "B", "C", "D"]).forEach(k => {
       const count = baseParaClase.filter(c => c.clasificacion === k).length;
@@ -295,7 +317,7 @@ filteredBase = function () {
     } else if (state.profile) {
       if (c.asesorAsignado !== state.profile) return false;
     }
-    if (state.status !== "todos" && c.estado !== state.status) return false;
+    if (state.status !== "todos" && estadoAutomaticoV1642(c) !== state.status) return false;
     if (state.classFilter && state.classFilter !== "todos" && c.clasificacion !== state.classFilter) return false;
     if (q && ![c.cliente, c.nit, c.asesorAsignado, c.ciudad, c.departamento, c.tipoCliente, c.canal].join(" ").toLowerCase().includes(q)) return false;
     return true;
@@ -1270,7 +1292,7 @@ function candidatosRecomendadosV102(nombreAsesor) {
     // trazabilidad comercial (ver Gestión de Clientes) y no debe
     // saltarse por una recomendación automática.
     if (!c.asesorAsignado || c.asesorAsignado === "SIN ASIGNACION") return false;
-    if (c.estado === "Baja") return false; // recuperación de cartera es un flujo aparte, no compite por cierre de meta
+    if (estadoAutomaticoV1642(c) === "Baja") return false; // recuperación de cartera es un flujo aparte, no compite por cierre de meta
     if (nombreAsesor && c.asesorAsignado !== nombreAsesor) return false;
     if (typeof missing === "function" && missing(c) <= 0) return false; // ya cumplió su meta
     if (tieneSeguimientoFuturoPendienteV102(c)) return false; // ya tiene acción planeada vigente
@@ -1301,7 +1323,7 @@ function ordenarCFEV15(clientes, faltantes) {
     .map((c, i) => ({
       c,
       faltante: faltantes[i],
-      nivelEstado: NIVEL_ESTADO_CFE_V15[c.estado] ?? 0,
+      nivelEstado: NIVEL_ESTADO_CFE_V15[estadoAutomaticoV1642(c)] ?? 0,
       nivelClasif: SCORE_CLASIFICACION_V102[c.clasificacion] ?? 20
     }))
     .sort((a, b) => (b.nivelEstado - a.nivelEstado) || (b.nivelClasif - a.nivelClasif) || (b.faltante - a.faltante));
@@ -1337,7 +1359,7 @@ const recomendadasStateV102 = { page: 1, pageSize: 10 };
 function clientesSinAsignarConFaltanteV102() {
   return (DATA.clientes || []).filter(c => {
     if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return false;
-    if (c.estado === "Baja") return false;
+    if (estadoAutomaticoV1642(c) === "Baja") return false;
     if (c.asesorAsignado && c.asesorAsignado !== "SIN ASIGNACION") return false;
     if (typeof missing === "function" && missing(c) <= 0) return false;
     return true;
@@ -1407,7 +1429,7 @@ function renderAccionesRecomendadasV102() {
     <td data-label="Cliente">${esc(c.cliente || "Cliente sin nombre")} <span style="color:var(--muted);font-weight:400">· NIT ${esc(c.nit)}</span></td>
     <td data-label="Asesor">${esc(c.asesorAsignado || "SIN ASIGNACION")}</td>
     <td data-label="Clasificación">${esc(c.clasificacion || "—")}</td>
-    <td data-label="Estado">${esc(c.estado || "—")}</td>
+    <td data-label="Estado">${esc(estadoAutomaticoV1642(c))}</td>
     <td data-label="Faltante">${money(faltante)}</td>
     <td data-label="Días sin gestión">${dias === null ? "Sin gestión previa" : dias + " día(s)"}</td>
     <td data-label="Score"><strong>${Math.round(score)}</strong>/100</td>
