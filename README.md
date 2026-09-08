@@ -1,63 +1,48 @@
-# Mejoras_20260908_0001 — Depuración Espumas/Colchones (limpieza de código heredado)
+# Mejoras_20260908_0130 — URGENTE: corrige login roto por la entrega anterior (V16.39)
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.39 · 2026-09-07**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.40 · 2026-09-08**
 
-Como pediste, se hizo una depuración completa de todo el código relacionado con la antigua estructura de dos líneas de negocio (Espumas y Colchones), que ya no existe en la operación real de la empresa y venía generando bugs repetidos por confusión de nombres de campos.
+Esta entrega corrige un error que yo introduje en la limpieza de código Espumas/Colchones (V16.39) y que te dejó sin poder entrar a la app con tu correo. Pido disculpas por el impacto — abajo está la causa exacta, la corrección, y cómo verifiqué que ya no vuelve a pasar.
 
-## 1. Contexto: por qué esto era necesario
+## 1. Qué pasó (causa exacta, confirmada en producción)
 
-Hace tiempo la app manejaba dos líneas de negocio (Espumas y Colchones). Colchones se retiró hace meses, pero el código nunca terminó de limpiarse: quedaron nombres de campos, funciones y un selector oculto que seguían llamándose "Espumas" o dependiendo de una variable de "línea de negocio" que ya nadie usa. Esto fue la causa directa del bug del Dashboard en $0 que corregimos ayer (V16.38) — y seguía siendo un riesgo de que apareciera otro bug parecido en cualquier momento.
+Al limpiar código muerto en `app.js`, eliminé por completo varias declaraciones de función (`saleCurrent`, `salePrev`, `typeBelongs`, `render`, `renderKpis`, `renderTypeSummary`, `renderTable`, `filteredBase`, `businessLabel`) en vez de solo vaciar su contenido. El problema: el resto del archivo NO vuelve a *declarar* esas funciones — las *reasigna* (`render = function(){...}`), y en JavaScript reasignar una variable que nunca fue declarada primero revienta con error en cuanto algo intenta usarla antes de esa reasignación.
 
-## 2. Qué se hizo
+Eso fue exactamente lo que pasó: el listener que detecta tu correo como Administrador (`otpSincronizarCampoTelefonoV1`) se disparaba, pero el script ya se había detenido a mitad de camino por el error `render is not defined`, así que ese detector nunca llegaba a ejecutarse correctamente — la app se quedaba mostrando el formulario de Asesor (pidiendo elegir un asesor) en vez del formulario de acceso de Administrador/Super Administrador.
 
-### a) Backend (Supabase) — ya aplicado en la sesión anterior, confirmado de nuevo aquí
-- Se migraron las claves de datos de venta de cada cliente: `ventas2025EspumasPorMes`/`ventas2026EspumasPorMes` → `ventas2025PorMes`/`ventas2026PorMes` (nombre genérico, sin referencia a una línea de negocio que ya no existe).
-- Se actualizaron las 6 funciones del servidor (Edge Functions) que leen o escriben esos datos, para que todas usen el nombre nuevo: `cargar-historico-referencia`, `cargar-historico-ventas`, `activar-cliente-nuevo`, `calcular-metas-iniciales`, `calcular-clasificacion`, `sincronizar-ventas-erp`.
-- Se confirmó que las 2 funciones "-temp" (`exportar-ventas-csv-temp`, `diagnostico-drive-temp`) ya estaban desactivadas de una entrega anterior — no requerían cambio.
+Lo confirmé reproduciéndolo en vivo contra tu app en producción: escribí tu correo en el campo real, revisé la consola del navegador y vi el error exacto (`ReferenceError: render is not defined`) apareciendo en cascada en varios archivos.
 
-### b) Frontend (los 5 archivos de este paquete)
-- **Corregido un bug real que seguía activo**: la función que arma las gráficas del Dashboard Director (`lineSaleMonthV813`) todavía leía las claves viejas `ventas2025EspumasPorMes`/`ventas2026EspumasPorMes` — como esas claves ya no existen en la base de datos (se renombraron), el Dashboard habría vuelto a mostrar $0 en cuanto alguien recargara la página con datos frescos. Ya corregido.
-- **Eliminado el selector oculto "Vista negocio"** (`<select id="businessView">`): estaba oculto desde hace tiempo y nunca tuvo ningún control visible que lo activara — se retiró del HTML y de todo el código que lo revisaba.
-- **Limpiadas 8 secciones de código muerto** en `app.js` que dependían de esa variable de "línea de negocio" (Espumas vs. Total): funciones que se definían y luego quedaban sobrescritas por versiones más nuevas, sin ejecutarse nunca, pero que seguían ahí generando confusión y riesgo de reintroducir bugs.
-- Se actualizó `mejoras-v1.js` para que llame a las funciones ya simplificadas con la cantidad correcta de parámetros.
-- Se quitó una regla de estilos (`styles.css`) que dependía de una clase CSS que ya no se aplica.
+## 2. Qué corregí
 
-### c) Lo que NO se tocó (a propósito)
-- El campo `tipoCliente = "Espumas"` sigue existiendo — es una categoría de producto real y vigente, no tiene relación con el bug. No se tocó.
-- El id del campo de carga de archivo `fileEspumas` en el HTML se conserva igual (es solo un identificador técnico interno, cambiarlo no aportaba nada y sumaba riesgo).
-- No se tocaron `supabase-sync.js`, `modulo_15_conexion_erp.js` ni `instrucciones.md` — se revisaron y sus únicas menciones son comentarios o nombres de producto que siguen siendo correctos.
+- Restauré las 9 declaraciones de función que había eliminado por completo, dejándolas como funciones vacías (su contenido real nunca se ejecuta de todos modos — siempre gana la última versión definida más abajo en el archivo, que es donde vive la lógica real y correcta). Lo importante es que la *declaración* exista, para que las reasignaciones posteriores no fallen.
+- El resto de la limpieza de Espumas/Colchones de V16.39 (el fix real del Dashboard en $0, las Edge Functions, el resto del código muerto eliminado) sigue intacto — solo este punto específico se corrigió.
 
-## 3. Qué tienes que hacer ahora
+## 3. Cómo lo verifiqué esta vez (para que no se repita)
 
-1. Sube estos 5 archivos a GitHub (ver sección 5).
+- Cargué el archivo completo en un entorno Node.js simulando el navegador (sin depender de Netlify) y confirmé que **no lanza ningún error al cargar**.
+- Simulé el flujo real de login: escribir tu correo y disparar el evento que revisa si eres Administrador — confirmé que `esCorreoAdminV1("sergiovelasquez@me.com")` devuelve `true` sin errores.
+- Además, abrí tu app real en producción con un navegador, escribí tu correo en el campo de login tal cual lo harías tú, y confirmé visualmente que el bloque de "Correo autorizado" para Administrador se activa correctamente (ya no pide seleccionar asesor).
+- Hice una revisión automática de todo el archivo buscando cualquier otra variable que se reasigne (`x = function...`) sin haber sido declarada antes — no quedó ninguna.
+
+## 4. Qué tienes que hacer ahora
+
+1. Sube estos 2 archivos a GitHub (ver sección 6) — **con prioridad**, ya que la app está inutilizable para ti hasta que subas esto.
 2. Espera el deploy de Netlify y recarga forzada (Cmd+Shift+R).
-3. Verifica que la app inicie normal: Hoja de ruta, Dashboard, Metas y presupuestos — todo debe verse exactamente igual que ayer, sin cambios visuales. Esta entrega es limpieza interna, no agrega funciones nuevas.
+3. Entra con tu correo (sergiovelasquez@me.com): debe reconocerte de inmediato como Super Administrador y mostrar el bloque de enlace de acceso, sin pedirte seleccionar asesor.
 
-## 4. Verificado antes de empaquetar
+## 5. Lección para las próximas limpiezas de código
 
-- Sintaxis validada con `node --check` en los 5 archivos `.js`/`.html` relevantes: sin errores.
-- Verificado que las etiquetas `<div>` en `index.html` siguen balanceadas (259 aperturas, 259 cierres) después del cambio.
-- Búsqueda exhaustiva (`grep`) confirmando que no queda ninguna referencia activa a `ventas2025EspumasPorMes`, `ventas2026EspumasPorMes`, `ventaEspumasActual`, `totalEspumas*` ni a la variable `state.businessView` usada para lógica de negocio — solo quedan comentarios explicativos y el campo `tipoCliente` (legítimo).
-- Todas las Edge Functions del servidor probadas por separado (desplegadas y confirmadas activas) antes de tocar el frontend, para asegurar que backend y frontend quedaran consistentes en el mismo momento.
+Este archivo usa un patrón donde muchas funciones se definen varias veces seguidas (`function x(){...}` y luego, más abajo, `x = function(){...}` una o más veces) — es una forma común de ir agregando versiones nuevas sin reescribir todo el archivo. Es un patrón fràgil: al "limpiar" una de esas versiones hay que vaciar su *contenido*, nunca borrar la declaración completa. Lo tendré en cuenta para cualquier limpieza futura de este proyecto.
 
-## 5. Pasos para subir a GitHub
+## 6. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza los 5 archivos: `app.js`, `index.html`, `styles.css`, `mejoras-v1.js`, `version.js`.
+2. Reemplaza los 2 archivos: `app.js`, `version.js`.
 3. Espera el deploy de Netlify y confirma "Published".
 4. Recarga forzada en tu navegador (Cmd+Shift+R) antes de probar.
 
-## 6. Checklist de prueba
+## 7. Checklist de prueba
 
-- Entra a la app: debe verse "ConAccion · V16.39 · 2026-09-07" en el login.
-- Hoja de ruta: clientes, ventas y metas se ven igual que antes.
-- Dashboard Director: las 6 tarjetas de arriba y las gráficas siguen mostrando cifras reales (no $0).
-- Metas y presupuestos: la gráfica de venta mensual sigue correcta.
-- Si tienes que cargar un histórico nuevo o correr "Calcular Meta Inicial y Presupuesto" (Paso 4) próximamente, debería funcionar sin problema — ya que backend y frontend ahora usan el mismo nombre de campo.
-
-## 7. Pendiente (sin tocar en esta entrega, ya identificado en sesiones anteriores)
-
-- Confirmar si las tablas de respaldo de sesiones anteriores (incluida `respaldo_antes_renombre_espumas_20260907`, creada como respaldo de la migración de esta semana) se pueden eliminar definitivamente.
-- Confirmar si las Edge Functions `exportar-ventas-csv-temp` y `diagnostico-drive-temp` (ya desactivadas) se pueden borrar del todo.
-- Renombrar "Super Administrador" a "Administrador" — NO aplicar hasta nueva instrucción explícita (tarea #50).
-- Rediseño del login de Asesor — pendiente, decisión tuya de dejarlo para otra sesión.
+- Entra a la app: debe verse "ConAccion · V16.40 · 2026-09-08" en el login.
+- Escribe tu correo (sergiovelasquez@me.com): debe aparecer el bloque de acceso de Administrador (enlace de un solo uso), no el formulario de Asesor.
+- Una vez dentro: Hoja de ruta, Dashboard y Metas y presupuestos deben verse exactamente igual que en V16.39 (sin cambios funcionales adicionales, solo se corrigió el error de carga).

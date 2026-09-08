@@ -2,18 +2,29 @@
 const DATA=window.RADAR_DATA;let state={businessView:"total",advisor:"todos",type:"todos",status:"todos",search:""};const $=id=>document.getElementById(id);const money=v=>"$"+Number(v||0).toLocaleString("es-CO",{maximumFractionDigits:1})+" MM";const pct=v=>`${Math.round(v||0)}%`;const cleanNit=v=>String(v||"").replace(/\s+/g,"").trim();
 function init(){restoreLocal();fillAdvisorFilter();bindEvents();render()}
 function fillAdvisorFilter(){const s=$("advisorFilter");s.innerHTML=`<option value="todos">Todos</option><option value="SIN ASIGNACION">Sin asignación</option>`;DATA.meta.asesores.forEach(a=>{const o=document.createElement("option");o.value=a;o.textContent=a;s.appendChild(o)})}
-// V16.39 (2026-09-07, depuración Espumas/Colchones): saleCurrent, salePrev,
-// typeBelongs, businessLabel, filteredBase, render, renderKpis,
-// renderTypeSummary y renderTable definidas aquí son la primera versión
-// (V8.0) de estas funciones — todas quedan sobrescritas más abajo por
+// V16.39 (2026-09-07, depuración Espumas/Colchones): el CONTENIDO original
+// de saleCurrent, salePrev, typeBelongs, businessLabel, filteredBase,
+// render, renderKpis, renderTypeSummary y renderTable (V8.0, con lógica de
+// Espumas/Colchones) se eliminó — todas quedan reasignadas más abajo por
 // versiones posteriores (la última reasignación de cada una, en orden de
 // aparición en el archivo, es la que realmente se ejecuta en producción).
-// Esta primera versión usaba un selector de "línea de negocio" Espumas/
-// Colchones que ya no existe en la UI (el <select id="businessView"> está
-// oculto permanentemente) y campos (ventaEspumasActual, totalEspumas2025,
-// etc.) que ningún flujo de carga real llena. Se eliminan estas
-// definiciones muertas; goal, compliance, missing, sem, tClass, tIcon y esc
-// SÍ siguen activas (no se sobrescriben) y se conservan sin cambios.
+// CORRECCIÓN (2026-09-08): se restauran aquí como declaraciones `function`
+// vacías — NO por su contenido (que nunca se ejecuta), sino porque una
+// declaración `function nombre(){}` es lo que crea el binding en scope de
+// módulo que permite que `nombre = function(){...}` funcione más abajo.
+// Quitar la declaración por completo (como se hizo en el primer intento de
+// esta limpieza) rompió el login y toda la app: cualquier código que se
+// ejecutara antes de la primera reasignación (p.ej. render() dentro de un
+// listener disparado temprano) lanzaba "render is not defined".
+function saleCurrent(){}
+function salePrev(){}
+function typeBelongs(){}
+function businessLabel(){}
+function filteredBase(){}
+function render(){}
+function renderKpis(){}
+function renderTypeSummary(){}
+function renderTable(){}
 function goal(c){return Number(c.metaAsesor||c.metaSugerida||0)}function compliance(c){return goal(c)?saleCurrent(c)/goal(c)*100:0}function missing(c){return Math.max(goal(c)-saleCurrent(c),0)}function sem(c){let x=compliance(c);return x>=100?"green":(x>=80||(salePrev(c)>0&&saleCurrent(c)>=salePrev(c)))?"yellow":"red"}function tClass(t){return t==="Espumas"?"espumas":t==="Mixto"?"mixto":"nuevo"}function tIcon(t){return t==="Espumas"?"🟦":t==="Mixto"?"🟩":"⬜"}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 // bindEvents también se sobrescribe más abajo (V16.39: se retira el
