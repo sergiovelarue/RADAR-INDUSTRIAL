@@ -324,10 +324,13 @@ renderKpis = function (arr) {
   // Depuración negocio único (2026-08-19): se retiró el desglose "Colchones"
   // (bColActual/bCol2025 — el panel breakdownTotal que los contenía ya
   // estaba oculto y esos elementos se eliminaron de index.html). Solo
-  // queda el desglose de Espumas, la única línea de negocio activa.
+  // queda un desglose de venta, la única línea de negocio activa.
+  // V16.39 (2026-09-07, depuración Espumas/Colchones): totalMonth2026V810/
+  // totalMonth2025V810 ya no aceptan un tercer parámetro "view" (era
+  // ignorado — el filtro de línea de negocio no existe más).
   if (m && typeof totalMonth2026V810 === "function") {
-    if ($("bEspActual")) $("bEspActual").textContent = money(arrPresupuesto.reduce((s, c) => s + totalMonth2026V810(c, m, "espumas"), 0));
-    if ($("bEsp2025")) $("bEsp2025").textContent = "2025: " + money(arrPresupuesto.reduce((s, c) => s + totalMonth2025V810(c, m, "espumas"), 0));
+    if ($("bEspActual")) $("bEspActual").textContent = money(arrPresupuesto.reduce((s, c) => s + totalMonth2026V810(c, m), 0));
+    if ($("bEsp2025")) $("bEsp2025").textContent = "2025: " + money(arrPresupuesto.reduce((s, c) => s + totalMonth2025V810(c, m), 0));
   }
 };
 

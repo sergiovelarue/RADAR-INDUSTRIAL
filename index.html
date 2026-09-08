@@ -517,7 +517,10 @@
             <option value="cliente">Cliente A-Z</option>
           </select>
         </div>
-        <div style="display:none"><label>Vista negocio</label><select id="businessView"><option value="total">Total Radar</option><option value="espumas">Solo Espumas</option></select></div>
+        <!-- V16.39 (2026-09-07, depuración Espumas/Colchones): se retira el
+             <select id="businessView"> — estaba oculto permanentemente y sin
+             binding activo en app.js desde que se retiró la línea de negocio
+             Colchones; el filtro de línea de negocio ya no existe. -->
         <div><label>Asesor</label><select id="advisorFilter"></select></div>
         <div><label>Tipo cliente</label><select id="typeFilter"><option value="todos">Todos</option><option value="Espumas">Espumas</option><option value="Nuevo">Nuevo</option><option value="Bloqueado">Bloqueado</option></select></div>
         <div><label>Estado</label><select id="statusFilter"><option value="todos">Todos</option><option value="Activo">Activo</option><option value="Inactivo">Inactivo</option><option value="Posible Baja">Posible Baja</option><option value="Baja">Baja</option><option value="Reingreso">Reingreso</option><option value="Nuevo">Nuevo</option><option value="Bloqueado">Bloqueado</option></select></div>
