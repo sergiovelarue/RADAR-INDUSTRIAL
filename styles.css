@@ -1248,3 +1248,21 @@ tr.blocked-row .status{color:#b91c1c;font-weight:900}
   .wiz-actions-v1625{flex-direction:column}
   .wiz-actions-v1625 button{width:100%}
 }
+
+/* V16.42 — Ranking de ventas (switch mes/acumulado, medallas, difuminado) */
+.ranking-ventas-switch{display:flex;gap:8px;margin-bottom:16px}
+.ranking-ventas-switch-btn{flex:1;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:14px;cursor:pointer;transition:background .15s,color .15s}
+.ranking-ventas-switch-btn.active{background:var(--dark);color:#fff;border-color:var(--dark)}
+.ranking-ventas-row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px}
+.ranking-ventas-row.top1{background:#fef3c7}
+.ranking-ventas-row.propia{background:#eff6ff;border:1px solid #bfdbfe}
+.ranking-ventas-medalla{font-size:20px;width:28px;text-align:center;flex-shrink:0}
+.ranking-ventas-pos{font-size:13px;width:28px;text-align:center;color:var(--muted);flex-shrink:0}
+.ranking-ventas-nombre{flex:1;font-size:14px}
+.ranking-ventas-nombre.propia{font-weight:700;color:#1d4ed8}
+.ranking-ventas-valor{font-size:14px;font-weight:600}
+.ranking-ventas-blur{filter:blur(4px);user-select:none;-webkit-user-select:none}
+.ranking-ventas-vacio{color:var(--muted);font-size:14px;padding:12px 8px}
+
+/* Insignia de logro nuevo junto al nombre del asesor (Hoja de Ruta) */
+.rac-insignia-logro{font-size:16px;margin-left:6px;cursor:default}

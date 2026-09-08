@@ -1,10 +1,24 @@
 // ============================================================
-// V107 — UI del Motor RAC (Ranking / gamificación)
+// V16.42 — Ranking de ventas (reemplaza el ranking de puntaje RAC
+// visible en esta pestaña) + perfil individual RAC leído desde
+// Supabase (ya no se calcula en el navegador ni depende del botón
+// manual "Cerrar semana" — ver Edge Function cerrar-semana-rac y
+// tabla rac_logro_estado_asesor_v1, cron semanal automático).
 // ------------------------------------------------------------
-// Debe cargarse DESPUÉS de modulo_06_motor_RAC.js. Sigue el mismo
-// patrón de wrapping de navegación ya usado en
-// modulo_05_ui_motores.js (no reemplaza hideAllPrimaryViewsV93 ni
-// showViewV812, los envuelve).
+// Debe cargarse DESPUÉS de app.js, supabase-sync.js y
+// modulo_06_motor_RAC.js. Sigue el mismo patrón de wrapping de
+// navegación ya usado en modulo_05_ui_motores.js (no reemplaza
+// hideAllPrimaryViewsV93 ni showViewV812, los envuelve).
+//
+// Ranking de ventas — reglas acordadas con Sergio (2026-09-08):
+// - Ordenado por venta real ($) de cada asesor, no por puntaje.
+// - Switch "Ventas del mes" (mes operativo vigente, igual que el
+//   resto de la app — sin selector adicional) / "Acumulado del año".
+// - Medallas 🥇🥈🥉 para el top 3.
+// - Vista admin: ve todos los nombres y cifras.
+// - Vista asesor: ve su propia fila nítida y resaltada; el resto
+//   difuminado (blur + sin selección de texto) — no puede leer
+//   quién es quién ni sus cifras.
 // ============================================================
 
 function $V107c(id) { return document.getElementById(id); }
@@ -37,42 +51,92 @@ function showRankingViewV107() {
 
 const RAC_MEDALLAS_V107 = ["🥇", "🥈", "🥉"];
 
-function filaLeaderboardHtmlV107(f, nombreUsuarioActual) {
-  const medalla = f.posicion <= 3 ? RAC_MEDALLAS_V107[f.posicion - 1] : f.posicion;
-  const destacar = f.asesor === nombreUsuarioActual ? "font-weight:700;background:#f5f5f7" : "";
-  return `
-    <tr style="${destacar}">
-      <td>${medalla}</td>
-      <td>${f.asesor}</td>
-      <td>${f.puntaje.toFixed(1)}</td>
-      <td>${f.cumplimiento !== null ? (f.cumplimiento * 100).toFixed(0) + "%" : "—"}</td>
-      <td>${f.actividad !== null ? (f.actividad * 100).toFixed(0) + "%" : "—"}</td>
-      <td>${f.metaSuperada ? "🏆" : ""}</td>
-    </tr>`;
+// ------------------------------------------------------------
+// Ranking de ventas — cálculo en el cliente (dato real, ya
+// disponible en DATA.clientes, sin necesidad de ir a Supabase).
+// ------------------------------------------------------------
+const rankingVentasStateV1642 = { periodo: "mes" };
+
+function rankingVentasCalcularV1642(periodo) {
+  const asesores = (DATA.meta && DATA.meta.asesores) || [];
+  const mesVigente = typeof latestOperationalMonthV810 === "function" ? latestOperationalMonthV810() : null;
+
+  const filas = asesores.map(nombreAsesor => {
+    const misClientes = (DATA.clientes || []).filter(c => {
+      if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return false;
+      return c.asesorAsignado === nombreAsesor;
+    });
+    const venta = periodo === "anio"
+      ? misClientes.reduce((s, c) => s + (typeof totalYtdV812 === "function" ? totalYtdV812(c, 2026) : 0), 0)
+      : misClientes.reduce((s, c) => s + (mesVigente && typeof saleMonthV812 === "function" ? saleMonthV812(c, 2026, mesVigente) : 0), 0);
+    return { asesor: nombreAsesor, venta };
+  });
+
+  filas.sort((a, b) => b.venta - a.venta);
+  filas.forEach((f, i) => { f.posicion = i + 1; });
+  return filas;
 }
 
-function renderLeaderboardsV107() {
+function rankingVentasFilaHtmlV1642(f, esAdmin, nombreUsuario) {
+  const medalla = f.posicion <= 3 ? RAC_MEDALLAS_V107[f.posicion - 1] : null;
+  const esPropia = !esAdmin && f.asesor === nombreUsuario;
+  const debeOcultar = !esAdmin && !esPropia;
+
+  const claseFila = ["ranking-ventas-row"];
+  if (f.posicion === 1) claseFila.push("top1");
+  if (esPropia) claseFila.push("propia");
+
+  const nombreHtml = debeOcultar
+    ? `<span class="ranking-ventas-nombre ranking-ventas-blur">${esc(f.asesor)}</span>`
+    : `<span class="ranking-ventas-nombre${esPropia ? " propia" : ""}">${esc(f.asesor)}${esPropia ? " (tú)" : ""}</span>`;
+  const valorHtml = debeOcultar
+    ? `<span class="ranking-ventas-valor ranking-ventas-blur">${money(f.venta)}</span>`
+    : `<span class="ranking-ventas-valor">${money(f.venta)}</span>`;
+
+  return `
+    <div class="${claseFila.join(" ")}">
+      ${medalla ? `<span class="ranking-ventas-medalla">${medalla}</span>` : `<span class="ranking-ventas-pos">${f.posicion}</span>`}
+      ${nombreHtml}
+      ${valorHtml}
+    </div>`;
+}
+
+function renderRankingVentasV1642() {
+  const cont = $V107c("rankingVentasLista");
+  if (!cont) return;
+
   const esAdmin = typeof isAdminV86 === "function" && isAdminV86();
   const nombreUsuario = (!esAdmin && typeof currentUserV84 !== "undefined" && currentUserV84) ? currentUserV84.advisor : null;
 
-  const semanal = typeof leaderboardSemanalV107 === "function" ? leaderboardSemanalV107() : [];
-  const mensual = typeof leaderboardMensualV107 === "function" ? leaderboardMensualV107() : [];
+  const filas = rankingVentasCalcularV1642(rankingVentasStateV1642.periodo);
+  cont.innerHTML = filas.length
+    ? filas.map(f => rankingVentasFilaHtmlV1642(f, esAdmin, nombreUsuario)).join("")
+    : `<p class="ranking-ventas-vacio">No hay asesores registrados todavía.</p>`;
+}
 
-  const bodySemanal = $V107c("rankingSemanalBody");
-  if (bodySemanal) {
-    bodySemanal.innerHTML = semanal.length
-      ? semanal.map(f => filaLeaderboardHtmlV107(f, nombreUsuario)).join("")
-      : `<tr><td colspan="6">Sin datos suficientes esta semana.</td></tr>`;
-  }
-  const bodyMensual = $V107c("rankingMensualBody");
-  if (bodyMensual) {
-    bodyMensual.innerHTML = mensual.length
-      ? mensual.map(f => filaLeaderboardHtmlV107(f, nombreUsuario)).join("")
-      : `<tr><td colspan="6">Sin datos suficientes este mes.</td></tr>`;
-  }
+function rankingVentasCambiarPeriodoV1642(periodo) {
+  rankingVentasStateV1642.periodo = periodo;
+  const btnMes = $V107c("rankingVentasSwitchMes");
+  const btnAnio = $V107c("rankingVentasSwitchAnio");
+  if (btnMes) btnMes.classList.toggle("active", periodo === "mes");
+  if (btnAnio) btnAnio.classList.toggle("active", periodo === "anio");
+  renderRankingVentasV1642();
+}
 
-  const wrapCerrar = $V107c("rankingCerrarSemanaWrap");
-  if (wrapCerrar) wrapCerrar.style.display = esAdmin ? "" : "none";
+// ------------------------------------------------------------
+// Perfil RAC individual — leído desde Supabase
+// (rac_logro_estado_asesor_v1), actualizado por el cron semanal.
+// Ya no se calcula en el navegador ni hay botón "Cerrar semana".
+// ------------------------------------------------------------
+async function rankingLeerLogroAsesorV1642(nombreAsesor) {
+  if (typeof supabaseClientV94 === "undefined" || !supabaseClientV94 || !nombreAsesor) return null;
+  const { data, error } = await supabaseClientV94
+    .from("rac_logro_estado_asesor_v1")
+    .select("*")
+    .eq("asesor", nombreAsesor)
+    .maybeSingle();
+  if (error) { console.error("[Radar-Ranking] Error leyendo logro RAC:", error); return null; }
+  return data;
 }
 
 async function renderPerfilRacV107() {
@@ -87,7 +151,7 @@ async function renderPerfilRacV107() {
       sel.style.display = "";
       if (!sel.dataset.poblado) {
         const asesores = (DATA.meta && DATA.meta.asesores) || [];
-        sel.innerHTML = asesores.map(a => `<option value="${a}">${a}</option>`).join("");
+        sel.innerHTML = asesores.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
         sel.dataset.poblado = "1";
       }
     }
@@ -99,51 +163,43 @@ async function renderPerfilRacV107() {
   if (!nombreAsesor) { cont.innerHTML = "Selecciona un asesor."; return; }
 
   cont.innerHTML = "Cargando perfil…";
-  const perfil = typeof perfilRacAsesorV107 === "function" ? await perfilRacAsesorV107(nombreAsesor) : null;
-  if (!perfil) { cont.innerHTML = "Motor RAC no disponible."; return; }
+  const logro = await rankingLeerLogroAsesorV1642(nombreAsesor);
+  if (!logro) {
+    cont.innerHTML = `<p style="color:#6B6B6B;font-size:13px">Todavía no hay datos de rendimiento para ${esc(nombreAsesor)} — se actualizan automáticamente cada lunes.</p>`;
+    return;
+  }
 
-  const insigniasHtml = perfil.insignias.length
-    ? perfil.insignias.map(i => `<span class="ews-badge ok" title="${i.nombre}">${i.icono} ${i.nombre}</span>`).join(" ")
+  const nombresInsignia = { meta_superada: { nombre: "Meta superada", icono: "🏆" }, cartera_sana: { nombre: "Cartera sana (90%+ activos)", icono: "💚" }, elite: { nombre: "Rendimiento élite", icono: "⭐" } };
+  const insignias = Array.isArray(logro.insignias) ? logro.insignias : [];
+  const insigniasHtml = insignias.length
+    ? insignias.map(id => {
+        const info = nombresInsignia[id] || { nombre: id, icono: "🏅" };
+        return `<span class="ews-badge ok" title="${esc(info.nombre)}">${info.icono} ${esc(info.nombre)}</span>`;
+      }).join(" ")
     : `<span style="color:#6B6B6B;font-size:13px">Sin insignias este mes todavía.</span>`;
 
   cont.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">
       <div>
-        <h3 style="margin:0 0 4px">${perfil.asesor}</h3>
-        <p style="margin:0;color:#6B6B6B;font-size:13px">Nivel <strong>${perfil.nivel}</strong>${perfil.siguienteNivel ? ` — faltan ${perfil.puntosParaSiguiente.toFixed(0)} pts para ${perfil.siguienteNivel}` : " — nivel máximo"}</p>
+        <h3 style="margin:0 0 4px">${esc(logro.asesor)}</h3>
+        <p style="margin:0;color:#6B6B6B;font-size:13px">Nivel <strong>${esc(logro.nivel)}</strong></p>
       </div>
       <div style="text-align:right">
-        <div style="font-size:28px;font-weight:800">🔥 ${perfil.racha}</div>
+        <div style="font-size:28px;font-weight:800">🔥 ${Number(logro.racha || 0)}</div>
         <div style="font-size:12px;color:#6B6B6B">semanas de racha</div>
       </div>
     </div>
     <div style="display:flex;gap:24px;margin-top:16px;flex-wrap:wrap">
-      <div><div style="font-size:22px;font-weight:700">${perfil.puntajeSemanal.toFixed(1)}</div><div style="font-size:12px;color:#6B6B6B">Puntos esta semana ${perfil.posicionSemanal ? `(#${perfil.posicionSemanal})` : ""}</div></div>
-      <div><div style="font-size:22px;font-weight:700">${perfil.puntajeMensual.toFixed(1)}</div><div style="font-size:12px;color:#6B6B6B">Puntos este mes ${perfil.posicionMensual ? `(#${perfil.posicionMensual})` : ""}</div></div>
-      <div><div style="font-size:22px;font-weight:700">${perfil.puntosAcumulados.toFixed(0)}</div><div style="font-size:12px;color:#6B6B6B">Puntos acumulados (nivel)</div></div>
+      <div><div style="font-size:22px;font-weight:700">${Number(logro.puntos_acumulados || 0).toFixed(0)}</div><div style="font-size:12px;color:#6B6B6B">Puntos acumulados (nivel)</div></div>
+      <div><div style="font-size:22px;font-weight:700">${Number(logro.racha_record || 0)}</div><div style="font-size:12px;color:#6B6B6B">Racha récord</div></div>
     </div>
     <div style="margin-top:14px">${insigniasHtml}</div>
-    ${perfil.semanasConHistorico === 0 ? '<p class="ews-nota">Aún no hay semanas cerradas en el histórico — la racha y el nivel se irán construyendo a partir del primer "Cerrar semana" del administrador.</p>' : ""}
+    <p class="ews-nota">Se actualiza automáticamente cada lunes a medianoche (hora Colombia). Última actualización: ${logro.actualizado_en ? new Date(logro.actualizado_en).toLocaleString("es-CO") : "—"}.</p>
   `;
 }
 
-async function cerrarSemanaRacV107() {
-  const btn = $V107c("rankingCerrarSemanaBtn");
-  if (btn) { btn.disabled = true; btn.textContent = "Cerrando…"; }
-  try {
-    const emailAdmin = (typeof currentUserV84 !== "undefined" && currentUserV84) ? currentUserV84.email : null;
-    const resultado = await guardarSnapshotSemanalRacV107(emailAdmin);
-    alert(`Semana ${resultado.semanaIso} cerrada. ${resultado.asesoresEvaluados} asesores evaluados.`);
-    renderRankingViewV107();
-  } catch (e) {
-    alert(e.message);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = "Cerrar semana"; }
-  }
-}
-
 function renderRankingViewV107() {
-  renderLeaderboardsV107();
+  renderRankingVentasV1642();
   renderPerfilRacV107();
 }
 
@@ -151,5 +207,77 @@ document.addEventListener("DOMContentLoaded", () => {
   if ($V107c("navRanking")) $V107c("navRanking").addEventListener("click", showRankingViewV107);
   if ($V107c("rankingRefreshBtn")) $V107c("rankingRefreshBtn").addEventListener("click", renderRankingViewV107);
   if ($V107c("rankingAsesorSelect")) $V107c("rankingAsesorSelect").addEventListener("change", renderPerfilRacV107);
-  if ($V107c("rankingCerrarSemanaBtn")) $V107c("rankingCerrarSemanaBtn").addEventListener("click", cerrarSemanaRacV107);
+  if ($V107c("rankingVentasSwitchMes")) $V107c("rankingVentasSwitchMes").addEventListener("click", () => rankingVentasCambiarPeriodoV1642("mes"));
+  if ($V107c("rankingVentasSwitchAnio")) $V107c("rankingVentasSwitchAnio").addEventListener("click", () => rankingVentasCambiarPeriodoV1642("anio"));
 });
+
+// ============================================================
+// Insignia sin texto junto al nombre del asesor — visible en toda
+// la app (se pinta en updateSessionRoleLabelV93, que ya corre en
+// cada login y aparece en el sidebar desde la Hoja de Ruta hasta
+// cualquier otra pestaña). Solo para perfil asesor, nunca admin.
+// Muestra un ícono por cada logro nuevo de la semana (subida de
+// nivel, racha récord, insignia nueva), con tooltip al pasar el
+// cursor. Permanece visible mientras la condición siga vigente esa
+// semana (no se oculta al verla, a diferencia del aviso de "Nueva
+// meta del mes") — decisión explícita de Sergio (2026-09-08).
+// ============================================================
+const RAC_INSIGNIA_ICONOS_V1642 = {
+  nivel: { Plata: "🥈", Oro: "🥇", Platino: "💠", Diamante: "💎" },
+  racha: "🔥",
+  meta_superada: "🏆",
+  cartera_sana: "💚",
+  elite: "⭐",
+};
+const RAC_INSIGNIA_NOMBRES_V1642 = {
+  meta_superada: "Meta superada",
+  cartera_sana: "Cartera sana (90%+ activos)",
+  elite: "Rendimiento élite",
+};
+
+async function pintarInsigniaLogroSesionV1642() {
+  const roleLabel = $V107c("sessionRoleLabel");
+  if (!roleLabel) return;
+
+  const esAdmin = typeof isAdminV86 === "function" && isAdminV86();
+  const nombreAsesor = (!esAdmin && typeof currentUserV84 !== "undefined" && currentUserV84) ? currentUserV84.advisor : null;
+
+  const existente = roleLabel.parentElement ? roleLabel.parentElement.querySelectorAll(".rac-insignia-logro") : [];
+  existente.forEach(el => el.remove());
+  if (!nombreAsesor) return;
+
+  const logro = typeof rankingLeerLogroAsesorV1642 === "function" ? await rankingLeerLogroAsesorV1642(nombreAsesor) : null;
+  if (!logro) return;
+
+  const iconos = [];
+  if (logro.nivel_subio_esta_semana && RAC_INSIGNIA_ICONOS_V1642.nivel[logro.nivel]) {
+    iconos.push({ icono: RAC_INSIGNIA_ICONOS_V1642.nivel[logro.nivel], titulo: `Subiste a nivel ${logro.nivel}` });
+  }
+  if (logro.racha_record_esta_semana) {
+    iconos.push({ icono: RAC_INSIGNIA_ICONOS_V1642.racha, titulo: `Nueva racha récord: ${logro.racha} semanas` });
+  }
+  const insigniasNuevas = Array.isArray(logro.insignias_nuevas_esta_semana) ? logro.insignias_nuevas_esta_semana : [];
+  insigniasNuevas.forEach(id => {
+    if (RAC_INSIGNIA_ICONOS_V1642[id]) {
+      iconos.push({ icono: RAC_INSIGNIA_ICONOS_V1642[id], titulo: RAC_INSIGNIA_NOMBRES_V1642[id] || id });
+    }
+  });
+
+  if (!iconos.length || !roleLabel.parentElement) return;
+  iconos.forEach(({ icono, titulo }) => {
+    const span = document.createElement("span");
+    span.className = "rac-insignia-logro";
+    span.title = titulo;
+    span.setAttribute("aria-label", titulo);
+    span.textContent = icono;
+    roleLabel.insertAdjacentElement("afterend", span);
+  });
+}
+
+if (typeof updateSessionRoleLabelV93 === "function") {
+  const _updateSessionRoleLabelOriginalV1642 = updateSessionRoleLabelV93;
+  updateSessionRoleLabelV93 = function () {
+    _updateSessionRoleLabelOriginalV1642();
+    pintarInsigniaLogroSesionV1642();
+  };
+}

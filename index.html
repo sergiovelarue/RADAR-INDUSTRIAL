@@ -1076,39 +1076,26 @@
       <section class="clients-mgmt-view hidden-view" id="rankingView">
         <div class="dashboard-title">
           <div>
-            <p>Rendimiento · Actividad · Cumplimiento (Motor RAC). Puntaje = 70% cumplimiento de meta + 30% actividad comercial. Ranking semanal (resetea cada lunes) y acumulado mensual.</p>
+            <p>Ranking de ventas del equipo. Cambia entre el mes vigente y el acumulado del año.</p>
           </div>
-          <div class="dashboard-actions" id="rankingCerrarSemanaWrap" style="display:none">
-            <button class="btn ghost" id="rankingCerrarSemanaBtn">Cerrar semana</button>
+          <div class="dashboard-actions">
             <button class="btn ghost" id="rankingRefreshBtn">Actualizar</button>
           </div>
         </div>
+
+        <section class="mgmt-table-card">
+          <div class="ranking-ventas-switch" role="group" aria-label="Periodo del ranking">
+            <button type="button" class="ranking-ventas-switch-btn active" id="rankingVentasSwitchMes" data-periodo="mes">Ventas del mes</button>
+            <button type="button" class="ranking-ventas-switch-btn" id="rankingVentasSwitchAnio" data-periodo="anio">Acumulado del año</button>
+          </div>
+          <div id="rankingVentasLista"></div>
+        </section>
 
         <section class="mgmt-table-card" id="rankingPerfilCard">
           <label id="rankingAsesorSelectWrap" style="display:block;margin-bottom:10px">
             <select id="rankingAsesorSelect" style="display:none"></select>
           </label>
           Cargando…
-        </section>
-
-        <section class="mgmt-table-card">
-          <div class="table-header"><h3>Ranking semanal</h3></div>
-          <div class="table-scroll">
-            <table class="mgmt-table">
-              <thead><tr><th>#</th><th>Asesor</th><th>Puntos</th><th>Cumplimiento</th><th>Actividad</th><th>Meta superada</th></tr></thead>
-              <tbody id="rankingSemanalBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="mgmt-table-card">
-          <div class="table-header"><h3>Ranking mensual acumulado</h3></div>
-          <div class="table-scroll">
-            <table class="mgmt-table">
-              <thead><tr><th>#</th><th>Asesor</th><th>Puntos</th><th>Cumplimiento</th><th>Actividad</th><th>Meta superada</th></tr></thead>
-              <tbody id="rankingMensualBody"></tbody>
-            </table>
-          </div>
         </section>
       </section>
 
