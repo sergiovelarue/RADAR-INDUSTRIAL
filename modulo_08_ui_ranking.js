@@ -377,8 +377,8 @@ async function renderVitrinaTrofeosV1644() {
     .select("anio, mes, cumplimiento, trofeo")
     .eq("asesor", nombreUsuario)
     .neq("trofeo", "ninguno")
-    .order("anio", { ascending: false })
-    .order("mes", { ascending: false });
+    .order("anio", { ascending: true })
+    .order("mes", { ascending: true });
   if (error) { console.error("[Radar-Ranking] Error leyendo vitrina de trofeos:", error); return; }
 
   const trofeos = data || [];
@@ -426,40 +426,53 @@ async function renderMatrizCumplimientoV1644() {
   const filas = data || [];
   if (!filas.length) { tablaCont.innerHTML = `<p class="ranking-ventas-vacio">Todavía no hay meses cerrados.</p>`; if (cardFelicitacion) cardFelicitacion.classList.add("hidden-view"); return; }
 
-  const clavesMes = Array.from(new Set(filas.map(f => `${f.anio}-${f.mes}`)))
-    .sort((a, b) => { const [ay, am] = a.split("-").map(Number); const [by, bm] = b.split("-").map(Number); return ay === by ? am - bm : ay - by; })
-    .slice(-6); // últimos 6 meses cerrados, para no saturar la tabla
+  // Año en curso completo (enero → el último mes cerrado que exista),
+  // no un recorte de últimos N meses — a pedido de Sergio (2026-09-08),
+  // para que enero y febrero no "desaparezcan" de la matriz apenas
+  // haya más de 6 meses cerrados en el año.
+  const anioVigente = filas.reduce((max, f) => Math.max(max, f.anio), 0);
+  const clavesMes = Array.from(new Set(filas.filter(f => f.anio === anioVigente).map(f => `${f.anio}-${f.mes}`)))
+    .sort((a, b) => { const [, am] = a.split("-").map(Number); const [, bm] = b.split("-").map(Number); return am - bm; });
 
   const asesoresLista = Array.from(new Set(filas.filter(f => f.asesor !== "__EQUIPO__").map(f => f.asesor))).sort();
   const porClave = new Map(filas.map(f => [`${f.asesor}|${f.anio}-${f.mes}`, f]));
 
   function celdaHtml(fila) {
-    if (!fila) return `<td style="text-align:center;padding:8px;color:var(--muted)">—</td>`;
+    if (!fila) return `<td class="ranking-matriz-col-mes">—</td>`;
     const pct = Number(fila.cumplimiento).toFixed(0);
-    if (fila.trofeo === "trofeo_destacado") return `<td style="text-align:center;padding:8px">🏆✨<br><span style="font-size:10px;color:var(--muted)">${pct}%</span></td>`;
-    if (fila.trofeo === "trofeo") return `<td style="text-align:center;padding:8px">🏆<br><span style="font-size:10px;color:var(--muted)">${pct}%</span></td>`;
-    return `<td style="text-align:center;padding:8px;color:var(--muted)">${pct}%</td>`;
+    if (fila.trofeo === "trofeo_destacado") return `<td class="ranking-matriz-col-mes">🏆✨<br><span class="ranking-matriz-pct">${pct}%</span></td>`;
+    if (fila.trofeo === "trofeo") return `<td class="ranking-matriz-col-mes">🏆<br><span class="ranking-matriz-pct">${pct}%</span></td>`;
+    return `<td class="ranking-matriz-col-mes ranking-matriz-sin-trofeo">${pct}%</td>`;
   }
 
-  const encabezado = clavesMes.map(c => { const [anio, mes] = c.split("-").map(Number); return `<th style="padding:6px 8px;color:var(--muted);font-weight:500">${esc(RAC_MESES_NOMBRE_CORTO_V1644[mes - 1])}</th>`; }).join("");
+  // V16.46 — La primera columna ("Asesor") queda fija (sticky) mientras
+  // el resto de la tabla se desplaza horizontalmente dentro de
+  // .ranking-matriz-scroll (ver styles.css) — así la tabla no se
+  // aprieta al crecer con más meses del año, y sigue siendo legible
+  // tanto en escritorio (mouse/trackpad) como en celular (arrastre
+  // táctil nativo). Mockup aprobado por Sergio (2026-09-08).
+  const encabezado = clavesMes.map(c => { const [anio, mes] = c.split("-").map(Number); return `<th class="ranking-matriz-col-mes">${esc(RAC_MESES_NOMBRE_CORTO_V1644[mes - 1])}</th>`; }).join("");
 
   const filasAsesores = asesoresLista.map(nombreAsesor => {
     const celdas = clavesMes.map(c => celdaHtml(porClave.get(`${nombreAsesor}|${c}`))).join("");
-    return `<tr style="border-top:0.5px solid var(--line)"><td style="padding:8px 8px 8px 0;font-weight:500">${esc(nombreAsesor)}</td>${celdas}</tr>`;
+    return `<tr><td class="ranking-matriz-col-asesor">${esc(nombreAsesor)}</td>${celdas}</tr>`;
   }).join("");
 
   const filaEquipo = clavesMes.map(c => celdaHtml(porClave.get(`__EQUIPO__|${c}`))).join("");
 
   tablaCont.innerHTML = `
-    <table style="width:100%;font-size:12px;border-collapse:collapse">
-      <thead><tr><th style="text-align:left;padding:6px 8px 8px 0;color:var(--muted);font-weight:500">Asesor</th>${encabezado}</tr></thead>
-      <tbody>
-        ${filasAsesores}
-        <tr style="border-top:1.5px solid var(--dark);background:var(--card2,#f5f5f7)">
-          <td style="padding:8px 8px 8px 0;font-weight:700">Total equipo</td>${filaEquipo}
-        </tr>
-      </tbody>
-    </table>`;
+    <div class="ranking-matriz-scroll">
+      <table class="ranking-matriz-tabla">
+        <thead><tr><th class="ranking-matriz-col-asesor ranking-matriz-col-asesor-header">Asesor</th>${encabezado}</tr></thead>
+        <tbody>
+          ${filasAsesores}
+          <tr class="ranking-matriz-fila-equipo">
+            <td class="ranking-matriz-col-asesor">Total equipo</td>${filaEquipo}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="ranking-matriz-hint"><span aria-hidden="true">↔</span> Desliza la tabla para ver todos los meses.</p>`;
 
   // Felicitación de equipo — mes vigente (el más reciente cerrado con datos).
   if (cardFelicitacion && felicitacionCont) {
