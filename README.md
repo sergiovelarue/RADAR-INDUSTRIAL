@@ -1,64 +1,78 @@
-# Mejoras_20260908_2300 — Ranking de ventas, cierre automático del RAC e insignias de logro
+# Mejoras_20260908_1106 — Ranking de puntos, KPI de cumplimiento, vitrina de trofeos y matriz de equipo
 
-Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.43 · 2026-09-08**
+Radar Comercial B2B (RADAR-INDUSTRIAL) · Versión app: **V16.44 · 2026-09-08**
 
-Rediseña por completo la pestaña Ranking: pasa de mostrar un puntaje compuesto a mostrar directamente quién vende más, con medallas y privacidad entre asesores. El cierre semanal que antes dependía de que tú entraras a la app y presionaras un botón ahora corre solo, en el servidor, cada lunes.
+Completa la pestaña Ranking: además del ranking de ventas (V16.43), ahora el asesor ve su propio avance de meta con mensajes motivacionales, su ranking de puntos frente a sus compañeros (sin ver quién es quién), y una vitrina con los trofeos que ha ganado mes a mes. El administrador ve el ranking de puntos completo, el nivel de cada asesor, y una matriz de cumplimiento mensual de todo el equipo — incluyendo una felicitación cuando el equipo completo supera su meta.
 
 ## 1. Qué se hizo
 
-### a) Ranking de ventas — nuevo, es lo primero que se ve
-Antes la pestaña Ranking mostraba un puntaje calculado (70% cumplimiento de meta + 30% actividad comercial). Ahora, arriba de todo, se ve un ranking simple ordenado por venta real en pesos, con un switch para alternar entre "Ventas del mes" (el mes vigente, igual que el resto de la app) y "Acumulado del año". Los primeros tres lugares llevan medalla de oro, plata y bronce.
+### a) KPI de cumplimiento de meta — solo asesor
+Tarjeta nueva, arriba de todo en la pestaña Ranking (visible solo para el perfil asesor, nunca para administrador): muestra el % de cumplimiento de meta del mes vigente, con un mensaje que cambia según el avance:
+- 80%–89%: "Estás cerca, ¡vamos!"
+- 90%–99%: "¡Ya casi estás a un paso!"
+- 100%–109%: "¡Felicitaciones, lo lograste!"
+- Más de 109%: "¡Wow, la sacaste del estadio!"
 
-**Privacidad entre asesores**: cuando un administrador entra, ve el ranking completo con todos los nombres y cifras. Cuando entra un asesor, se ve a sí mismo con su nombre y cifra nítidos y resaltados en azul (con la etiqueta "(tú)"), pero el resto de sus compañeros aparece con el nombre y la cifra difuminados — puede ver su propia posición en la lista, pero no puede leer quién es cada uno de los demás ni cuánto vende.
+Por debajo del 80% se muestra un mensaje neutro ("Sigue así, cada venta suma") para no sonar negativo. Se calcula en vivo, con el mismo criterio ya usado en el ranking de puntos (venta total del asesor / meta total del asesor, respetando el ajuste manual si tú lo definiste ese mes).
 
-### b) Cierre semanal automático — ya no depende de que entres a la app
-El panel de rendimiento (nivel, racha, insignias) seguía funcionando con la misma fórmula de siempre (70% cumplimiento + 30% actividad), pero dependía de que tú entraras cada lunes y presionaras "Cerrar semana" para que se guardara el registro de esa semana. Si algún lunes no entrabas, la racha de los asesores se rompía sin que fuera su culpa.
+### b) Ranking de puntos — visible en la pestaña (ya no solo el perfil individual)
+Antes el rendimiento (nivel, racha, insignias) solo se veía para UN asesor a la vez, elegido en un menú desplegable. Ahora, además de eso, hay un ranking de puntos apilado igual que el de ventas:
+- **Administrador**: ve el ranking completo, con el nivel de cada asesor.
+- **Asesor**: ve su propia posición y su nivel, resaltado en azul con la etiqueta "(tú)" — el resto de sus compañeros aparece con nombre y puntaje difuminados, igual que ya funciona en el ranking de ventas.
 
-Ahora ese cierre corre solo: se programó un proceso automático en el servidor (Supabase) que se ejecuta cada lunes a las 12:05 a.m. hora Colombia, sin que nadie tenga que abrir la app. Ya no existe el botón "Cerrar semana" — no hace falta.
+El puntaje sigue siendo la misma fórmula de siempre (70% cumplimiento de meta + 30% actividad comercial), calculada en el navegador para que se vea en tiempo real.
 
-**Cambio importante en el cálculo**: antes el cumplimiento de meta se calculaba cliente por cliente y se promediaba. Ahora se calcula a nivel de todo el asesor: se suma la venta de todos sus clientes y se compara contra la meta total del asesor (usando el ajuste de meta por asesor si tú lo definiste ese mes, o si no, la suma de las metas iniciales de sus clientes). Esto lo acordamos juntos porque es más representativo del desempeño real del asesor y no depende de datos que solo viven en el navegador de quien los edita.
+### c) Vitrina de trofeos — solo asesor
+Debajo del ranking de puntos, cada asesor ve una cuadrícula con los meses en los que superó el 100% de su meta: un trofeo 🏆 por cada mes cumplido (100%–109%), y un trofeo destacado 🏆✨ cuando lo superó ampliamente (más de 109%), con el porcentaje exacto y el mes/año. Es un historial permanente — no desaparece con el tiempo.
 
-### c) Insignia de logro — aparece junto a tu nombre en toda la app
-Cuando a un asesor le pasa algo positivo esa semana (sube de nivel, logra una racha récord, o gana una insignia nueva), aparece un pequeño ícono junto a su nombre en la parte superior de la app — sin texto, solo el ícono, con el detalle disponible al pasar el cursor o tocarlo. Por ejemplo: 💎 si sube a nivel Diamante, 🔥 si logra una racha récord, 🏆 si supera su meta.
+**Se reconstruyó el histórico de 2026** (enero a agosto) directamente en la base de datos, así que los asesores que ya cumplieron su meta en meses anteriores ven esos trofeos desde el primer día, sin esperar a que pase otro mes.
 
-Este ícono se queda visible toda la semana mientras el logro siga vigente — no desaparece al verlo una vez, para que el asesor pueda mostrarlo o recordarlo durante varios días. Solo aparece para asesores, nunca para el perfil de administrador.
+### d) Matriz de cumplimiento mensual + felicitación de equipo — solo administrador
+Tabla nueva con los asesores en filas y los últimos 6 meses cerrados en columnas, mostrando quién cumplió su meta cada mes (🏆 o 🏆✨) y quién no (el % en gris). Incluye una fila "Total equipo" al final, calculada como la suma de ventas de todo el equipo dividida entre la suma de sus metas — no un promedio de los porcentajes individuales.
+
+Cuando el equipo completo supera el 100% de la meta en el mes más reciente cerrado, aparece una tarjeta de felicitación arriba de la matriz.
 
 ### Qué NO cambió
-- El cálculo de niveles (Bronce → Plata → Oro → Platino → Diamante), racha e insignias sigue usando exactamente las mismas reglas ya definidas contigo.
-- El panel de perfil individual (nivel, racha, insignias) sigue estando disponible en la pestaña Ranking, debajo del nuevo ranking de ventas — solo que ahora lee el resultado ya calculado por el servidor en vez de calcularlo en el navegador cada vez.
+- El ranking de ventas (medallas, switch mes/año, difuminado) sigue exactamente igual — V16.43.
+- La fórmula de puntaje RAC (70/30) y los niveles (Bronce → Diamante) no cambiaron.
+- La insignia sin texto junto al nombre en la parte superior de la app sigue funcionando igual.
 
 ## 2. Qué tienes que hacer ahora
 
-1. Sube estos 4 archivos a GitHub: `index.html`, `styles.css`, `modulo_08_ui_ranking.js`, `modulo_06_motor_rac.js`, `version.js` (5 archivos en total — ver sección 4).
+1. Sube estos 4 archivos a GitHub: `index.html`, `styles.css`, `modulo_08_ui_ranking.js`, `version.js`.
 2. Espera el deploy de Netlify y recarga forzada (Cmd+Shift+R).
-3. **No necesitas hacer nada en Supabase** — la Edge Function, la tabla nueva y el cron automático ya están desplegados y funcionando en producción (lo hice directamente y lo probé en vivo antes de entregarte esto).
-4. Entra a la pestaña Ranking y confirma que se ve el nuevo diseño con el switch "Ventas del mes / Acumulado del año".
+3. **No necesitas hacer nada en Supabase** — la tabla nueva, la Edge Function y el cron mensual ya están desplegados y probados en producción.
+4. Entra a la pestaña Ranking como asesor y confirma que ves tu KPI de cumplimiento, tu ranking de puntos, y tu vitrina de trofeos (si ya tienes meses cumplidos en 2026, deberían aparecer ahí).
+5. Entra como Super Administrador y confirma que ves el ranking de puntos completo y la matriz de cumplimiento del equipo.
 
 ## 3. Verificado antes de empaquetar
 
-- Sintaxis validada con `node --check` en los 4 archivos JavaScript modificados: sin errores.
-- Etiquetas `<div>` en `index.html` balanceadas (259 aperturas, 259 cierres) y llaves `{}` en `styles.css` balanceadas (557 y 557).
-- Probé la Edge Function `cerrar-semana-rac` **en vivo, dos veces seguidas**, contra los datos reales de tus 7 asesores: calculó correctamente el ranking, guardó el snapshot semanal, y confirmé que ejecutarla dos veces la misma semana no duplica el registro (es segura de repetir).
-- Confirmé que los indicadores de "logro nuevo esta semana" se apagan correctamente en la segunda ejecución (no se notifica el mismo logro dos veces).
-- Simulé con casos de prueba en Node.js: el orden del ranking por venta, la asignación de medallas a los primeros 3 lugares, y el difuminado correcto según el perfil (administrador ve todo, asesor solo se ve a sí mismo) — todos los casos pasaron.
-- Simulé los 5 escenarios de la insignia de logro (sin logro nuevo, subida de nivel, racha récord, insignias nuevas, y los tres combinados) — todos calcularon la cantidad correcta de íconos.
-- Corregí en el camino un error de zona horaria en el cron: mi primer intento programó el cierre para la madrugada del domingo (hora Colombia) en vez del lunes — ya quedó corregido y confirmado contra la hora real del servidor antes de entregarte esto.
+- Sintaxis validada con `node --check` en `modulo_08_ui_ranking.js` y `version.js`: sin errores.
+- Etiquetas `<div>` (264/264) y `<section>` (63/63) en `index.html` balanceadas; llaves `{}` en `styles.css` balanceadas (583/583).
+- Probé la Edge Function `cerrar-mes-cumplimiento` **en vivo, dos veces seguidas**, contra los datos reales de tus 7 asesores + el total de equipo: calculó correctamente el cumplimiento de agosto, y confirmé que ejecutarla dos veces no duplica registros (es segura de repetir).
+- Reconstruí el histórico de cumplimiento de enero a agosto 2026 para los 7 asesores y el equipo, verificando los cálculos contra los datos reales de ventas y Meta Inicial en Supabase.
+- Simulé con casos de prueba en Node.js los 4 mensajes motivacionales (por rango de %) y la asignación de trofeo (ninguno/trofeo/trofeo destacado) — todos los casos pasaron, incluyendo los límites exactos (80%, 90%, 100%, 109%, 110%).
+- Confirmé que el cálculo de meta en el navegador (usado por el KPI y el ranking de puntos) usa las mismas funciones ya existentes en el proyecto (`metaInicialAsesorMesV2`, `metaVigenteAsesorMesV2`), evitando duplicar lógica de cálculo de metas.
+
+### Nota sobre los datos históricos
+Al revisar los datos reales para la reconstrucción, encontré dos particularidades que quiero que conozcas:
+- **Junio 2026 aparece en $0 de ventas para todos los asesores.** Es posible que falte cargar ese mes en el sistema — decidiste que se registre igual como 0% por ahora. Si más adelante cargas los datos de junio, puedo volver a correr la reconstrucción para ese mes específico.
+- **YESICA MUÑOZ tiene metas muy bajas en algunos meses** (por ejemplo $2.68 en abril), lo que generó cumplimientos por encima de 4000% en el histórico. Decidiste dejarlo tal cual sin filtrar — técnicamente correcto según los datos, pero probablemente valga la pena revisar por qué la meta de esos meses quedó tan baja para ese asesor.
 
 ## 4. Pasos para subir a GitHub
 
 1. Repositorio **RADAR-INDUSTRIAL**, rama `main`.
-2. Reemplaza los 5 archivos: `index.html`, `styles.css`, `modulo_08_ui_ranking.js`, `modulo_06_motor_rac.js`, `version.js`.
+2. Reemplaza los 4 archivos: `index.html`, `styles.css`, `modulo_08_ui_ranking.js`, `version.js`.
 3. Espera el deploy de Netlify y confirma "Published".
 4. Recarga forzada en tu navegador (Cmd+Shift+R) antes de probar.
 
 ## 5. Checklist de prueba
 
-- Entra a la pestaña Ranking como Super Administrador: debes ver el ranking de ventas con todos los nombres visibles, medallas en los primeros 3 lugares, y el switch para cambiar entre mes y acumulado del año.
-- Cambia el switch a "Acumulado del año": los montos y el orden deben actualizarse.
-- Si tienes a mano el correo/teléfono de un asesor de prueba, entra con esa cuenta y confirma que solo se ve a sí mismo nítido (con la etiqueta "(tú)"), y que el resto de sus compañeros aparece borroso, sin poder leerse.
-- Revisa la parte superior de la app (donde dice tu nombre y rol): si algún asesor tuvo un logro esta semana, debe aparecer un ícono pequeño al lado de su nombre — puedes pasar el cursor sobre él para ver de qué logro se trata.
-- Verifica que "ConAccion · V16.43 · 2026-09-08" aparece en el pie del login.
+- Entra como asesor de prueba: debes ver, en orden, el ranking de ventas, tu KPI de cumplimiento con mensaje motivacional, tu ranking de puntos (solo tu fila nítida), y tu vitrina de trofeos (si ya cumpliste meta algún mes de 2026).
+- Entra como Super Administrador: debes ver el ranking de ventas, el ranking de puntos completo (con nivel de cada asesor), y la matriz de cumplimiento mensual con la fila "Total equipo" al final.
+- Si el mes más reciente cerrado tiene el equipo por encima del 100%, debe aparecer la tarjeta de felicitación arriba de la matriz.
+- Verifica que "ConAccion · V16.44 · 2026-09-08" aparece en el pie del login.
 
 ## 6. Nota técnica (para referencia futura, no requiere acción tuya)
 
-Se desplegó una Edge Function nueva llamada `cerrar-semana-rac` en tu proyecto Supabase (RADAR-INDUSTRIAL), programada con `pg_cron` para ejecutarse todos los lunes a las 12:05 a.m. hora Colombia, siguiendo el mismo patrón de seguridad ya usado para la sincronización con el ERP (secreto compartido, sin depender de que un usuario esté logueado). También se creó la tabla `rac_logro_estado_asesor_v1` en Supabase, que guarda el nivel, racha e insignias vigentes de cada asesor, más los indicadores de "esto es nuevo esta semana" que usa la insignia junto al nombre.
+Se creó la tabla `rac_cumplimiento_mensual_v1` en Supabase (asesor, año, mes, ventas, meta, % cumplimiento, trofeo), con una fila especial `asesor='__EQUIPO__'` para el total de equipo. Se desplegó la Edge Function `cerrar-mes-cumplimiento`, programada con `pg_cron` para ejecutarse el día 1 de cada mes a las 12:10 a.m. hora Colombia, evaluando siempre el mes recién cerrado (nunca el mes en curso, para no otorgar trofeos con datos incompletos). Sigue el mismo patrón de seguridad ya usado en el resto de funciones automáticas del proyecto (secreto compartido vía `secretos_sistema_v1`, sin depender de que un usuario esté logueado).

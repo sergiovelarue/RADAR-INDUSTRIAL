@@ -198,9 +198,297 @@ async function renderPerfilRacV107() {
   `;
 }
 
+// ============================================================
+// V16.44 — Ranking de puntos (RAC) visible en la pestaña, KPI de
+// cumplimiento de meta con mensaje motivacional, vitrina de trofeos
+// del asesor, matriz de cumplimiento mensual + felicitación de
+// equipo para el administrador. Requerido y aprobado por Sergio
+// (2026-09-08), mockup previo aprobado antes de escribir código.
+//
+// El cumplimiento y el puntaje se calculan en el navegador con el
+// MISMO criterio ya usado por la Edge Function cerrar-semana-rac:
+// cumplimiento a nivel asesor (venta total del asesor / meta total
+// del asesor, con ajuste vigente si existe, si no suma de Meta
+// Inicial de sus clientes), evaluado sobre el mes operativo vigente
+// (no requiere ir a Supabase para esto — usa DATA.clientes, igual
+// que el ranking de ventas).
+//
+// La vitrina de trofeos y la matriz de cumplimiento SÍ leen de
+// Supabase (tabla rac_cumplimiento_mensual_v1), porque son datos
+// históricos cerrados mes a mes por la Edge Function
+// cerrar-mes-cumplimiento (cron el día 1 de cada mes) — no se
+// recalculan en el cliente.
+// ============================================================
+
+const RAC_MESES_NOMBRE_CORTO_V1644 = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+// Meta del asesor en el mes vigente: Meta Inicial (suma de goal(c) de
+// sus clientes, con state.month fijado temporalmente al mes vigente —
+// mismo patrón de metaInicialAsesorMesV2 en mejoras-v1.js) sobre-escrita
+// por el ajuste manual vigente si existe (metaVigenteAsesorMesV2, ya
+// definida en mejoras-v1.js y usada en el módulo de Metas).
+function metaDelAsesorMesVigenteV1644(nombreAsesor) {
+  const misClientes = (DATA.clientes || []).filter(c => c.asesorAsignado === nombreAsesor);
+  const mesVigente = typeof latestOperationalMonthV810 === "function" ? latestOperationalMonthV810() : null;
+  if (!mesVigente) return { venta: 0, meta: 0, cumplimientoPct: 0 };
+
+  const venta = misClientes.reduce((s, c) => s + (typeof saleMonthV812 === "function" ? saleMonthV812(c, 2026, mesVigente) : 0), 0);
+
+  const metaInicial = typeof metaInicialAsesorMesV2 === "function" ? metaInicialAsesorMesV2(misClientes, mesVigente) : 0;
+  const meta = typeof metaVigenteAsesorMesV2 === "function" ? metaVigenteAsesorMesV2(nombreAsesor, 2026, mesVigente, metaInicial) : metaInicial;
+
+  const cumplimientoPct = meta > 0 ? Math.round((venta / meta) * 1000) / 10 : 0;
+  return { venta, meta, cumplimientoPct };
+}
+
+function rankingPuntosCalcularV1644() {
+  const asesores = (DATA.meta && DATA.meta.asesores) || [];
+  const mesVigente = typeof latestOperationalMonthV810 === "function" ? latestOperationalMonthV810() : null;
+
+  const filas = asesores.map(nombreAsesor => {
+    const misClientes = (DATA.clientes || []).filter(c => {
+      if (typeof isBlockedV87 === "function" && isBlockedV87(c)) return false;
+      return c.asesorAsignado === nombreAsesor;
+    });
+    const { cumplimientoPct } = metaDelAsesorMesVigenteV1644(nombreAsesor);
+    const cumplimientoFrac = Math.max(0, Math.min(1, cumplimientoPct / 100));
+
+    const activos = misClientes.filter(c => {
+      const st = typeof estadoAutomaticoV1642 === "function" ? estadoAutomaticoV1642(c) : c.estado;
+      return st === "Activo" || st === "Reingreso";
+    }).length;
+    const actividad = misClientes.length ? activos / misClientes.length : 0;
+
+    const puntaje = Math.round((cumplimientoFrac * 0.7 + actividad * 0.3) * 1000) / 10;
+    return { asesor: nombreAsesor, puntaje, mesVigente };
+  });
+
+  filas.sort((a, b) => b.puntaje - a.puntaje);
+  filas.forEach((f, i) => { f.posicion = i + 1; });
+  return filas;
+}
+
+function rankingPuntosFilaHtmlV1644(f, esAdmin, nombreUsuario, nivelPorAsesor) {
+  const medalla = f.posicion <= 3 ? RAC_MEDALLAS_V107[f.posicion - 1] : null;
+  const esPropia = !esAdmin && f.asesor === nombreUsuario;
+  const debeOcultar = !esAdmin && !esPropia;
+
+  const claseFila = ["ranking-ventas-row"];
+  if (f.posicion === 1) claseFila.push("top1");
+  if (esPropia) claseFila.push("propia");
+
+  const nivel = nivelPorAsesor ? nivelPorAsesor.get(f.asesor) : null;
+  const sufijoNivel = esPropia && nivel ? ` · ${esc(nivel)}` : "";
+
+  const nombreHtml = debeOcultar
+    ? `<span class="ranking-ventas-nombre ranking-ventas-blur">${esc(f.asesor)}</span>`
+    : `<span class="ranking-ventas-nombre${esPropia ? " propia" : ""}">${esc(f.asesor)}${esPropia ? " (tú)" : ""}</span>`;
+  const valorHtml = debeOcultar
+    ? `<span class="ranking-ventas-valor ranking-ventas-blur">${f.puntaje.toFixed(1)} pts</span>`
+    : `<span class="ranking-ventas-valor">${f.puntaje.toFixed(1)} pts${sufijoNivel}</span>`;
+
+  return `
+    <div class="${claseFila.join(" ")}">
+      ${medalla ? `<span class="ranking-ventas-medalla">${medalla}</span>` : `<span class="ranking-ventas-pos">${f.posicion}</span>`}
+      ${nombreHtml}
+      ${valorHtml}
+    </div>`;
+}
+
+async function renderRankingPuntosV1644() {
+  const cont = $V107c("rankingPuntosLista");
+  const card = $V107c("rankingPuntosCard");
+  if (!cont || !card) return;
+  card.classList.remove("hidden-view");
+
+  const esAdmin = typeof isAdminV86 === "function" && isAdminV86();
+  const nombreUsuario = (!esAdmin && typeof currentUserV84 !== "undefined" && currentUserV84) ? currentUserV84.advisor : null;
+  const titulo = $V107c("rankingPuntosTitulo");
+  if (titulo) titulo.textContent = esAdmin ? "Ranking de puntos" : "Tu ranking de puntos — entre tus compañeros";
+
+  const filas = rankingPuntosCalcularV1644();
+
+  let nivelPorAsesor = null;
+  if (esAdmin && typeof supabaseClientV94 !== "undefined" && supabaseClientV94) {
+    const { data } = await supabaseClientV94.from("rac_logro_estado_asesor_v1").select("asesor, nivel");
+    nivelPorAsesor = new Map((data || []).map(r => [r.asesor, r.nivel]));
+  } else if (!esAdmin && nombreUsuario) {
+    const logro = typeof rankingLeerLogroAsesorV1642 === "function" ? await rankingLeerLogroAsesorV1642(nombreUsuario) : null;
+    nivelPorAsesor = new Map(logro ? [[nombreUsuario, logro.nivel]] : []);
+  }
+
+  cont.innerHTML = filas.length
+    ? filas.map(f => rankingPuntosFilaHtmlV1644(f, esAdmin, nombreUsuario, nivelPorAsesor)).join("")
+    : `<p class="ranking-ventas-vacio">No hay asesores registrados todavía.</p>`;
+}
+
+// ------------------------------------------------------------
+// KPI de cumplimiento de meta — solo asesor. Mensaje motivacional
+// por rango, calculado en vivo sobre el mes vigente.
+// ------------------------------------------------------------
+function rankingMensajeMotivacionalV1644(pct) {
+  if (pct >= 110) return { texto: "¡Wow, la sacaste del estadio!", clase: "excelente" };
+  if (pct >= 100) return { texto: "¡Felicitaciones, lo lograste!", clase: "cumplido" };
+  if (pct >= 90) return { texto: "¡Ya casi estás a un paso!", clase: "cerca" };
+  if (pct >= 80) return { texto: "Estás cerca, ¡vamos!", clase: "avanzando" };
+  return null;
+}
+
+function renderKpiCumplimientoV1644() {
+  const card = $V107c("rankingCumplimientoCard");
+  const cont = $V107c("rankingCumplimientoKpi");
+  if (!card || !cont) return;
+
+  const esAdmin = typeof isAdminV86 === "function" && isAdminV86();
+  const nombreUsuario = (!esAdmin && typeof currentUserV84 !== "undefined" && currentUserV84) ? currentUserV84.advisor : null;
+  if (esAdmin || !nombreUsuario) { card.classList.add("hidden-view"); return; }
+  card.classList.remove("hidden-view");
+
+  const { cumplimientoPct } = metaDelAsesorMesVigenteV1644(nombreUsuario);
+  const mensaje = rankingMensajeMotivacionalV1644(cumplimientoPct);
+
+  cont.innerHTML = `
+    <div class="ranking-kpi-cumplimiento ${mensaje ? "ranking-kpi-" + mensaje.clase : ""}">
+      <div class="ranking-kpi-valor">${cumplimientoPct.toFixed(0)}%</div>
+      ${mensaje ? `<div class="ranking-kpi-mensaje">${esc(mensaje.texto)}</div>` : `<div class="ranking-kpi-mensaje ranking-kpi-neutro">Sigue así, cada venta suma.</div>`}
+      <div class="ranking-kpi-barra"><div class="ranking-kpi-barra-fill" style="width:${Math.max(0, Math.min(100, cumplimientoPct))}%"></div></div>
+    </div>`;
+}
+
+// ------------------------------------------------------------
+// Vitrina de trofeos del asesor — histórico leído de
+// rac_cumplimiento_mensual_v1 (poblada por el cierre mensual
+// automático y por la reconstrucción histórica 2026).
+// ------------------------------------------------------------
+async function renderVitrinaTrofeosV1644() {
+  const card = $V107c("rankingVitrinaCard");
+  const grid = $V107c("rankingVitrinaGrid");
+  const vacio = $V107c("rankingVitrinaVacio");
+  if (!card || !grid) return;
+
+  const esAdmin = typeof isAdminV86 === "function" && isAdminV86();
+  const nombreUsuario = (!esAdmin && typeof currentUserV84 !== "undefined" && currentUserV84) ? currentUserV84.advisor : null;
+  if (esAdmin || !nombreUsuario) { card.classList.add("hidden-view"); return; }
+  card.classList.remove("hidden-view");
+
+  if (typeof supabaseClientV94 === "undefined" || !supabaseClientV94) return;
+  const { data, error } = await supabaseClientV94
+    .from("rac_cumplimiento_mensual_v1")
+    .select("anio, mes, cumplimiento, trofeo")
+    .eq("asesor", nombreUsuario)
+    .neq("trofeo", "ninguno")
+    .order("anio", { ascending: false })
+    .order("mes", { ascending: false });
+  if (error) { console.error("[Radar-Ranking] Error leyendo vitrina de trofeos:", error); return; }
+
+  const trofeos = data || [];
+  if (!trofeos.length) {
+    grid.innerHTML = "";
+    if (vacio) vacio.style.display = "";
+    return;
+  }
+  if (vacio) vacio.style.display = "none";
+
+  grid.innerHTML = trofeos.map(t => {
+    const icono = t.trofeo === "trofeo_destacado" ? "🏆✨" : "🏆";
+    const claseDestacado = t.trofeo === "trofeo_destacado" ? " destacado" : "";
+    return `
+      <div class="ranking-trofeo-item${claseDestacado}">
+        <div class="ranking-trofeo-icono">${icono}</div>
+        <div class="ranking-trofeo-pct">${Number(t.cumplimiento).toFixed(0)}%</div>
+        <div class="ranking-trofeo-mes">${esc(RAC_MESES_NOMBRE_CORTO_V1644[t.mes - 1] || t.mes)} ${t.anio}</div>
+      </div>`;
+  }).join("");
+}
+
+// ------------------------------------------------------------
+// Matriz de cumplimiento mensual (admin) + felicitación de equipo.
+// ------------------------------------------------------------
+async function renderMatrizCumplimientoV1644() {
+  const cardMatriz = $V107c("rankingMatrizCard");
+  const tablaCont = $V107c("rankingMatrizTabla");
+  const cardFelicitacion = $V107c("rankingFelicitacionEquipoCard");
+  const felicitacionCont = $V107c("rankingFelicitacionEquipoContenido");
+  if (!cardMatriz || !tablaCont) return;
+
+  const esAdmin = typeof isAdminV86 === "function" && isAdminV86();
+  if (!esAdmin) { cardMatriz.classList.add("hidden-view"); if (cardFelicitacion) cardFelicitacion.classList.add("hidden-view"); return; }
+  cardMatriz.classList.remove("hidden-view");
+
+  if (typeof supabaseClientV94 === "undefined" || !supabaseClientV94) return;
+  const { data, error } = await supabaseClientV94
+    .from("rac_cumplimiento_mensual_v1")
+    .select("asesor, anio, mes, cumplimiento, trofeo")
+    .order("anio", { ascending: true })
+    .order("mes", { ascending: true });
+  if (error) { console.error("[Radar-Ranking] Error leyendo matriz de cumplimiento:", error); return; }
+
+  const filas = data || [];
+  if (!filas.length) { tablaCont.innerHTML = `<p class="ranking-ventas-vacio">Todavía no hay meses cerrados.</p>`; if (cardFelicitacion) cardFelicitacion.classList.add("hidden-view"); return; }
+
+  const clavesMes = Array.from(new Set(filas.map(f => `${f.anio}-${f.mes}`)))
+    .sort((a, b) => { const [ay, am] = a.split("-").map(Number); const [by, bm] = b.split("-").map(Number); return ay === by ? am - bm : ay - by; })
+    .slice(-6); // últimos 6 meses cerrados, para no saturar la tabla
+
+  const asesoresLista = Array.from(new Set(filas.filter(f => f.asesor !== "__EQUIPO__").map(f => f.asesor))).sort();
+  const porClave = new Map(filas.map(f => [`${f.asesor}|${f.anio}-${f.mes}`, f]));
+
+  function celdaHtml(fila) {
+    if (!fila) return `<td style="text-align:center;padding:8px;color:var(--muted)">—</td>`;
+    const pct = Number(fila.cumplimiento).toFixed(0);
+    if (fila.trofeo === "trofeo_destacado") return `<td style="text-align:center;padding:8px">🏆✨<br><span style="font-size:10px;color:var(--muted)">${pct}%</span></td>`;
+    if (fila.trofeo === "trofeo") return `<td style="text-align:center;padding:8px">🏆<br><span style="font-size:10px;color:var(--muted)">${pct}%</span></td>`;
+    return `<td style="text-align:center;padding:8px;color:var(--muted)">${pct}%</td>`;
+  }
+
+  const encabezado = clavesMes.map(c => { const [anio, mes] = c.split("-").map(Number); return `<th style="padding:6px 8px;color:var(--muted);font-weight:500">${esc(RAC_MESES_NOMBRE_CORTO_V1644[mes - 1])}</th>`; }).join("");
+
+  const filasAsesores = asesoresLista.map(nombreAsesor => {
+    const celdas = clavesMes.map(c => celdaHtml(porClave.get(`${nombreAsesor}|${c}`))).join("");
+    return `<tr style="border-top:0.5px solid var(--line)"><td style="padding:8px 8px 8px 0;font-weight:500">${esc(nombreAsesor)}</td>${celdas}</tr>`;
+  }).join("");
+
+  const filaEquipo = clavesMes.map(c => celdaHtml(porClave.get(`__EQUIPO__|${c}`))).join("");
+
+  tablaCont.innerHTML = `
+    <table style="width:100%;font-size:12px;border-collapse:collapse">
+      <thead><tr><th style="text-align:left;padding:6px 8px 8px 0;color:var(--muted);font-weight:500">Asesor</th>${encabezado}</tr></thead>
+      <tbody>
+        ${filasAsesores}
+        <tr style="border-top:1.5px solid var(--dark);background:var(--card2,#f5f5f7)">
+          <td style="padding:8px 8px 8px 0;font-weight:700">Total equipo</td>${filaEquipo}
+        </tr>
+      </tbody>
+    </table>`;
+
+  // Felicitación de equipo — mes vigente (el más reciente cerrado con datos).
+  if (cardFelicitacion && felicitacionCont) {
+    const claveActual = clavesMes[clavesMes.length - 1];
+    const filaEquipoActual = claveActual ? porClave.get(`__EQUIPO__|${claveActual}`) : null;
+    if (filaEquipoActual && filaEquipoActual.trofeo !== "ninguno") {
+      const [anio, mes] = claveActual.split("-").map(Number);
+      const pct = Number(filaEquipoActual.cumplimiento).toFixed(0);
+      cardFelicitacion.classList.remove("hidden-view");
+      felicitacionCont.innerHTML = `
+        <div class="ranking-felicitacion-equipo">
+          <div class="ranking-felicitacion-icono">🏆🎉</div>
+          <div class="ranking-felicitacion-titulo">¡El equipo cumplió la meta de ${esc(RAC_MESES_NOMBRE_CORTO_V1644[mes - 1])}!</div>
+          <div class="ranking-felicitacion-detalle">${pct}% de cumplimiento total del equipo.</div>
+        </div>`;
+    } else {
+      cardFelicitacion.classList.add("hidden-view");
+      felicitacionCont.innerHTML = "";
+    }
+  }
+}
+
 function renderRankingViewV107() {
   renderRankingVentasV1642();
   renderPerfilRacV107();
+  renderKpiCumplimientoV1644();
+  renderRankingPuntosV1644();
+  renderVitrinaTrofeosV1644();
+  renderMatrizCumplimientoV1644();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
