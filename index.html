@@ -80,6 +80,19 @@
 
   <div class="subliminal-mark" aria-hidden="true">23:1</div>
 
+  <!-- ============================================================
+       V16.41 (2026-09-08) — Splash de bienvenida, solo móvil.
+       Se muestra por 2.2s antes del login (o de entrar directo si hay
+       sesión válida — ver splashOcultarV1 en app.js). En escritorio
+       queda oculto por CSS (@media, ver styles.css) y JS lo omite.
+       ============================================================ -->
+  <div class="splash-overlay" id="splashOverlay">
+    <div class="splash-icon"><img src="android-chrome-512x512.png" alt="Radar Comercial B2B"/></div>
+    <p class="splash-title">Radar Comercial B2B</p>
+    <p class="splash-subtitle">Desarrollado por ConAccion BPS<br/>para Sergio Velásquez</p>
+    <div class="splash-dots"><span></span><span></span><span></span></div>
+  </div>
+
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
       <div class="login-brand">
@@ -91,29 +104,23 @@
       </div>
 
       <div class="login-form">
-        <label>Correo autorizado</label>
-        <input type="email" id="loginEmail" placeholder="tucorreo@ejemplo.com" autocomplete="email"/>
-        <small class="field-help" id="loginEmailHelp">Escribe tu correo y presiona Tab o Continuar — el sistema detecta automáticamente tu tipo de acceso.</small>
-
         <!-- ============================================================
-             V1 Login OTP — Bloque Asesor (correo+teléfono), sin cambios
-             de comportamiento respecto a la versión anterior. Se muestra
-             cuando el correo NO está en la lista blanca de Admin/SuperAdmin.
+             V16.41 (2026-09-08) — Login simplificado: correo + teléfono
+             identifican automáticamente el rol (Super Administrador,
+             Administrador o Asesor) sin pedir elegir tipo de acceso ni
+             asesor manualmente. Se retiraron #loginRoleSelect y
+             #loginAdvisorWrapper — ver resolveUserV93/attemptLoginV84 en
+             app.js. Si el correo+teléfono no coincide con ningún registro,
+             se muestra un error pidiendo contactar al administrador (no
+             hay selector de respaldo).
              ============================================================ -->
+        <label>Correo</label>
+        <input type="email" id="loginEmail" placeholder="tucorreo@ejemplo.com" autocomplete="email"/>
+
         <div id="loginAsesorWrapper">
           <label>Teléfono celular</label>
           <input type="tel" id="loginPhone" placeholder="3001234567" autocomplete="tel"/>
-
-          <label>Tipo de acceso</label>
-          <select id="loginRoleSelect">
-            <option value="asesor">Asesor</option>
-          </select>
-          <small class="field-help">Solo la primera vez que ingresas con este correo, para registrarte como Asesor. Si ya ingresaste antes, se recuerda automáticamente.</small>
-
-          <div id="loginAdvisorWrapper">
-            <label>Asesor</label>
-            <select id="loginAdvisorSelect"></select>
-          </div>
+          <small class="field-help" id="loginEmailHelp">Identificamos tu rol automáticamente por correo y teléfono.</small>
 
           <div id="loginDatosPersonalesWrapper" class="v107-datos-personales" style="display:none">
             <label>
@@ -153,6 +160,7 @@
 
       <small class="login-note">El acceso queda registrado para seguimiento de uso interno.</small>
       <small class="login-note" id="loginVersionLabel"></small>
+      <small class="login-note" id="loginCopyrightLabel">© 2026 ConAccion BPS. Todos los derechos reservados.</small>
     </div>
   </div>
 

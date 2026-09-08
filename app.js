@@ -563,16 +563,36 @@ function isBlockedDomainV92(email){
   return String(email || "").trim().toLowerCase().endsWith(BLOCKED_DOMAIN_V92);
 }
 
-// Resuelve el usuario a partir del correo y, si es primer ingreso, del rol elegido.
-// - Bloquea el dominio @comodisimos.com.
-// - sergiovelasquez@me.com es el único Super Administrador (fijo, no se puede elegir).
-// - Cualquier otro correo, en su primer ingreso, elige "Asesor" (y a qué asesor
-//   corresponde) o "Administrador". Esa elección queda guardada localmente para
-//   los siguientes ingresos desde ese correo.
-// tier: "superadmin" | "admin" | "advisor" — usado para permisos finos.
-// profile: "admin" | "advisor" — se mantiene así por compatibilidad con la lógica
-//   existente de visibilidad (Administrador y Super Administrador ven todo).
-function resolveUserV93(email, chosenAdvisor, chosenRole){
+// V16.41 (2026-09-08) — Login simplificado: se elimina la selección manual
+// de "Tipo de acceso"/"Asesor" en el primer ingreso. Ahora el correo+
+// teléfono se buscan automáticamente contra los registros ya existentes:
+// - sergiovelasquez@me.com es el único Super Administrador (fijo).
+// - ADMIN_WHITELIST_V1 (app.js) sigue resolviendo Administrador por correo
+//   (ese flujo usa enlace OTP, no teléfono — no se tocó).
+// - Para Asesor: se busca el correo Y el teléfono escritos contra
+//   DATA.meta.asesorPerfiles[nombre].{correo,telefono}, que el
+//   administrador ya carga desde "Gestión de asesores". Si ambos
+//   coinciden con el mismo asesor, se entra directo — sin preguntar nada.
+// Si el correo no está registrado en ningún lado (ni admin ni asesor con
+// ese correo+teléfono), se informa que debe darlo de alta el
+// administrador — no hay selector de respaldo (decisión explícita de
+// Sergio, 2026-09-08).
+function buscarAsesorPorCorreoYTelefonoV1641(email, telefono){
+  const perfiles = (DATA.meta && DATA.meta.asesorPerfiles) || {};
+  const emailNorm = String(email || "").trim().toLowerCase();
+  const telNorm = String(telefono || "").replace(/\D/g, "");
+  for(const nombre of Object.keys(perfiles)){
+    const p = perfiles[nombre] || {};
+    const correoPerfil = String(p.correo || "").trim().toLowerCase();
+    const telPerfil = String(p.telefono || "").replace(/\D/g, "");
+    if(correoPerfil && correoPerfil === emailNorm && telPerfil && telPerfil === telNorm){
+      return nombre;
+    }
+  }
+  return null;
+}
+
+function resolveUserV93(email, telefono){
   email = String(email || "").trim().toLowerCase();
   if(isBlockedDomainV92(email)) return { blocked: true };
 
@@ -580,29 +600,12 @@ function resolveUserV93(email, chosenAdvisor, chosenRole){
     return { user: { profile: "admin", tier: "superadmin", advisor: "SUPER ADMINISTRADOR", name: "SERGIO VELÁSQUEZ" } };
   }
 
-  const map = advisorEmailMapV92Get();
-  let entry = map[email];
-
-  if(!entry){
-    if(chosenRole === "administrador"){
-      entry = { role: "administrador" };
-      map[email] = entry;
-      advisorEmailMapV92Save(map);
-    } else if(chosenAdvisor){
-      entry = { role: "advisor", advisor: chosenAdvisor };
-      map[email] = entry;
-      advisorEmailMapV92Save(map);
-    }
+  const asesorEncontrado = buscarAsesorPorCorreoYTelefonoV1641(email, telefono);
+  if(asesorEncontrado){
+    return { user: { profile: "advisor", tier: "advisor", advisor: asesorEncontrado, name: asesorEncontrado } };
   }
 
-  if(!entry) return { needsSelection: true };
-
-  if(entry.role === "administrador"){
-    const label = email.split("@")[0].replace(/[._]+/g, " ").trim().toUpperCase();
-    return { user: { profile: "admin", tier: "admin", advisor: "ADMINISTRADOR", name: label || "ADMINISTRADOR" } };
-  }
-
-  return { user: { profile: "advisor", tier: "advisor", advisor: entry.advisor, name: entry.advisor } };
+  return { notFound: true };
 }
 
 function isSuperAdminV93(){
@@ -645,13 +648,39 @@ function logAccessV84(user, phone){
   saveAccessLogsV84(logs);
 }
 
+// V16.41 (2026-09-08) — la sesión guardada ahora vence automáticamente:
+// (a) al cambiar de día calendario (medianoche) desde que se inició
+// sesión, o (b) si se detecta que la versión de la app (window.RADAR_
+// VERSION) cambió desde entonces — cualquiera de las dos cierra la
+// sesión y vuelve a pedir correo+teléfono. Mientras no ocurra ninguna,
+// la persona entra directo sin repetir el login. Se guardan
+// savedAtDate (fecha calendario "AAAA-MM-DD", zona local) y
+// savedVersion junto con el resto de la sesión.
 function setSessionV84(user, phone, remember){
-  currentUserV84 = { ...user, phone: String(phone || "").replace(/\D/g, "") };
+  currentUserV84 = {
+    ...user,
+    phone: String(phone || "").replace(/\D/g, ""),
+    savedAtDate: fechaCalendarioLocalV1641(),
+    savedVersion: typeof window.RADAR_VERSION === "string" ? window.RADAR_VERSION : ""
+  };
   if(remember){
     localStorage.setItem("radarSessionV84", JSON.stringify(currentUserV84));
   } else {
     sessionStorage.setItem("radarSessionV84", JSON.stringify(currentUserV84));
   }
+}
+
+function fechaCalendarioLocalV1641(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function sesionVigenteV1641(saved){
+  if(!saved) return false;
+  if(saved.savedAtDate && saved.savedAtDate !== fechaCalendarioLocalV1641()) return false;
+  const versionActual = typeof window.RADAR_VERSION === "string" ? window.RADAR_VERSION : "";
+  if(saved.savedVersion && versionActual && saved.savedVersion !== versionActual) return false;
+  return true;
 }
 
 function getSessionV84(){
@@ -710,18 +739,14 @@ function attemptLoginV84(){
     return;
   }
 
-  const roleSelect = $("loginRoleSelect");
-  const chosenRole = roleSelect ? roleSelect.value : "asesor";
-  const advisorSelect = $("loginAdvisorSelect");
-  const chosenAdvisor = advisorSelect ? advisorSelect.value : "";
-  const resolved = resolveUserV93(email, chosenAdvisor, chosenRole);
+  const resolved = resolveUserV93(email, phone);
 
   if(resolved.blocked){
     error.textContent = "Este dominio de correo ya no está autorizado para ingresar a Radar.";
     return;
   }
-  if(resolved.needsSelection){
-    error.textContent = "Primer ingreso: selecciona a qué asesor corresponde este correo, o elige \"Administrador\" si aplica.";
+  if(resolved.notFound){
+    error.textContent = "Este correo y teléfono no están registrados. Contacta a tu administrador para que te dé de alta en Gestión de asesores.";
     return;
   }
 
@@ -1023,25 +1048,26 @@ render = function(){
   }
 };
 
+// V16.41 (2026-09-08) — Splash de bienvenida, solo móvil. El overlay
+// (#splashOverlay) ya está oculto por CSS en escritorio (@media
+// max-width:600px lo activa) — aquí solo se controla el temporizador de
+// ocultado en el caso en que sí es visible. Mínimo 1.8s en pantalla
+// (para que se alcance a percibir, aunque la app cargue muy rápido) y
+// máximo 2.5s (para no demorar a alguien con conexión lenta más de lo
+// razonable) — el login queda disponible debajo en cuanto el splash
+// termina de desvanecerse.
+function splashOcultarV1641(){
+  const splash = $("splashOverlay");
+  if(!splash) return;
+  splash.classList.add("splash-hide");
+  setTimeout(() => { splash.style.display = "none"; }, 450);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(splashOcultarV1641, 1800);
+
   const loginBtn = $("loginBtn");
   if(loginBtn) loginBtn.addEventListener("click", attemptLoginV84);
-
-  const advisorSelect = $("loginAdvisorSelect");
-  if(advisorSelect){
-    advisorSelect.innerHTML = '<option value="">Selecciona tu asesor</option>' +
-      (DATA.meta.asesores || []).map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
-  }
-
-  const roleSelect = $("loginRoleSelect");
-  const advisorWrapper = $("loginAdvisorWrapper");
-  if(roleSelect && advisorWrapper){
-    const syncAdvisorWrapper = () => {
-      advisorWrapper.style.display = roleSelect.value === "administrador" ? "none" : "";
-    };
-    syncAdvisorWrapper();
-    roleSelect.addEventListener("change", syncAdvisorWrapper);
-  }
 
   ["loginEmail","loginPhone"].forEach(id => {
     const el = $(id);
@@ -1053,7 +1079,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const saved = getSessionV84();
-  const savedOk = saved && saved.email && !isBlockedDomainV92(saved.email) &&
+  const savedOk = saved && saved.email && !isBlockedDomainV92(saved.email) && sesionVigenteV1641(saved) &&
     (saved.email === ADMIN_EMAIL_V92 ||
      saved.tier === "admin" ||
      (saved.advisor && (DATA.meta.asesores || []).includes(saved.advisor)));

@@ -472,11 +472,34 @@ input,select,textarea{font-size:16px}
 
 
 /* V8.4 - Acceso seguro y uso */
+/* ============================================================
+   V16.41 (2026-09-08) — Rediseño premium del acceso + splash móvil.
+   ------------------------------------------------------------
+   Antes el login era una tarjeta blanca genérica sobre fondo azul.
+   Se cambia a un panel con degradado oscuro (mismo tono que el fondo
+   del overlay, así la tarjeta se siente parte del mismo diseño en
+   vez de "flotar" encima) e inputs semitransparentes con acento azul,
+   buscando una apariencia más elaborada/corporativa acorde a que la
+   app maneja datos comerciales sensibles.
+   ============================================================ */
+@keyframes radarLogoPulseV1641{
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+@keyframes radarFadeUpV1641{
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes radarDotV1641{
+  0%, 80%, 100% { opacity: .25; }
+  40% { opacity: 1; }
+}
+
 .login-overlay {
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: linear-gradient(135deg, #0f172a, #1e3a8a);
+  background: radial-gradient(circle at 30% 20%, #16233f, #0a1122 70%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -489,10 +512,11 @@ input,select,textarea{font-size:16px}
 
 .login-card {
   width: min(460px, 100%);
-  background: white;
+  background: linear-gradient(180deg, #101c33, #0c1526);
+  border: 1px solid rgba(255,255,255,.08);
   border-radius: 28px;
   padding: 28px;
-  box-shadow: 0 32px 90px rgba(0,0,0,.35);
+  box-shadow: 0 32px 90px rgba(0,0,0,.45);
 }
 
 .login-brand {
@@ -515,6 +539,7 @@ input,select,textarea{font-size:16px}
   justify-content: center;
   position: relative;
   overflow: hidden;
+  animation: radarLogoPulseV1641 2.4s ease-in-out infinite;
 }
 
 .login-icon img {
@@ -530,28 +555,44 @@ input,select,textarea{font-size:16px}
 .login-brand h1 {
   margin: 0;
   font-size: 24px;
+  color: #f8fafc;
 }
 
 .login-brand p {
   margin: 4px 0 0;
-  color: #6b7280;
+  color: #7c93bd;
 }
 
 .login-form label {
   display: block;
   font-size: 12px;
   font-weight: 900;
-  color: #374151;
+  color: #a9bbdb;
   margin: 12px 0 6px;
+  letter-spacing: .02em;
 }
 
 .login-form input[type="email"],
 .login-form input[type="tel"] {
   width: 100%;
-  border: 1px solid #d1d5db;
+  border: 1px solid rgba(255,255,255,.14);
   border-radius: 14px;
   padding: 12px 14px;
   font-size: 16px;
+  background: rgba(255,255,255,.05);
+  color: #f1f5f9;
+}
+
+.login-form input[type="email"]::placeholder,
+.login-form input[type="tel"]::placeholder {
+  color: #5f7398;
+}
+
+.login-form input[type="email"]:focus,
+.login-form input[type="tel"]:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: rgba(255,255,255,.08);
 }
 
 .remember-row {
@@ -559,16 +600,24 @@ input,select,textarea{font-size:16px}
   align-items: center;
   gap: 8px;
   font-weight: 700 !important;
-  color: #6b7280 !important;
+  color: #a9bbdb !important;
 }
 
 .login-btn {
   width: 100%;
   margin-top: 12px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  font-weight: 800;
+}
+
+.login-btn:hover {
+  background: #1d4ed8;
 }
 
 .login-error {
-  color: #dc2626;
+  color: #f87171;
   font-weight: 800;
   min-height: 20px;
   margin: 12px 0 0;
@@ -576,15 +625,15 @@ input,select,textarea{font-size:16px}
 
 .login-note {
   display: block;
-  color: #6b7280;
+  color: #5f7398;
   margin-top: 14px;
   text-align: center;
 }
 
 .login-otp-note {
-  background: #ECFDF5;
-  border: 1.5px solid #A7F3D0;
-  color: #065F46;
+  background: rgba(16,185,129,.12);
+  border: 1.5px solid rgba(16,185,129,.35);
+  color: #6ee7b7;
   border-radius: 10px;
   padding: 12px 14px;
   margin-top: 14px;
@@ -596,12 +645,108 @@ input,select,textarea{font-size:16px}
 .login-form select#loginAdvisorSelect,
 .login-form select#loginRoleSelect {
   width: 100%;
-  border: 1px solid #d1d5db;
+  border: 1px solid rgba(255,255,255,.14);
   border-radius: 14px;
   padding: 12px 14px;
   font-size: 16px;
-  background: white;
+  background: rgba(255,255,255,.05);
+  color: #f1f5f9;
 }
+
+.v107-datos-personales{
+  margin: 12px 0;
+}
+.v107-datos-personales label{
+  display: flex !important;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+  font-weight: 500;
+  color: #7c93bd;
+  line-height: 1.5;
+  margin: 0;
+}
+.v107-datos-personales input[type="checkbox"]{
+  width: auto;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+}
+
+/* Splash de bienvenida — solo dispositivos móviles (max-width:600px).
+   En escritorio queda oculto por completo: la carga ahí es casi
+   instantánea y un splash de pantalla completa se sentiría fuera de
+   lugar en un navegador de escritorio. Ver splashOcultarV1 en app.js
+   para el temporizador/fade-out. */
+.splash-overlay{
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: radial-gradient(circle at 30% 20%, #16233f, #0a1122 70%);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  transition: opacity .4s ease;
+}
+.splash-overlay.splash-hide{
+  opacity: 0;
+  pointer-events: none;
+}
+@media (max-width: 600px){
+  .splash-overlay{ display: flex; }
+}
+.splash-icon{
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(147,197,253,.25);
+  animation: radarLogoPulseV1641 2.2s ease-in-out infinite;
+}
+.splash-icon img{
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+}
+.splash-title{
+  color: #f8fafc;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+  animation: radarFadeUpV1641 .5s ease-out .1s both;
+}
+.splash-subtitle{
+  color: #93a5c4;
+  font-size: 11px;
+  margin: 0;
+  text-align: center;
+  line-height: 1.5;
+  animation: radarFadeUpV1641 .5s ease-out .3s both;
+}
+.splash-dots{
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+}
+.splash-dots span{
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #60a5fa;
+  animation: radarDotV1641 1.4s ease-in-out infinite;
+}
+.splash-dots span:nth-child(2){ animation-delay: .2s; }
+.splash-dots span:nth-child(3){ animation-delay: .4s; }
 
 .superadmin-only-hidden {
   display: none !important;
